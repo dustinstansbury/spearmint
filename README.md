@@ -1,10 +1,8 @@
-# ✨ABracadabra✨
-![MIT License](https://img.shields.io/github/license/quizlet/spearmint)
-[![quizlet](https://circleci.com/gh/quizlet/abracadspearmint.svg?style=shield)](https://circleci.com/gh/quizlet/spearmint)
-![Coverage](https://codecov.io/gh/quizlet/spearmint/branch/master/graph/badge.svg)
+# ✨ Spearmint ✨
+![MIT License](https://img.shields.io/github/license/dustinstansbury/spearmint)
+[![dustinstansbury](https://circleci.com/gh/dustinstansbury/spearmint.svg?style=shield)](https://circleci.com/gh/dustinstansbury/spearmint)
+![Coverage](https://codecov.io/gh/dustinstansbury/spearmint/branch/master/graph/badge.svg)
 
-
-✨ABracadabra✨ is a Python framework consisting of statistical tools and a convenient API specialized for running hypothesis tests on observational experiments (aka “AB Tests” in the tech world). The framework has driven [Quizlet](https://quizlet.com)’s experimentation pipeline since 2018.
 
 ## Features
 - Offers a simple and intuitive, yet powerful API for running, visualizing, and interpreting statistically-rigorous hypothesis tests with none of the hastle of jumping between various statistical or visualization packages.
@@ -34,7 +32,7 @@
 ## Installation
 
 ### Requirements
-- ✨ABracadabra✨ has been tested on `python>=3.7`.
+- spearmint has been tested on `python>=3.10`.
 
 ### Install via `pip`
 #### from the PyPI index (recommended)
@@ -46,23 +44,23 @@ pip install spearmint
 #### from Quizlet's Github repo
 
 ```bash
-pip install git+https://github.com/quizlet/abracadspearmint.git
+pip install git+https://github.com/dustinstansbury/spearmint.git
 ```
 
 ### Install from source
-If you would like to contribute to ✨ABracadabra✨, then you'll probably want to install from source (or use the `-e` flag when installing from `PyPI`):
+If you would like to contribute to spearmint, then you'll probably want to install from source (or use the `-e` flag when installing from `PyPI`):
 
 ```bash
 mkdir /PATH/TO/LOCAL/SPEARMINT && cd /PATH/TO/LOCAL/SPEARMINT
-git clone git@github.com:quizlet/abracadspearmint.git
+git clone git@github.com:dustinstansbury/spearmint.git
 cd spearmint
 python setup.py develop
 ```
 
-## ✨ABracadabra✨ Basics
+## spearmint Basics
 
 ### Observations data
-✨ABracadabra✨ takes as input a [pandas](https://pandas.pydata.org/) `DataFrame` containing experiment observations data. Each record represents an observation/trial recorded in the experiment and has the following columns:
+Spearmint takes as input a [pandas](https://pandas.pydata.org/) `DataFrame` containing experiment observations data. Each record represents an observation/trial recorded in the experiment and has the following columns:
 
 - **One or more `treatment` columns**: each treatment column contains two or more distinct, discrete values that are used to identify the different groups in the experiment
 - **One or more `metric` columns**: these are the values associated with each observation that are used to compare groups in the experiment.
@@ -92,7 +90,7 @@ experiment_observations.head()
 """
 ```
 
-### Running an AB test in ✨ABracadabra✨ is as easy as ✨123✨:
+### Running an AB test in spearmint is as easy as ✨123✨:
 
 The three key components of running an AB test are:
 
@@ -100,7 +98,7 @@ The three key components of running an AB test are:
 - **The `HypothesisTest`**, which defines the hypothesis and statistical inference method applied to the experiment data.
 - **The `HypothesisTestResults`**, which is the statistical artifact that results from running a `HypothesisTest` against an `Experiment`'s observations. The `HypothesisTestResults` are used to summarize, visualize, and interpret the inference results and make decisions based on these results.
 
-Thus running an hypothesiss test in ✨ABracadabra✨ follows the basic 123 pattern:
+Thus running an hypothesiss test in spearmint follows the basic 123 pattern:
 
 1. Initialize your `Experiment` with observations and (optionally) any associated metadata.
 2. Define your `HypothesisTest`. This requires defining the `hypothesis` and a relevant `inference_method`, which will depend on the support of your observations.
@@ -110,7 +108,7 @@ We now demonstrate how to run and analyze a hypothesis test on the artificial ob
 
 In addition to the `inference_method`, we also want to establish the `hypothesis` we want to test. In other words, if we find a significant difference in conversion rates, do we expect one group to be larger or smaller than the other. In this test we'll test that the `variation` group `"C"`has a `"larger"` average conversion rate than the `control` group `"A"`.
 
-Below we show how to run such a test in ✨ABracadabra✨.
+Below we show how to run such a test in spearmint.
 
 ```python
 # Running an AB Test is as easy as 1, 2, 3
