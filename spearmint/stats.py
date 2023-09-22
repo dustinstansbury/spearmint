@@ -1,7 +1,5 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-from abra.config import DEFAULT_ALPHA, logger
-from abra.mixin import InitRepr
+from spearmint.config import DEFAULT_ALPHA, logger
+from spearmint.mixin import InitRepr
 from statsmodels.stats.api import DescrStatsW, CompareMeans
 from statsmodels.distributions.empirical_distribution import ECDF
 from statsmodels.stats.power import tt_ind_solve_power, zt_ind_solve_power
@@ -12,7 +10,7 @@ from pandas import DataFrame
 import numpy as np
 
 
-CORRECTIONS = {'b': 'bonferroni', 's': 'sidak', 'bh': 'fdr_bh'}
+CORRECTIONS = {"b": "bonferroni", "s": "sidak", "bh": "fdr_bh"}
 
 
 def bonferroni(alpha_orig, p_values):
@@ -54,7 +52,7 @@ def sidak(alpha_orig, p_values):
     alpha_corrected: float
         new critical value (i.e. the corrected alpha)
     """
-    return 1. - (1. - alpha_orig) ** (1. / len(p_values))
+    return 1.0 - (1.0 - alpha_orig) ** (1.0 / len(p_values))
 
 
 def fdr_bh(fdr, p_values):
@@ -89,11 +87,7 @@ def fdr_bh(fdr, p_values):
 
 
 def estimate_experiment_sample_sizes(
-    delta,
-    statistic='z',
-    alpha=.05,
-    power=.8,
-    *args, **kwargs
+    delta, statistic="z", alpha=0.05, power=0.8, *args, **kwargs
 ):
     """
     Calculate the sample size required for each treatement in order to observe a
@@ -163,10 +157,10 @@ def estimate_experiment_sample_sizes(
     )
     # [8590, 4295]
     """
-    if statistic in ('t', 'z'):
+    if statistic in ("t", "z"):
         # std_control and/or std_variation are in *args, or **kwargs
         return cohens_d_sample_size(delta, alpha, power, statistic, *args, **kwargs)
-    elif statistic == 'rates_ratio':
+    elif statistic == "rates_ratio":
         return ratio_sample_size(alpha, power, delta, *args, **kwargs)
     else:
         raise ValueError("Unknown statistic")
@@ -174,7 +168,7 @@ def estimate_experiment_sample_sizes(
 
 def cohens_d(delta, std_control, std_variation=None):
     std_variation = std_variation if std_variation else std_control
-    std_pooled = np.sqrt((std_control ** 2 + std_variation ** 2) / 2.)
+    std_pooled = np.sqrt((std_control**2 + std_variation**2) / 2.0)
     return delta / std_pooled
 
 
@@ -185,7 +179,7 @@ def cohens_d_sample_size(
     statistic,
     std_control,
     std_variation=None,
-    sample_size_ratio=1.
+    sample_size_ratio=1.0,
 ):
     """
     Calculate sample size required to observe a significantly reliable difference
@@ -236,23 +230,22 @@ def cohens_d_sample_size(
     Cohen, J. (1988). Statistical power analysis for the behavioral sciences
         (2nd ed.). Hillsdale, NJ: Lawrence Earlbaum Associates.
     """
-    SUPPORTED_STATISTICS = ('t', 'z')
+    SUPPORTED_STATISTICS = ("t", "z")
     effect_size = cohens_d(delta, std_control, std_variation)
 
     if statistic in SUPPORTED_STATISTICS:
         power_func = "{}t_ind_solve_power".format(statistic)
         N1 = int(
             eval(power_func)(
-                effect_size,
-                alpha=alpha,
-                power=power,
-                ratio=sample_size_ratio
+                effect_size, alpha=alpha, power=power, ratio=sample_size_ratio
             )
         )
         N2 = int(N1 * sample_size_ratio)
         return [N1, N2]
     else:
-        raise ValueError("Unknown statistic, must be either {!r}".format(SUPPORTED_STATISTICS))
+        raise ValueError(
+            "Unknown statistic, must be either {!r}".format(SUPPORTED_STATISTICS)
+        )
 
 
 def ratio_sample_size(
@@ -260,10 +253,10 @@ def ratio_sample_size(
     power,
     delta,
     control_rate,
-    control_exposure_time=1.,
-    null_ratio=1.,
-    sample_size_ratio=1.,
-    exposure_time_ratio=1.
+    control_exposure_time=1.0,
+    null_ratio=1.0,
+    sample_size_ratio=1.0,
+    exposure_time_ratio=1.0,
 ):
     """
     Calculate sample size required to observe a significantly reliable ratio of
@@ -331,7 +324,9 @@ def ratio_sample_size(
     z_power = norm.ppf(power)
 
     def objective(x):
-        ratio_proposed = (x[1] * variation_exposure_time) / (x[0] * control_exposure_time)
+        ratio_proposed = (x[1] * variation_exposure_time) / (
+            x[0] * control_exposure_time
+        )
         loss = np.abs(null_ratio - (alternative_ratio / ratio_proposed))
         return loss
 
@@ -344,13 +339,15 @@ def ratio_sample_size(
 
         N1, N2 = x
         d = (control_exposure_time * N1) / (variation_exposure_time * N2)
-        A = 2 * (1. - np.sqrt(null_ratio / alternative_ratio))
+        A = 2 * (1.0 - np.sqrt(null_ratio / alternative_ratio))
         C = np.sqrt((null_ratio + d) / alternative_ratio)
         D = np.sqrt((alternative_ratio + d) / alternative_ratio)
-        return x[0] - (((z_alpha * C + z_power * D) / A) ** 2. - (3. / 8)) / (control_exposure_time * control_rate)
+        return x[0] - (((z_alpha * C + z_power * D) / A) ** 2.0 - (3.0 / 8)) / (
+            control_exposure_time * control_rate
+        )
 
-    constraint1 = {'type': 'eq', 'fun': con1}
-    constraint2 = {'type': 'eq', 'fun': con2}
+    constraint1 = {"type": "eq", "fun": con1}
+    constraint2 = {"type": "eq", "fun": con2}
     constraints = [constraint1, constraint2]
 
     results = optimize.minimize(
@@ -358,8 +355,8 @@ def ratio_sample_size(
         (10, 10),
         bounds=((1, None), (1, None)),
         constraints=constraints,
-        method='SLSQP',
-        tol=1e-10
+        method="SLSQP",
+        tol=1e-10,
     )
 
     return [int(np.ceil(n)) for n in results.x]
@@ -383,11 +380,12 @@ class MultipleComparisonCorrection(InitRepr):
         For each probablity, whether or not to reject the null hypothsis given
         the updated values for alpha.
     """
-    __ATTRS__ = ['ntests', 'method', 'alpha_orig', 'alpha_corrected']
 
-    def __init__(self, p_values, method='sidak', alpha=DEFAULT_ALPHA):
+    __ATTRS__ = ["ntests", "method", "alpha_orig", "alpha_corrected"]
+
+    def __init__(self, p_values, method="sidak", alpha=DEFAULT_ALPHA):
         if method not in set(list(CORRECTIONS.keys()) + list(CORRECTIONS.values())):
-            raise ValueError('Correction method {!r} not supported'.format(method))
+            raise ValueError("Correction method {!r} not supported".format(method))
 
         self.method = CORRECTIONS[method] if method in CORRECTIONS else method
         self.alpha_orig = alpha
@@ -401,6 +399,7 @@ class EmpiricalCdf(object):
     Class that calculates the empirical cumulative distribution function for a
     set of samples. Performs some additional cacheing for performance.
     """
+
     def __init__(self, samples):
         self.samples = samples
         self._cdf = ECDF(samples)
@@ -411,7 +410,7 @@ class EmpiricalCdf(object):
         Return the cdf evaluated at those samples used to calculate the cdf
         parameters.
         """
-        if not hasattr(self, '_samples_cdf'):
+        if not hasattr(self, "_samples_cdf"):
             self._samples_cdf = self.evaluate(sorted(self.samples))
         return self._samples_cdf
 
@@ -437,8 +436,8 @@ class Samples(DescrStatsW):
     samples: array-like
         the data set of sample values
     """
-    def __init__(self, observations, name=None):
 
+    def __init__(self, observations, name=None):
         self.name = name
         observations = self._valid_observations(observations)
         super(Samples, self).__init__(np.array(observations))
@@ -455,9 +454,9 @@ class Samples(DescrStatsW):
         if self.name:
             name_string = "{!r}".format(self.name)
         else:
-            name_string = ''
+            name_string = ""
         if not observations:
-            raise ValueError('All {} observations are nan or None'.format(name_string))
+            raise ValueError("All {} observations are nan or None".format(name_string))
         else:
             return observations
 
@@ -467,13 +466,15 @@ class Samples(DescrStatsW):
 Summary:
 𝛮  : {}
 𝝁  : {:1.4f}
-𝝈² : {:1.4f}""".format(header, self.nobs, self.mean, self.var)
+𝝈² : {:1.4f}""".format(
+            header, self.nobs, self.mean, self.var
+        )
 
     def permute(self):
         return np.random.choice(self.data, int(self.nobs))
 
     def sort(self):
-        if not hasattr(self, '_sorted'):
+        if not hasattr(self, "_sorted"):
             self._sorted = sorted(self.data)
         return self._sorted
 
@@ -482,7 +483,7 @@ Summary:
 
     @property
     def cdf(self):
-        if not hasattr(self, '_cdf'):
+        if not hasattr(self, "_cdf"):
             self._cdf = EmpiricalCdf(self.data)
         return self._cdf
 
@@ -493,7 +494,7 @@ Summary:
         """
         return 1.0 - self.cdf(np.asarray(values, dtype=float))
 
-    def ci(self, alpha=.05, alternative='two-sided'):
+    def ci(self, alpha=0.05, alternative="two-sided"):
         """
         Calculate the (1-alpha)-th confidence interval around the mean.
         Assumes Gaussian approximation.
@@ -505,19 +506,19 @@ Summary:
         """
         return self.zconfint_mean(alpha, alternative)[:2]
 
-    def std_err(self, alpha=.05, alternative='two-sided'):
+    def std_err(self, alpha=0.05, alternative="two-sided"):
         """
         Returns
         -------
         std_err : tuple (lo, hi)
             the standard error interval around the mean estimate.
         """
-        _alpha = alpha / 2. if alternative == 'two-sided' else alpha
+        _alpha = alpha / 2.0 if alternative == "two-sided" else alpha
         z = norm.ppf(1 - _alpha)
-        ci = z * (self.var / self.nobs) ** .5
+        ci = z * (self.var / self.nobs) ** 0.5
         return self.mean - ci, self.mean + ci
 
-    def hdi(self, alpha=.05):
+    def hdi(self, alpha=0.05):
         """
         Calcualte the highest central density interval that leaves `alpha`
         probability remaining.
@@ -547,9 +548,10 @@ Summary:
 
         """
         from matplotlib import pyplot as plt
+
         pl = plt.hist(self.data.astype(float), *hist_args, **hist_kwargs)
         if ref_val is not None:
-            plt.axvline(ref_val, c='gray', linestyle='--', linewidth=2)
+            plt.axvline(ref_val, c="gray", linestyle="--", linewidth=2)
         return pl
 
     def plot_probability(self, *args, **kwargs):
@@ -582,11 +584,15 @@ class MeanComparison(CompareMeans):
             'smaller'
             'unequal' (i.e. two-tailed test)
     """
-    def __init__(self, samples_a, samples_b,
-                 alpha=DEFAULT_ALPHA,
-                 test_statistic='t',
-                 hypothesis='larger'):
 
+    def __init__(
+        self,
+        samples_a,
+        samples_b,
+        alpha=DEFAULT_ALPHA,
+        test_statistic="t",
+        hypothesis="larger",
+    ):
         super(MeanComparison, self).__init__(samples_a, samples_b)
 
         self.alpha = alpha
@@ -596,7 +602,9 @@ class MeanComparison(CompareMeans):
 
     @property
     def pooled_variance(self):
-        return ((self.d2.nobs - 1) * self.d2.var + (self.d1.nobs - 1) * self.d1.var) / (self.d2.nobs + self.d1.nobs - 2)
+        return ((self.d2.nobs - 1) * self.d2.var + (self.d1.nobs - 1) * self.d1.var) / (
+            self.d2.nobs + self.d1.nobs - 2
+        )
 
     @property
     def delta(self):
@@ -612,7 +620,7 @@ class MeanComparison(CompareMeans):
 
     @property
     def test_direction(self):
-        return self.hypothesis if self.hypothesis != 'unequal' else 'two-sided'
+        return self.hypothesis if self.hypothesis != "unequal" else "two-sided"
 
     @property
     def power(self):
@@ -628,7 +636,7 @@ class MeanComparison(CompareMeans):
             nobs1=self.d2.nobs,
             alpha=self.alpha,
             ratio=ratio,
-            alternative=self.test_direction
+            alternative=self.test_direction,
         )
 
 
@@ -653,14 +661,16 @@ class ProportionComparison(MeanComparison):
             'smaller'
             'unequal' (i.e. two-tailed test)
     """
-    def __init__(self, variance_assumption='pooled', *args, **kwargs):
 
-        super(ProportionComparison, self).__init__(test_statistic='z', *args, **kwargs)
+    def __init__(self, variance_assumption="pooled", *args, **kwargs):
+        super(ProportionComparison, self).__init__(test_statistic="z", *args, **kwargs)
         nobs = min(self.d1.nobs, self.d2.nobs)
 
         # to use Normal approx, must have large N
         if nobs < 30:
-            warning = 'Normality assumption violated, at least 30 observations required. Smallest sample size is {}'.format(nobs)
+            warning = "Normality assumption violated, at least 30 observations required. Smallest sample size is {}".format(
+                nobs
+            )
             logger.warn(warning)
             self.warnings.append(warning)
 
@@ -668,12 +678,14 @@ class ProportionComparison(MeanComparison):
 
     @property
     def pooled_variance(self):
-        if self.variance_assumption == 'pooled':
+        if self.variance_assumption == "pooled":
             p1 = self.d1.mean
             p2 = self.d2.mean
             var1 = p1 * (1 - p1)
             var2 = p2 * (1 - p2)
-            return ((self.d1.nobs - 1) * var1 + (self.d2.nobs - 1) * var2) / (self.d1.nobs + self.d2.nobs - 2)
+            return ((self.d1.nobs - 1) * var1 + (self.d2.nobs - 1) * var2) / (
+                self.d1.nobs + self.d2.nobs - 2
+            )
         else:  # global variance
             p = np.mean(np.r_[self.d1.data, self.d2.data])
             return p * (1 - p)
@@ -685,9 +697,7 @@ class ProportionComparison(MeanComparison):
         n_2 = self.d2.nobs
         s_2 = sum(self.d2.data)
         return proportions_ztest(
-            [s_1, s_2], [n_1, n_2],
-            alternative=self.test_direction,
-            prop_var=prop_var
+            [s_1, s_2], [n_1, n_2], alternative=self.test_direction, prop_var=prop_var
         )
 
 
@@ -716,9 +726,9 @@ class RateComparison(MeanComparison):
     Gu, Ng, Tang, Schucany 2008: Testing the Ratio of Two Poisson Rates,
     Biometrical Journal 50 (2008) 2, 2008
     """
-    def __init__(self, null_ratio=1., *args, **kwargs):
 
-        super(RateComparison, self).__init__(test_statistic='W', *args, **kwargs)
+    def __init__(self, null_ratio=1.0, *args, **kwargs):
+        super(RateComparison, self).__init__(test_statistic="W", *args, **kwargs)
         self.null_ratio = null_ratio
 
     @property
@@ -727,7 +737,9 @@ class RateComparison(MeanComparison):
         Return the comparison ratio of the null rates ratio and the observed
         rates ratio.
         """
-        actual_ratio = float(self.d1.sum * self.d1.nobs) / float(self.d2.sum * self.d2.nobs)
+        actual_ratio = float(self.d1.sum * self.d1.nobs) / float(
+            self.d2.sum * self.d2.nobs
+        )
         return self.null_ratio / actual_ratio
 
     @property
@@ -756,13 +768,20 @@ class RateComparison(MeanComparison):
         X1, X2 = self.d2.sum, self.d1.sum
         t1, t2 = self.d2.nobs, self.d1.nobs
         d = float(t1) / t2
-        W = 2 * (np.sqrt(X2 + (3. / 8)) - np.sqrt((self.null_ratio / d) * (X1 + (3. / 8)))) / np.sqrt(1 + (self.null_ratio / d))
+        W = (
+            2
+            * (
+                np.sqrt(X2 + (3.0 / 8))
+                - np.sqrt((self.null_ratio / d) * (X1 + (3.0 / 8)))
+            )
+            / np.sqrt(1 + (self.null_ratio / d))
+        )
 
-        if self.hypothesis == 'larger':
+        if self.hypothesis == "larger":
             p_val = 1 - norm.cdf(W)
-        elif self.hypothesis == 'smaller':
+        elif self.hypothesis == "smaller":
             p_val = norm.cdf(W)
-        elif self.hypothesis == 'unequal':
+        elif self.hypothesis == "unequal":
             p_val = 1 - norm.cdf(abs(W))
 
         return W, p_val
@@ -789,8 +808,8 @@ class RateComparison(MeanComparison):
 
         d = float(t1 * N1) / (t2 * N2)
 
-        A = np.abs(2. * (1. - np.sqrt(self.null_ratio / alternative_ratio)))
-        B = np.sqrt(lambda_1 * t1 * N1 + (3. / 8))
+        A = np.abs(2.0 * (1.0 - np.sqrt(self.null_ratio / alternative_ratio)))
+        B = np.sqrt(lambda_1 * t1 * N1 + (3.0 / 8))
         C = np.sqrt((self.null_ratio + d) / alternative_ratio)
         D = np.sqrt((alternative_ratio + d) / alternative_ratio)
         W = (A * B - z * C) / D
@@ -798,7 +817,7 @@ class RateComparison(MeanComparison):
         return round(norm.cdf(W), 4)
 
 
-def highest_density_interval(samples, mass=.95):
+def highest_density_interval(samples, mass=0.95):
     """
     Determine the bounds of the interval of width `mass` with the highest density
     under the distribution of samples.
@@ -823,7 +842,7 @@ def highest_density_interval(samples, mass=.95):
     interval_width = _samples[interval_idx_inc:] - _samples[:n_intervals]
 
     if len(interval_width) == 0:
-        raise ValueError('Too few elements for interval calculation')
+        raise ValueError("Too few elements for interval calculation")
 
     min_idx = np.argmin(interval_width)
     hdi_min = _samples[min_idx]
@@ -859,6 +878,7 @@ class BootstrapStatisticComparison(MeanComparison):
     ----------
     Efron, B. (1981). "Nonparametric estimates of standard error: The jackknife, the bootstrap and other methods". Biometrika. 68 (3): 589–599
     """
+
     def __init__(self, n_bootstraps=1000, statistic_function=None, *args, **kwargs):
         statistic_function = statistic_function if statistic_function else np.mean
         statistic_name = statistic_function.__name__
@@ -867,7 +887,6 @@ class BootstrapStatisticComparison(MeanComparison):
         )
         self.statistic_function = statistic_function
         self.n_bootstraps = n_bootstraps
-
 
     def bootstrap_test(self):
         """
@@ -882,34 +901,51 @@ class BootstrapStatisticComparison(MeanComparison):
         """
         all_samples = np.concatenate([self.d1.data, self.d2.data]).astype(float)
 
-        d1_samples = np.random.choice(all_samples, (int(self.d1.nobs), self.n_bootstraps), replace=True)
-        d1_statistics = np.apply_along_axis(self.statistic_function, axis=0, arr=d1_samples)
+        d1_samples = np.random.choice(
+            all_samples, (int(self.d1.nobs), self.n_bootstraps), replace=True
+        )
+        d1_statistics = np.apply_along_axis(
+            self.statistic_function, axis=0, arr=d1_samples
+        )
 
-        d2_samples = np.random.choice(all_samples, (int(self.d2.nobs), self.n_bootstraps), replace=True)
-        d2_statistics = np.apply_along_axis(self.statistic_function, axis=0, arr=d2_samples)
+        d2_samples = np.random.choice(
+            all_samples, (int(self.d2.nobs), self.n_bootstraps), replace=True
+        )
+        d2_statistics = np.apply_along_axis(
+            self.statistic_function, axis=0, arr=d2_samples
+        )
 
-        control_bs_samples = np.random.choice(self.d2.data, (int(self.d2.nobs), self.n_bootstraps), replace=True)
-        control_statistics = np.apply_along_axis(self.statistic_function, axis=0, arr=control_bs_samples)
-        self.control_bootstrap = Samples(control_statistics, name='control')
+        control_bs_samples = np.random.choice(
+            self.d2.data, (int(self.d2.nobs), self.n_bootstraps), replace=True
+        )
+        control_statistics = np.apply_along_axis(
+            self.statistic_function, axis=0, arr=control_bs_samples
+        )
+        self.control_bootstrap = Samples(control_statistics, name="control")
 
-        variation_bs_samples = np.random.choice(self.d1.data, (int(self.d1.nobs), self.n_bootstraps), replace=True)
-        variation_statistics = np.apply_along_axis(self.statistic_function, axis=0, arr=variation_bs_samples)
-        self.variation_bootstrap = Samples(variation_statistics, name='variation')
+        variation_bs_samples = np.random.choice(
+            self.d1.data, (int(self.d1.nobs), self.n_bootstraps), replace=True
+        )
+        variation_statistics = np.apply_along_axis(
+            self.statistic_function, axis=0, arr=variation_bs_samples
+        )
+        self.variation_bootstrap = Samples(variation_statistics, name="variation")
 
         # The null sampling distribution of test_statistic deltas
-        self.null_dist = Samples(d2_statistics - d1_statistics, name=f'{self.test_statistic}-null')
+        self.null_dist = Samples(
+            d2_statistics - d1_statistics, name=f"{self.test_statistic}-null"
+        )
 
-        if self.hypothesis == 'larger':
+        if self.hypothesis == "larger":
             p_val = 1 - self.null_dist.cdf(self.delta)
-        elif self.hypothesis == 'smaller':
+        elif self.hypothesis == "smaller":
             p_val = self.null_dist.cdf(self.delta)
-        elif self.hypothesis == 'unequal':
+        elif self.hypothesis == "unequal":
             p_val = 1 - self.null_dist.cdf(abs(self.delta))
 
         return self.delta, p_val
 
-
-    def confidence_interval(self, alpha=.05):
+    def confidence_interval(self, alpha=0.05):
         """
         Calculate the (1-alpha)-th confidence interval around the statistic delta.
         Uses bootstrapped approximation the statistic sampling distribution.
@@ -919,18 +955,28 @@ class BootstrapStatisticComparison(MeanComparison):
         ci : tuple (lo, hi)
             the (1-alpha) % confidence interval around the statistic estimate.
         """
-        return  self.deltas_dist.percentiles([100 * alpha, 100 * (1-alpha)])
+        return self.deltas_dist.percentiles([100 * alpha, 100 * (1 - alpha)])
 
     @property
     def deltas_dist(self):
-        if not hasattr(self, '_deltas_dist'):
-            d1_samples = np.random.choice(self.d1.data, (int(self.d1.nobs), self.n_bootstraps), replace=True)
-            d1_statistics = np.apply_along_axis(self.statistic_function, axis=0, arr=d1_samples)
+        if not hasattr(self, "_deltas_dist"):
+            d1_samples = np.random.choice(
+                self.d1.data, (int(self.d1.nobs), self.n_bootstraps), replace=True
+            )
+            d1_statistics = np.apply_along_axis(
+                self.statistic_function, axis=0, arr=d1_samples
+            )
 
-            d2_samples = np.random.choice(self.d2.data, (int(self.d2.nobs), self.n_bootstraps), replace=True)
-            d2_statistics = np.apply_along_axis(self.statistic_function, axis=0, arr=d2_samples)
+            d2_samples = np.random.choice(
+                self.d2.data, (int(self.d2.nobs), self.n_bootstraps), replace=True
+            )
+            d2_statistics = np.apply_along_axis(
+                self.statistic_function, axis=0, arr=d2_samples
+            )
 
-            self._deltas_dist = Samples(d1_statistics - d2_statistics, name=f'{self.test_statistic}-deltas')
+            self._deltas_dist = Samples(
+                d1_statistics - d2_statistics, name=f"{self.test_statistic}-deltas"
+            )
 
         return self._deltas_dist
 
@@ -954,7 +1000,7 @@ class BootstrapStatisticComparison(MeanComparison):
         return self.deltas_dist.prob_greater_than(critical_value)
 
 
-def highest_density_interval(samples, mass=.95):
+def highest_density_interval(samples, mass=0.95):
     """
     Determine the bounds of the interval of width `mass` with the highest density
     under the distribution of samples.
@@ -979,7 +1025,7 @@ def highest_density_interval(samples, mass=.95):
     interval_width = _samples[interval_idx_inc:] - _samples[:n_intervals]
 
     if len(interval_width) == 0:
-        raise ValueError('Too few elements for interval calculation')
+        raise ValueError("Too few elements for interval calculation")
 
     min_idx = np.argmin(interval_width)
     hdi_min = _samples[min_idx]

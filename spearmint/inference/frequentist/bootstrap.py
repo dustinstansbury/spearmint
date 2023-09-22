@@ -1,10 +1,8 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 import numpy as np
-from abra.config import DEFAULT_ALPHA
-from abra.stats import Samples, BootstrapStatisticComparison
-from abra.inference.frequentist.results import FrequentistTestResults
-from abra.inference import FrequentistProcedure
+from spearmint.config import DEFAULT_ALPHA
+from spearmint.stats import Samples, BootstrapStatisticComparison
+from spearmint.inference.frequentist.results import FrequentistTestResults
+from spearmint.inference import FrequentistProcedure
 
 
 class BootstrapDelta(FrequentistProcedure):
@@ -23,13 +21,17 @@ class BootstrapDelta(FrequentistProcedure):
         Function that returns a scalar test statistic when provided a sequence
         of samples.
     """
+
     def __init__(self, statistic_function=None, *args, **kwargs):
         super(BootstrapDelta, self).__init__(*args, **kwargs)
         self.statistic_function = statistic_function
 
     def run(
-        self, control_samples, variation_samples,
-        alpha=DEFAULT_ALPHA, inference_kwargs=None
+        self,
+        control_samples,
+        variation_samples,
+        alpha=DEFAULT_ALPHA,
+        inference_kwargs=None,
     ):
         """
         Run the inference procedure over the samples with a selected alpha
@@ -50,7 +52,7 @@ class BootstrapDelta(FrequentistProcedure):
             samples_b=control_samples,
             alpha=self.alpha,
             hypothesis=self.hypothesis,
-            statistic_function=self.statistic_function
+            statistic_function=self.statistic_function,
         )
 
     @property
@@ -70,14 +72,16 @@ class BootstrapDelta(FrequentistProcedure):
         """
         Use the boostrapped estimate of teh sampling distribition to test the Null
         """
-        if self.hypothesis == 'larger':
+        if self.hypothesis == "larger":
             return self.alpha > self.stat_dist.prob_greater_than(stat_value)
-        elif self.hypothesis == 'smaller':
+        elif self.hypothesis == "smaller":
             return self.alpha > 1 - self.stat_dist.prob_greater_than(stat_value)
-        elif self.hypothesis == 'unequal':
-            return abs(stat_value) > abs(self.stat_dist.percentiles(100 * (1 - self.alpha/2.)))
+        elif self.hypothesis == "unequal":
+            return abs(stat_value) > abs(
+                self.stat_dist.percentiles(100 * (1 - self.alpha / 2.0))
+            )
         else:
-            raise ValueError('Unknown hypothesis: {!r}'.format(self.hypothesis))
+            raise ValueError("Unknown hypothesis: {!r}".format(self.hypothesis))
 
     def make_results(self):
         """
@@ -88,8 +92,8 @@ class BootstrapDelta(FrequentistProcedure):
         accept_hypothesis = self.accept_hypothesis(statistic_value)
 
         aux = {
-            'control': self.comparison.control_bootstrap,
-            'variation': self.comparison.variation_bootstrap
+            "control": self.comparison.control_bootstrap,
+            "variation": self.comparison.variation_bootstrap,
         }
         return FrequentistTestResults(
             control=self.comparison.d2,
@@ -108,5 +112,5 @@ class BootstrapDelta(FrequentistProcedure):
             accept_hypothesis=accept_hypothesis,
             inference_procedure=self,
             warnings=self.comparison.warnings,
-            aux=aux
+            aux=aux,
         )

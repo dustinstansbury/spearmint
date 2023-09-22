@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from abra.config import DEFAULT_ALPHA
-from abra.stats import Samples, RateComparison
-from abra.inference.frequentist.results import FrequentistTestResults
-from abra.inference import FrequentistProcedure
+from spearmint.config import DEFAULT_ALPHA
+from spearmint.stats import Samples, RateComparison
+from spearmint.inference.frequentist.results import FrequentistTestResults
+from spearmint.inference import FrequentistProcedure
 import numpy as np
 from scipy.stats import norm
 
@@ -25,11 +25,17 @@ class RatesRatio(FrequentistProcedure):
         - 'pooled': assume the same variance
         - 'unequal': use Smith-Satterthwait dof when cal1ualting t-stat
     """
+
     def __init__(self, *args, **kwargs):
         super(RatesRatio, self).__init__(*args, **kwargs)
 
-    def run(self, control_samples, variation_samples,
-            alpha=DEFAULT_ALPHA, inference_kwargs=None):
+    def run(
+        self,
+        control_samples,
+        variation_samples,
+        alpha=DEFAULT_ALPHA,
+        inference_kwargs=None,
+    ):
         """
         Run the inference procedure over the samples with a selected alpha
         value.
@@ -48,12 +54,12 @@ class RatesRatio(FrequentistProcedure):
             samples_a=variation_samples,
             samples_b=control_samples,
             alpha=self.alpha,
-            hypothesis=self.hypothesis
+            hypothesis=self.hypothesis,
         )
 
     @property
     def stats(self):
-        if not hasattr(self, '_stats'):
+        if not hasattr(self, "_stats"):
             self._stats = self.comparison.rates_test()
         return self._stats
 
@@ -83,16 +89,16 @@ class RatesRatio(FrequentistProcedure):
 
         def rao_score_interval(X, z, t):
             # individual rate interval method 2 (Altman et al., 2000)
-            a = X + .5 * z**2.
-            b = z * np.sqrt(X + .25 * z**2.)
+            a = X + 0.5 * z**2.0
+            b = z * np.sqrt(X + 0.25 * z**2.0)
             return (a - b) / t, (a + b) / t
 
-        if self.hypothesis == 'larger':
+        if self.hypothesis == "larger":
             z = norm.ppf(1 - self.alpha)
-        elif self.hypothesis == 'smaller':
+        elif self.hypothesis == "smaller":
             z = norm.ppf(self.alpha)
-        elif self.hypothesis == 'unequal':
-            z = np.abs(norm.ppf(1 - self.alpha / 2.))
+        elif self.hypothesis == "unequal":
+            z = np.abs(norm.ppf(1 - self.alpha / 2.0))
 
         control = self.comparison.d2
         variation = self.comparison.d1
@@ -109,10 +115,20 @@ class RatesRatio(FrequentistProcedure):
         l1, u1 = rao_score_interval(X2, z, t2)
 
         # Gu et al, 2008; Eq 3
-        L = (lam_2_lam_1 - np.sqrt(lam_2_lam_1 ** 2 - l1 * (2 * lam_2 - l1) * (u2 * (2 * lam_1 - u2)))) /  (u2 * (2 * lam_1 - u2))
+        L = (
+            lam_2_lam_1
+            - np.sqrt(
+                lam_2_lam_1**2 - l1 * (2 * lam_2 - l1) * (u2 * (2 * lam_1 - u2))
+            )
+        ) / (u2 * (2 * lam_1 - u2))
 
         # Gu et al, 2008; Eq 4
-        U = (lam_2_lam_1 + np.sqrt(lam_2_lam_1 ** 2 - u1 * (2 * lam_2 - u1) * (l2 * (2 * lam_1 - l2)))) / (l2 * (2 * lam_1 - l2))
+        U = (
+            lam_2_lam_1
+            + np.sqrt(
+                lam_2_lam_1**2 - u1 * (2 * lam_2 - u1) * (l2 * (2 * lam_1 - l2))
+            )
+        ) / (l2 * (2 * lam_1 - l2))
 
         return [(L, U), self.ci_percents]
 
@@ -137,5 +153,5 @@ class RatesRatio(FrequentistProcedure):
             hypothesis=self.hypothesis_text,
             accept_hypothesis=accept_hypothesis,
             inference_procedure=self,
-            power=self.comparison.power
+            power=self.comparison.power,
         )

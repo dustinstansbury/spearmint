@@ -1,5 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 import os
 import numpy as np
 import pandas as pd
@@ -11,20 +9,24 @@ def dict_to_object(item):
     """
     Recursively convert a dictionary to an object.
     """
+
     def convert(item):
         if isinstance(item, dict):
-            return type('DictToObject', (), {k: convert(v) for k, v in item.items()})
+            return type("DictToObject", (), {k: convert(v) for k, v in item.items()})
         if isinstance(item, list):
+
             def yield_convert(item):
                 for index, value in enumerate(item):
                     yield convert(value)
+
             return list(yield_convert(item))
         else:
             return item
+
     return convert(item)
 
 
-def ensure_dataframe(data, data_attr='data'):
+def ensure_dataframe(data, data_attr="data"):
     """
     Check if an object is a dataframe, and if not, check if it has an
     attribute that is a dataframe.
@@ -33,7 +35,7 @@ def ensure_dataframe(data, data_attr='data'):
         if hasattr(data, data_attr) and isinstance(getattr(data, data_attr), DataFrame):
             data = getattr(data, data_attr)
         else:
-            raise ValueError('`data` is incorrect format, must be a DataFrame')
+            raise ValueError("`data` is incorrect format, must be a DataFrame")
 
     return data
 
@@ -44,7 +46,8 @@ def set_backend():
     """
     from sys import platform
     import matplotlib as mpl
-    backend = 'pdf' if platform == 'darwin' else 'agg'
+
+    backend = "pdf" if platform == "darwin" else "agg"
     mpl.use(backend)
     return backend
 
@@ -53,8 +56,8 @@ def generate_fake_observations(
     n_observations=10000,
     n_treatments=2,
     n_attributes=2,
-    distribution='bernoulli',
-    seed=123
+    distribution="bernoulli",
+    seed=123,
 ):
     """
     Create a dataframe of artificial observations to be used for testing and demos.
@@ -90,28 +93,35 @@ def generate_fake_observations(
     n_treatments = min(n_treatments, 6)
 
     data = pd.DataFrame()
-    data['id'] = list(range(n_observations))
+    data["id"] = list(range(n_observations))
 
     # add treatments
     treatments = list(letters[:n_treatments])
-    data['treatment'] = np.random.choice(treatments, size=n_observations)
+    data["treatment"] = np.random.choice(treatments, size=n_observations)
 
     # add attributes (attributes should have no effect)
-    attribute_columns = ['attr_{}'.format(i) for i in range(n_attributes)]
+    attribute_columns = ["attr_{}".format(i) for i in range(n_attributes)]
     for ai, attr in enumerate(attribute_columns):
-        attr_vals = ['A{}{}'.format(ai, a.lower()) for a in list(letters[:np.random.randint(1, 4)])]
+        attr_vals = [
+            "A{}{}".format(ai, a.lower())
+            for a in list(letters[: np.random.randint(1, 4)])
+        ]
         data[attr] = np.random.choice(attr_vals, size=n_observations)
 
     # add measurements, each treatment has successively larger means
     for delta, tr in enumerate(treatments):
         tr_mask = data.treatment == tr
         n_tr = sum(tr_mask)
-        if 'gauss' in distribution:
-            data.loc[tr_mask, 'metric'] = delta + np.random.randn(n_tr)
-        elif 'bern' in distribution:
-            data.loc[tr_mask, 'metric'] = list(map(bool, np.round(.1 * delta + np.random.random(n_tr))))
-        elif 'poiss' in distribution:
-            data.loc[tr_mask, 'metric'] = list(map(int, np.random.poisson(1 + delta , size=n_tr) ))
+        if "gauss" in distribution:
+            data.loc[tr_mask, "metric"] = delta + np.random.randn(n_tr)
+        elif "bern" in distribution:
+            data.loc[tr_mask, "metric"] = list(
+                map(bool, np.round(0.1 * delta + np.random.random(n_tr)))
+            )
+        elif "poiss" in distribution:
+            data.loc[tr_mask, "metric"] = list(
+                map(int, np.random.poisson(1 + delta, size=n_tr))
+            )
 
     return data
 
@@ -137,6 +147,7 @@ class suppress_stdout_stderr(object):
     https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
 
     """
+
     def __init__(self):
         # Open a pair of null files
         self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
@@ -169,6 +180,7 @@ class run_context(suppress_stdout_stderr):
     suppress : bool
         Whether or not to suppress stdout and stderr
     """
+
     def __init__(self, suppress=True, *args, **kwargs):
         if suppress:
             super(run_context, self).__init__(*args, **kwargs)

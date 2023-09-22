@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from abra.hypothesis_test import HypothesisTestResults, PrettyTable, OrderedDict
+from spearmint.hypothesis_test import HypothesisTestResults, PrettyTable, OrderedDict
 import numpy as np
 
 
@@ -33,12 +33,23 @@ class FrequentistTestResults(HypothesisTestResults):
     correction_method : str
         The name of the multiple comparison correction method used, if any
     """
-    def __init__(self, alpha, confidence_interval,
-                 p_value, hypothesis, accept_hypothesis, power=np.nan, df=np.nan,
-                 test_statistic=None, statistic_value=np.nan,
-                 correction_method=None,
-                 warnings=None, *args, **kwargs):
 
+    def __init__(
+        self,
+        alpha,
+        confidence_interval,
+        p_value,
+        hypothesis,
+        accept_hypothesis,
+        power=np.nan,
+        df=np.nan,
+        test_statistic=None,
+        statistic_value=np.nan,
+        correction_method=None,
+        warnings=None,
+        *args,
+        **kwargs
+    ):
         super(FrequentistTestResults, self).__init__(*args, **kwargs)
         self.alpha = alpha
         self.power = power
@@ -60,8 +71,8 @@ class FrequentistTestResults(HypothesisTestResults):
         Estimate the confidence on the relative difference using interpolation.
         """
         self.ci_relative = [
-            tuple((self.ci[0] + self.control.mean) / self.control.mean - 1.),
-            self.ci[1]
+            tuple((self.ci[0] + self.control.mean) / self.control.mean - 1.0),
+            self.ci[1],
         ]
 
     def render_stats_table(self):
@@ -87,7 +98,7 @@ class FrequentistTestResults(HypothesisTestResults):
                 "MC Correction",
                 "Warnings",
             ],
-            align="c"
+            align="c",
         )
         tbl.add_column(
             "",
@@ -109,9 +120,9 @@ class FrequentistTestResults(HypothesisTestResults):
                 "{!r}".format(self.hypothesis),
                 "{!r}".format(self.accept_hypothesis),
                 "{!r}".format(self.correction_method),
-                "{!r}".format(self.warnings)
+                "{!r}".format(self.warnings),
             ],
-            align="l"
+            align="l",
         )
         self._stats_table = str(tbl)
 
@@ -127,19 +138,22 @@ class FrequentistTestResults(HypothesisTestResults):
         _json.update(
             OrderedDict(
                 [
-                    ('test_type', ['frequentist']),
-                    ('p', [self.p_value]),
-                    ('p_interpretation', ["p-value"]),
-                    ('delta_ci', [self.ci[0]]),
-                    ('ntiles_ci', [self.ci[1]]),
-                    ('delta_relative_ci', [(100 * self.ci_relative[0][0], 100 * self.ci_relative[0][1])]),
-                    ('ci_interpretation', ['Confidence Interval']),
-                    ('p_value', [self.p_value]),
-                    ('power', [self.power]),
-                    ('statistic_name', [self.test_statistic]),
-                    ('statistic_value', [self.statistic_value]),
-                    ('df', [self.df]),
-                    ('mc_correction', [self.correction_method])
+                    ("test_type", ["frequentist"]),
+                    ("p", [self.p_value]),
+                    ("p_interpretation", ["p-value"]),
+                    ("delta_ci", [self.ci[0]]),
+                    ("ntiles_ci", [self.ci[1]]),
+                    (
+                        "delta_relative_ci",
+                        [(100 * self.ci_relative[0][0], 100 * self.ci_relative[0][1])],
+                    ),
+                    ("ci_interpretation", ["Confidence Interval"]),
+                    ("p_value", [self.p_value]),
+                    ("power", [self.power]),
+                    ("statistic_name", [self.test_statistic]),
+                    ("statistic_value", [self.statistic_value]),
+                    ("df", [self.df]),
+                    ("mc_correction", [self.correction_method]),
                 ]
             )
         )
@@ -147,21 +161,21 @@ class FrequentistTestResults(HypothesisTestResults):
 
     def visualize(self, figsize=None, outfile=None, *args, **kwargs):
         # lazy import
-        from abra.vis import (
+        from spearmint.vis import (
             visualize_gaussian_results,
             visualize_binomial_results,
             visualize_rates_results,
             visualize_bootstrap_results,
-            RESULTS_FIGSIZE
+            RESULTS_FIGSIZE,
         )
 
         figsize = figsize if figsize else RESULTS_FIGSIZE
-        _model_name = self.model_name.replace(" ", '').replace("-", "").replace("_", "")
-        if _model_name in ('meansdelta'):
+        _model_name = self.model_name.replace(" ", "").replace("-", "").replace("_", "")
+        if _model_name in ("meansdelta"):
             visualize_gaussian_results(self, figsize, outfile, *args, **kwargs)
-        elif _model_name in ('proportionsdelta'):
+        elif _model_name in ("proportionsdelta"):
             visualize_binomial_results(self, figsize, outfile, *args, **kwargs)
-        elif _model_name in ('ratesratio'):
+        elif _model_name in ("ratesratio"):
             visualize_rates_results(self, figsize, outfile, *args, **kwargs)
-        elif _model_name in ('bootstrap'):
+        elif _model_name in ("bootstrap"):
             visualize_bootstrap_results(self, figsize, outfile, *args, **kwargs)

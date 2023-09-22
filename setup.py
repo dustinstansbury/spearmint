@@ -4,7 +4,7 @@ with open("README.md") as f:
     LONG_DESCRIPTION = f.read()
 
 setup(
-    name="abracadabra",
+    name="spearmint",
     version="0.0.7",
     description="Making hypothesis and AB testing magically simple!",
     long_description=LONG_DESCRIPTION,
@@ -12,7 +12,7 @@ setup(
     license="MIT",
     author="Quizlet Data Team",
     author_email="data-team@quizlet.com",
-    url="http://github.com/quizlet/abracadabra",
+    url="http://github.com/quizlet/spearmint",
     packages=find_packages(),
     python_requires=">=3.7",
     # `install_requires` generated via `pipenv-setup sync`
@@ -112,8 +112,8 @@ setup(
         "Frequentist statistics",
     ],
     project_urls={
-        "Bug Reports": "https://github.com/quizlet/abracadabra/issues",
-        "Source": "https://github.com/quizlet/abracadabra/",
+        "Bug Reports": "https://github.com/quizlet/spearmint/issues",
+        "Source": "https://github.com/quizlet/spearmint/",
     },
     include_package_data=True,
 )

@@ -1,7 +1,7 @@
 # ✨ABracadabra✨
-![MIT License](https://img.shields.io/github/license/quizlet/abracadabra)
-[![quizlet](https://circleci.com/gh/quizlet/abracadabra.svg?style=shield)](https://circleci.com/gh/quizlet/abracadabra)
-![Coverage](https://codecov.io/gh/quizlet/abracadabra/branch/master/graph/badge.svg)
+![MIT License](https://img.shields.io/github/license/quizlet/spearmint)
+[![quizlet](https://circleci.com/gh/quizlet/abracadspearmint.svg?style=shield)](https://circleci.com/gh/quizlet/spearmint)
+![Coverage](https://codecov.io/gh/quizlet/spearmint/branch/master/graph/badge.svg)
 
 
 ✨ABracadabra✨ is a Python framework consisting of statistical tools and a convenient API specialized for running hypothesis tests on observational experiments (aka “AB Tests” in the tech world). The framework has driven [Quizlet](https://quizlet.com)’s experimentation pipeline since 2018.
@@ -40,22 +40,22 @@
 #### from the PyPI index (recommended)
 
 ```bash
-pip install abracadabra
+pip install spearmint
 ```
 
 #### from Quizlet's Github repo
 
 ```bash
-pip install git+https://github.com/quizlet/abracadabra.git
+pip install git+https://github.com/quizlet/abracadspearmint.git
 ```
 
 ### Install from source
 If you would like to contribute to ✨ABracadabra✨, then you'll probably want to install from source (or use the `-e` flag when installing from `PyPI`):
 
 ```bash
-mkdir /PATH/TO/LOCAL/ABRACABARA && cd /PATH/TO/LOCAL/ABRACABARA
-git clone git@github.com:quizlet/abracadabra.git
-cd abracadabra
+mkdir /PATH/TO/LOCAL/SPEARMINT && cd /PATH/TO/LOCAL/SPEARMINT
+git clone git@github.com:quizlet/abracadspearmint.git
+cd spearmint
 python setup.py develop
 ```
 
@@ -71,7 +71,7 @@ python setup.py develop
 To demonstrate, let's generate some artificial experiment observations data. The `metric` column in our dataset will be a series of binary outcomes (i.e. `True`/`False`, here stored as `float` values). This binary `metric` is analogous to *conversion* or *success* in AB testing. These outcomes are simulated from three different Bernoulli distributions, each associated with the `treatement`s named `"A"`, `"B"`, and `"C"`. and each of which has an increasing average probability of *conversion*, respectively. The simulated data also contains four `attribute` columns, named `attr_*`.
 
 ```python
-from abra.utils import generate_fake_observations
+from spearmint.utils import generate_fake_observations
 
 # generate demo data
 experiment_observations = generate_fake_observations(
@@ -183,7 +183,7 @@ We see that the Hypothesis test declares that the variation `'C is larger'` (tha
 
 ## Bootstrap Hypothesis Tests
 
-If your samples do not follow standard parametric distributions (e.g. Gaussian, Binomial, Poisson), or if you're comparing more exotic descriptive statistics (e.g. median, mode, etc) then you might want to consider using a non-parametric [Bootstrap Hypothesis Test](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)).  Running bootstrap tests is easy in ✨abracadabra✨, you simply use the `"bootstrap"` `inference_method`.
+If your samples do not follow standard parametric distributions (e.g. Gaussian, Binomial, Poisson), or if you're comparing more exotic descriptive statistics (e.g. median, mode, etc) then you might want to consider using a non-parametric [Bootstrap Hypothesis Test](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)).  Running bootstrap tests is easy in ✨spearmint✨, you simply use the `"bootstrap"` `inference_method`.
 
 ```python
 # Tests and data can be copied via the `.copy` method.
@@ -288,6 +288,6 @@ bayesian_ab_test_results.visualize()
 
 Above we see that the Bayesian hypothesis test provides similar results to the Frequentist test, indicating a 45% relative lift in conversion rate when comparing `"C"` to `"A"`. Rather than providing p-values that are used to accept or reject a Null hypothesis, the Bayesian tests provides directly-interpretable probability estimates `p(C > A) = 0.95`, here indicating that there is 95% chance that the `variation` `"C"` is larger than the `control` `"A"`.
 
-## [Additional Documentation and Tutorials](https://github.com/quizlet/abracadabra/blob/master/docs)
+## [Additional Documentation and Tutorials](https://github.com/quizlet/spearmint/blob/master/docs)
 
 ## [CHANGELOG](./CHANGELOG.md)

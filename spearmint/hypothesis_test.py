@@ -1,10 +1,8 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-from abra.mixin import InitRepr, Dataframeable
-from abra.utils import ensure_dataframe, run_context
-from abra.config import DEFAULT_ALPHA
-from abra.inference import InferenceProcedure, get_inference_procedure
-from abra.stats import CORRECTIONS
+from spearmint.mixin import InitRepr, Dataframeable
+from spearmint.utils import ensure_dataframe, run_context
+from spearmint.config import DEFAULT_ALPHA
+from spearmint.inference import InferenceProcedure, get_inference_procedure
+from spearmint.stats import CORRECTIONS
 from datetime import datetime
 from prettytable import PrettyTable
 from collections import OrderedDict
@@ -23,6 +21,7 @@ class CohortFilter(object):
     treatment_name : str
         When applied, selects out rows with `treatment_column` == `treatment_name`
     """
+
     def __init__(self, treatment_column, treatment_name):
         self.treatment_column = treatment_column
         self.treatment_name = treatment_name
@@ -46,6 +45,7 @@ class SegmentFilter(object):
     Simple filtering interface for selecting subsets of a dataframe. Powered
     pandas `query` interface.
     """
+
     def __init__(self, segment_pattern):
         self.segment_pattern = segment_pattern
 
@@ -66,6 +66,7 @@ class CustomMetric(object):
         the function that defines an operation performed on each row of the
         dataframe, resulting in a derived value.
     """
+
     def __init__(self, f):
         self.f = f
 
@@ -116,20 +117,28 @@ class HypothesisTest(InitRepr):
     **infer_params : dict
         Any additional parameters to be passed to the inference procud
     """
-    __ATTRS__ = ['metric', 'control', 'variation', 'segmentation', 'method']
 
-    def __init__(self, inference_method, metric=None,
-                 control=None, variation=None,
-                 segmentation=None, date=None,
-                 suppress_stan_output=True,
-                 **infer_params):
+    __ATTRS__ = ["metric", "control", "variation", "segmentation", "method"]
 
+    def __init__(
+        self,
+        inference_method,
+        metric=None,
+        control=None,
+        variation=None,
+        segmentation=None,
+        date=None,
+        suppress_stan_output=True,
+        **infer_params,
+    ):
         self.metric = metric
         self.control = control
         self.variation = variation
         self.inference_method = inference_method
 
-        self.inference_procedure = get_inference_procedure(inference_method, **infer_params)
+        self.inference_procedure = get_inference_procedure(
+            inference_method, **infer_params
+        )
         self.suppress_stan_output = suppress_stan_output
 
         if isinstance(segmentation, list):
@@ -163,11 +172,13 @@ class HypothesisTest(InitRepr):
             self.metric_name = self.metric
 
         if treatment is None:
-            if hasattr(self, 'treatment'):
+            if hasattr(self, "treatment"):
                 treatment = self.treatment
             else:
-                raise ValueError("Cant't determine the treatment column, ",
-                                 "please provide as `treatment` argument")
+                raise ValueError(
+                    "Cant't determine the treatment column, ",
+                    "please provide as `treatment` argument",
+                )
 
         cohort_filter = CohortFilter(treatment, variation_name)
         return cohort_filter.apply(data)
@@ -187,7 +198,13 @@ class HypothesisTest(InitRepr):
         """
         return data[data.notna()[self.metric_name]][self.metric_name]
 
-    def run(self, control_samples, variation_samples, alpha=DEFAULT_ALPHA, inference_kwargs=None):
+    def run(
+        self,
+        control_samples,
+        variation_samples,
+        alpha=DEFAULT_ALPHA,
+        inference_kwargs=None,
+    ):
         """
         Run the statistical test inference procedure comparing two groups of
         samples.
@@ -221,9 +238,17 @@ class HypothesisTest(InitRepr):
 
         # when running Bayesian inference, optionally run with context
         # manager to supress stdout during Stan optimization routines
-        supress_stdout = self.inference_procedure.__class__.__name__ == 'BayesianDelta' and self.suppress_stan_output
+        supress_stdout = (
+            self.inference_procedure.__class__.__name__ == "BayesianDelta"
+            and self.suppress_stan_output
+        )
         with run_context(supress_stdout):
-            self.inference_procedure.run(control_samples, variation_samples, alpha, inference_kwargs=inference_kwargs)
+            self.inference_procedure.run(
+                control_samples,
+                variation_samples,
+                alpha,
+                inference_kwargs=inference_kwargs,
+            )
 
         results = self.inference_procedure.make_results()
         results.metric_name = self.metric_column
@@ -237,28 +262,29 @@ class HypothesisTest(InitRepr):
             if hasattr(copy, k):
                 setattr(copy, k, v)
 
-        copy.inference_procedure = get_inference_procedure(copy.inference_method, **infer_kwargs)
+        copy.inference_procedure = get_inference_procedure(
+            copy.inference_method, **infer_kwargs
+        )
         return copy
 
 
 class TestResultsBase(Dataframeable):
-
     def display(self):
         raise NotImplementedError("Implement me")
 
     def visualize(self, figsize=None, outfile=None, *args, **kwargs):
         raise NotImplementedError("Implement me")
 
-    def to_csv(self, fname, delimiter=','):
+    def to_csv(self, fname, delimiter=","):
         """
         Export result to delimiter-separated value file
         """
         results_df = self.to_dataframe()
-        results_df.to_csv(fname, sep=delimiter, encoding='utf8', index=False)
+        results_df.to_csv(fname, sep=delimiter, encoding="utf8", index=False)
 
     @property
     def json(self):
-        raise NotImplementedError('Must implement json property')
+        raise NotImplementedError("Must implement json property")
 
 
 class HypothesisTestResults(TestResultsBase):
@@ -287,10 +313,18 @@ class HypothesisTestResults(TestResultsBase):
         Auxillary variables used for displaying or visualizing specific types
         of tests.
     """
-    def __init__(self, control, variation,
-                 delta, delta_relative, effect_size,
-                 inference_procedure, warnings=[], aux={}):
 
+    def __init__(
+        self,
+        control,
+        variation,
+        delta,
+        delta_relative,
+        effect_size,
+        inference_procedure,
+        warnings=[],
+        aux={},
+    ):
         self.control = control
         self.variation = variation
         self.delta = delta
@@ -323,14 +357,8 @@ class HypothesisTestResults(TestResultsBase):
         tbl = PrettyTable(header=True)
         tbl.add_column(
             "Treatment",
-            [
-                "Metric",
-                "Observations",
-                "Mean",
-                "Standard Error",
-                "Variance"
-            ],
-            align='l'
+            ["Metric", "Observations", "Mean", "Standard Error", "Variance"],
+            align="l",
         )
 
         tbl.add_column(
@@ -339,10 +367,12 @@ class HypothesisTestResults(TestResultsBase):
                 self.metric_name,
                 int(self.control.nobs),
                 f"{self.control.mean:1.4f}",
-                "{!r}".format(tuple([round(s, 4) for s in self.control.std_err(self.alpha)])),
-                f"{self.control.var:1.4f}"
+                "{!r}".format(
+                    tuple([round(s, 4) for s in self.control.std_err(self.alpha)])
+                ),
+                f"{self.control.var:1.4f}",
             ],
-            align='l'
+            align="l",
         )
 
         tbl.add_column(
@@ -351,10 +381,12 @@ class HypothesisTestResults(TestResultsBase):
                 self.metric_name,
                 int(self.variation.nobs),
                 f"{self.variation.mean:1.4f}",
-                "{!r}".format(tuple([round(s, 4) for s in self.variation.std_err(self.alpha)])),
-                f"{self.variation.var:1.4f}"
+                "{!r}".format(
+                    tuple([round(s, 4) for s in self.variation.std_err(self.alpha)])
+                ),
+                f"{self.variation.var:1.4f}",
             ],
-            align='l'
+            align="l",
         )
         self._samples_table = str(tbl)
 
@@ -377,30 +409,30 @@ Test Results:
         """
         Parameters that belong to all hypothesis test results
         """
-        return OrderedDict([('metric', [self.metric_name]),
-                            ('hypothesis', [self.hypothesis]),
-                            ('model_name', [self.model_name]),
-                            ('accept_hypothesis', [self.accept_hypothesis]),
-
-                            ('control_name', [self.control.name]),
-                            ('control_nobs', [self.control.nobs]),
-                            ('control_mean', [self.control.mean]),
-                            ('control_ci', [self.control.ci(self.alpha)]),
-                            ('control_var', [self.control.var]),
-
-                            ('variation_name', [self.variation.name]),
-                            ('variation_nobs', [self.variation.nobs]),
-                            ('variation_mean', [self.variation.mean]),
-                            ('variation_ci', [self.variation.ci(self.alpha)]),
-                            ('variation_var', [self.variation.var]),
-
-                            ('delta', [self.delta]),
-                            ('delta_relative', [100 * self.delta_relative]),
-                            ('effect_size', [self.effect_size]),
-                            ('alpha', [self.alpha]),
-                            ('segmentation', [self.segmentation]),
-                            ('warnings', [process_warnings(self.warnings)])
-                            ])
+        return OrderedDict(
+            [
+                ("metric", [self.metric_name]),
+                ("hypothesis", [self.hypothesis]),
+                ("model_name", [self.model_name]),
+                ("accept_hypothesis", [self.accept_hypothesis]),
+                ("control_name", [self.control.name]),
+                ("control_nobs", [self.control.nobs]),
+                ("control_mean", [self.control.mean]),
+                ("control_ci", [self.control.ci(self.alpha)]),
+                ("control_var", [self.control.var]),
+                ("variation_name", [self.variation.name]),
+                ("variation_nobs", [self.variation.nobs]),
+                ("variation_mean", [self.variation.mean]),
+                ("variation_ci", [self.variation.ci(self.alpha)]),
+                ("variation_var", [self.variation.var]),
+                ("delta", [self.delta]),
+                ("delta_relative", [100 * self.delta_relative]),
+                ("effect_size", [self.effect_size]),
+                ("alpha", [self.alpha]),
+                ("segmentation", [self.segmentation]),
+                ("warnings", [process_warnings(self.warnings)]),
+            ]
+        )
 
     def display(self):
         raise NotImplementedError
@@ -411,7 +443,7 @@ Test Results:
 
 def process_warnings(warnings):
     if isinstance(warnings, list):
-        warnings = ';'.join(warnings)
+        warnings = ";".join(warnings)
     return warnings
 
 
@@ -427,22 +459,26 @@ class HypothesisTestSuite(object):
             'sidak', 's' : one-step Sidak correction
             'fdr_bh', 'bh; : Benjamini/Hochberg (non-negative)
     """
-    def __init__(self, tests, correction_method='sidak'):
 
+    def __init__(self, tests, correction_method="sidak"):
         if not isinstance(tests, (list, tuple)):
-            raise ValueError('`tests` must be a sequence of `HypothesisTest` instances')
+            raise ValueError("`tests` must be a sequence of `HypothesisTest` instances")
 
         for test in tests:
             if not issubclass(test.__class__, HypothesisTest):
                 raise ValueError("All tests must subclass `HypothesisTest`")
 
-        if correction_method not in set(list(CORRECTIONS.keys()) + list(CORRECTIONS.values())):
-            raise ValueError(f'Correction method {correction_method} not supported')
+        if correction_method not in set(
+            list(CORRECTIONS.keys()) + list(CORRECTIONS.values())
+        ):
+            raise ValueError(f"Correction method {correction_method} not supported")
 
         self.tests = tests
-        self.correction_method = CORRECTIONS[correction_method] \
-                                 if correction_method in CORRECTIONS \
-                                 else correction_method
+        self.correction_method = (
+            CORRECTIONS[correction_method]
+            if correction_method in CORRECTIONS
+            else correction_method
+        )
 
 
 class HypothesisTestSuiteResults(TestResultsBase):
@@ -450,6 +486,7 @@ class HypothesisTestSuiteResults(TestResultsBase):
     Store, display, visualize, and export the results of statistical test
     suite.
     """
+
     def __init__(self, tests, original_results, corrected_results, correction):
         self.tests = tests
         self.ntests = len(tests)
@@ -462,8 +499,8 @@ class HypothesisTestSuiteResults(TestResultsBase):
 
     def display(self):
         for ii, res in enumerate(self.corrected_results):
-            print('-' * 60)
-            print(f'Test {ii + 1} of {self.ntests}')
+            print("-" * 60)
+            print(f"Test {ii + 1} of {self.ntests}")
             print(res)
 
     def visualize(self, figsize=None, outfile=None, *args, **kwargs):

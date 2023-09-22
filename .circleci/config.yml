@@ -4,7 +4,7 @@ version: 2.1
 
 jobs:
   build:
-    working_directory: ~/abracadabra
+    working_directory: ~/spearmint
     docker:
     - image: circleci/python:3.7.0
       environment:
@@ -27,7 +27,7 @@ jobs:
               - ".venv"
               - "/usr/local/bin"
               - "/usr/local/lib/python3.7/site-packages"
-              - "~/abracadabra/compiled_stan_models"
+              - "~/spearmint/compiled_stan_models"
       - run:
           name: Run Tests
           command: |

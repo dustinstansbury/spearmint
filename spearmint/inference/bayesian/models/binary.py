@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 """
 Each function returns Stan model code that are appropriate for modeling
 distributions of binary or proportions data.

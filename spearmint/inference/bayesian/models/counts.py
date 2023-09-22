@@ -1,5 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 """
 Function that return Stan model code for modeling data with counts or rates-generated
 data.

@@ -1,11 +1,9 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 from datetime import datetime
-from abra.dataset import Dataset
-from abra.stats import Samples, MultipleComparisonCorrection
-from abra.mixin import InitRepr
-from abra.config import DEFAULT_ALPHA
-from abra.hypothesis_test import HypothesisTestSuiteResults
+from spearmint.dataset import Dataset
+from spearmint.stats import Samples, MultipleComparisonCorrection
+from spearmint.mixin import InitRepr
+from spearmint.config import DEFAULT_ALPHA
+from spearmint.hypothesis_test import HypothesisTestSuiteResults
 import copy
 
 
@@ -40,6 +38,7 @@ class Experiment(InitRepr):
         Any additional columns in `data` that should be included in the experiment
         dataset. These columns can be used for additional / custom segmentations.
     """
+
     __ATTRS__ = ["name", "enrollment_strategy", "date"]
 
     def __init__(
@@ -51,16 +50,15 @@ class Experiment(InitRepr):
         date=None,
         name=None,
         enrollment_strategy=None,
-        meta=None
+        meta=None,
     ):
-
         # metadata
         if date is None:
             self.date = datetime.now().date()
         elif isinstance(date, datetime):
             self.date = date
         else:
-            raise ValueError('date parameter must be a datetime.datetime object')
+            raise ValueError("date parameter must be a datetime.datetime object")
 
         self.name = name
         self.enrollment_strategy = enrollment_strategy
@@ -93,7 +91,7 @@ class Experiment(InitRepr):
         correction_method=None,
         display_results=False,
         visualize_results=False,
-        inference_kwargs=None
+        inference_kwargs=None,
     ):
         """
         Given a HypothesisTest, run the test and return the results.
@@ -117,12 +115,16 @@ class Experiment(InitRepr):
             The results of the statistical test.
         """
 
-        control_obs = test.filter_variations(self.dataset, test.control, self.ds.treatment)
+        control_obs = test.filter_variations(
+            self.dataset, test.control, self.ds.treatment
+        )
         control_obs = test.filter_segments(control_obs)
         control_obs = test.filter_metrics(control_obs)
         control_samples = Samples(control_obs, name=test.control)
 
-        variation_obs = test.filter_variations(self.dataset, test.variation, self.ds.treatment)
+        variation_obs = test.filter_variations(
+            self.dataset, test.variation, self.ds.treatment
+        )
         variation_obs = test.filter_segments(variation_obs)
         variation_obs = test.filter_metrics(variation_obs)
         variation_samples = Samples(variation_obs, name=test.variation)
@@ -130,7 +132,8 @@ class Experiment(InitRepr):
         test_results = test.run(
             control_samples,
             variation_samples,
-            alpha=alpha, inference_kwargs=inference_kwargs
+            alpha=alpha,
+            inference_kwargs=inference_kwargs,
         )
         test_results.correction_method = correction_method
 
@@ -148,7 +151,7 @@ class Experiment(InitRepr):
         alpha=DEFAULT_ALPHA,
         display_results=False,
         visualize_results=False,
-        inference_kwargs=None
+        inference_kwargs=None,
     ):
         """
         Given a HypothesisTestSuite, run all tests, perform multiple comparison
@@ -182,9 +185,7 @@ class Experiment(InitRepr):
 
         correction_method = test_suite.correction_method
         correction = MultipleComparisonCorrection(
-            p_values=p_values,
-            alpha=alpha,
-            method=correction_method
+            p_values=p_values, alpha=alpha, method=correction_method
         )
 
         # rerun tests with updated alpha
@@ -193,15 +194,12 @@ class Experiment(InitRepr):
             corrected_result = self.run_test(
                 test,
                 alpha=correction.alpha_corrected,
-                correction_method=correction.method
+                correction_method=correction.method,
             )
             corrected_result.correction_method = correction_method
             corrected_result.render_tables()  # update display params
             corrected_test_results.append(corrected_result)
 
         return HypothesisTestSuiteResults(
-            test_suite.tests,
-            original_test_results,
-            corrected_test_results,
-            correction
+            test_suite.tests, original_test_results, corrected_test_results, correction
         )

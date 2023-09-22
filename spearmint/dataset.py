@@ -1,6 +1,4 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-from abra.config import search_config
+from spearmint.config import search_config
 from pandas import DataFrame
 
 
@@ -12,10 +10,13 @@ class Dataset(object):
     """
     Interface between raw data, global configuration, and experiment
     """
+
     def __init__(self, df, treatment=None, measures=None, attributes=None, meta=None):
-        treatment = treatment if treatment else search_config(df, "experiment", "treatment")[0]   # always first
+        treatment = (
+            treatment if treatment else search_config(df, "experiment", "treatment")[0]
+        )  # always first
         if treatment is None:
-            raise DatasetException(f'treatment column {treatment} not in dataframe')
+            raise DatasetException(f"treatment column {treatment} not in dataframe")
         else:
             self.treatment = treatment
 
@@ -26,10 +27,12 @@ class Dataset(object):
             meta = [meta]
 
         self.meta = meta if meta else []
-        self.measures = measures if measures \
-            else search_config(df, "experiment", "measures")
-        self.attributes = attributes if attributes \
-            else search_config(df, "experiment", "attributes")
+        self.measures = (
+            measures if measures else search_config(df, "experiment", "measures")
+        )
+        self.attributes = (
+            attributes if attributes else search_config(df, "experiment", "attributes")
+        )
 
         all_columns = [self.treatment] + self.measures + self.attributes + self.meta
         self.data = df[all_columns]
@@ -43,7 +46,7 @@ class Dataset(object):
         """
         Return a list of cohorts defined by the experiment treatment.
         """
-        if not hasattr(self, '_cohorts'):
+        if not hasattr(self, "_cohorts"):
             self._cohorts = sorted(self.data[self.treatment].unique().tolist())
         return self._cohorts
 
@@ -76,7 +79,8 @@ class Dataset(object):
         for segment in self.segments(attribute):
             measures[segment] = {}
             for metric in self.measures:
-                mask = (self.data[self.treatment] == segment[0]) \
-                    & (self.data[attribute] == segment[1])
+                mask = (self.data[self.treatment] == segment[0]) & (
+                    self.data[attribute] == segment[1]
+                )
                 measures[segment][metric] = self.data[mask][metric].values
         return DataFrame(measures).T

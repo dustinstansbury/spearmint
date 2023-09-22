@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import logging
 from configparser import ConfigParser
@@ -12,7 +11,7 @@ CONFIG_TEMPLATE = """
 # ----------------------- BEGIN TEMPLATE -----------------------
 
 [core]
-abracadabra_home={ABRACADABRA_HOME}
+spearmint_home={SPEARMINT._HOME}
 
 # Logging level
 logging_level=INFO
@@ -31,12 +30,13 @@ default_alpha=.05
 min_obs_for_z=30
 
 [stan]:
-model_cache={ABRACADABRA_HOME}/compiled_stan_models/
+model_cache={SPEARMINT._HOME}/compiled_stan_models/
 default_bayesian_inference_method=sample
 """
 
 TEMPLATE_BEGIN_PATTERN = (
-    '# ----------------------- BEGIN TEMPLATE -----------------------')
+    "# ----------------------- BEGIN TEMPLATE -----------------------"
+)
 
 
 def expand_env_var(env_var):
@@ -71,6 +71,7 @@ class AbracadabraConfigParser(ConfigParser, object):
     """
     Custom config parser, with some validations
     """
+
     def __init__(self, *args, **kwargs):
         super(AbracadabraConfigParser, self).__init__(*args, **kwargs)
         self.is_validated = False
@@ -88,38 +89,38 @@ def mk_dir(dirname):
         try:
             os.makedirs(dirname)
         except OSError as e:
-            raise Exception('Could not create directory {}:\n{}'.format(dirname, e))
+            raise Exception("Could not create directory {}:\n{}".format(dirname, e))
 
 
 # Home directory and configuration locations.
-# We default to ~/abracadabra and ~/abracadabra/abracadabra.cfg if not provided
-if 'ABRACADABRA_HOME' not in os.environ:
-    ABRACADABRA_HOME = expand_env_var('~/abracadabra')
-    os.environ['ABRACADABRA_HOME'] = ABRACADABRA_HOME
+# We default to ~/spearmint and ~/spearmint/abracadspearmint.cfg if not provided
+if "SPEARMINT._HOME" not in os.environ:
+    SPEARMINT._HOME = expand_env_var("~/spearmint")
+    os.environ["SPEARMINT._HOME"] = SPEARMINT._HOME
 else:
-    ABRACADABRA_HOME = expand_env_var(os.environ['ABRACADABRA_HOME'])
+    SPEARMINT._HOME = expand_env_var(os.environ["SPEARMINT._HOME"])
 
-mk_dir(ABRACADABRA_HOME)
+mk_dir(SPEARMINT._HOME)
 
-if 'ABRACADABRA_CONFIG' not in os.environ:
-    if os.path.isfile(expand_env_var('~/abracadabra.cfg')):
-        ABRACADABRA_CONFIG = expand_env_var('~/abracadabra.cfg')
+if "SPEARMINT._CONFIG" not in os.environ:
+    if os.path.isfile(expand_env_var("~/abracadspearmint.cfg")):
+        SPEARMINT._CONFIG = expand_env_var("~/abracadspearmint.cfg")
     else:
-        ABRACADABRA_CONFIG = ABRACADABRA_HOME + '/abracadabra.cfg'
+        SPEARMINT._CONFIG = SPEARMINT._HOME + "/abracadspearmint.cfg"
 else:
-    ABRACADABRA_CONFIG = expand_env_var(os.environ['ABRACADABRA_CONFIG'])
+    SPEARMINT._CONFIG = expand_env_var(os.environ["SPEARMINT._CONFIG"])
 
 
-if 'ABRACADABRA_USER' not in os.environ:
-    ABRACADABRA_USER = getpass.getuser()
-    os.environ['ABRACADABRA_USER'] = ABRACADABRA_USER
+if "SPEARMINT._USER" not in os.environ:
+    SPEARMINT._USER = getpass.getuser()
+    os.environ["SPEARMINT._USER"] = SPEARMINT._USER
 else:
-    ABRACADABRA_USER = os.environ['ABRACADABRA_USER']
+    SPEARMINT._USER = os.environ["SPEARMINT._USER"]
 
 # Write the config file, if needed
-if not os.path.isfile(ABRACADABRA_CONFIG):
-    logging.info(f'Creating new Abracadabra config file in: {ABRACADABRA_CONFIG}')
-    with open(ABRACADABRA_CONFIG, 'w') as f:
+if not os.path.isfile(SPEARMINT._CONFIG):
+    logging.info(f"Creating new Abracadabra config file in: {SPEARMINT._CONFIG}")
+    with open(SPEARMINT._CONFIG, "w") as f:
         cfg = render_config_template(CONFIG_TEMPLATE)
         f.write(cfg.split(TEMPLATE_BEGIN_PATTERN)[-1].strip())
 
@@ -128,6 +129,7 @@ def coerce_value(val):
     """
     Coerce config variables to proper types
     """
+
     def isnumeric(val):
         try:
             float(val)
@@ -142,19 +144,19 @@ def coerce_value(val):
             return float(val)
 
     lower_val = str(val.lower())
-    if lower_val in ('true', 'false'):
-        if 'f' in lower_val:
+    if lower_val in ("true", "false"):
+        if "f" in lower_val:
             return False
         else:
             return True
 
-    if ',' in val:
-        return [coerce_value(v.strip()) for v in val.split(',')]
+    if "," in val:
+        return [coerce_value(v.strip()) for v in val.split(",")]
     return val
 
 
 CONFIG = AbracadabraConfigParser()
-CONFIG.read(ABRACADABRA_CONFIG)
+CONFIG.read(SPEARMINT._CONFIG)
 
 
 # Give the entire module get/set methods
@@ -165,8 +167,8 @@ def get(section, key, **kwargs):
     Example
     -------
     from abra import config
-    # print the currently-configure ABRACADABRA_HOME directory
-    print(config.get('core', 'abracadabra_home'))
+    # print the currently-configure SPEARMINT._HOME directory
+    print(config.get('core', 'spearmint_home'))
     """
     return coerce_value(CONFIG.get(section, key, **kwargs))
 
@@ -192,11 +194,11 @@ def search_config(df, section, key):
     return [c for c in columns if c in available]
 
 
-DEFAULT_ALPHA = get('constants', 'default_alpha')
-MIN_OBS_FOR_Z = get('constants', 'min_obs_for_z')
+DEFAULT_ALPHA = get("constants", "default_alpha")
+MIN_OBS_FOR_Z = get("constants", "min_obs_for_z")
 
-STAN_MODEL_CACHE = get('stan', 'model_cache')
-DEFAULT_BAYESIAN_INFERENCE_METHOD = get('stan', 'default_bayesian_inference_method')
+STAN_MODEL_CACHE = get("stan", "model_cache")
+DEFAULT_BAYESIAN_INFERENCE_METHOD = get("stan", "default_bayesian_inference_method")
 
 logger = logging.getLogger(__name__)
-logger.setLevel(get('core', 'logging_level'))
+logger.setLevel(get("core", "logging_level"))
