@@ -1,9 +1,18 @@
 # ✨ Spearmint ✨
+
 ![MIT License](https://img.shields.io/github/license/dustinstansbury/spearmint)
-[![dustinstansbury](https://circleci.com/gh/dustinstansbury/spearmint.svg?style=shield)](https://circleci.com/gh/dustinstansbury/spearmint)
-![Coverage](https://codecov.io/gh/dustinstansbury/spearmint/branch/master/graph/badge.svg)
+<!-- [![dustinstansbury](https://circleci.com/gh/dustinstansbury/spearmint.svg?style=shield)](https://circleci.com/gh/dustinstansbury/spearmint) -->
+<!-- ![Coverage](https://codecov.io/gh/dustinstansbury/spearmint/branch/master/graph/badge.svg) -->
 
-
+# ⚠️ This fork is a WIP
+ The goals of this fork are to...
+- [ ] update to newer version of python (>=3.10)
+- [ ] update to 100% Python
+  - [ ] convert all Stan MCMC models to PyMC5
+  - [ ] use analytic solutions to Bayesian inference where possible (e.g. conjugate prior models)
+- [ ] improve reporting
+  - [ ] better terminal output (e.g. via rich)
+  - [ ] modern interactive plotting
 ## Features
 - Offers a simple and intuitive, yet powerful API for running, visualizing, and interpreting statistically-rigorous hypothesis tests with none of the hastle of jumping between various statistical or visualization packages.
 - Supports most common variable types used in AB Tests inlcuding:
@@ -29,7 +38,7 @@
     + Easily extendable to support new inference methods
 
 
-## Installation
+## Installation (TBD)
 
 ### Requirements
 - spearmint has been tested on `python>=3.10`.
@@ -38,13 +47,13 @@
 #### from the PyPI index (recommended)
 
 ```bash
-pip install spearmint
+# pip install spearmint # not yet on PyPI
 ```
 
-#### from Quizlet's Github repo
+#### from the Github repo
 
 ```bash
-pip install git+https://github.com/dustinstansbury/spearmint.git
+# pip install git+https://github.com/dustinstansbury/spearmint.git # not yet ready for primetime
 ```
 
 ### Install from source
