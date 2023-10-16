@@ -1,7 +1,6 @@
-import logging
 import os
-from spearmint.utils import generate_fake_observations
-from abra import config
+import logging
+from spearmint import config
 
 
 def test_logger_level():
@@ -15,20 +14,20 @@ def test_expand_env_var():
 
 
 def test_render_config_template():
-    template = "{SPEARMINT._USER}"
-    assert config.render_config_template(template) == config.SPEARMINT._USER
+    template = "{SPEARMINT_USER}"
+    assert config.render_config_template(template) == config.SPEARMINT_USER
 
 
 def test_home():
-    assert os.environ["SPEARMINT._HOME"] == config.SPEARMINT._HOME
+    assert os.environ["SPEARMINT_HOME"] == config.SPEARMINT_HOME
 
 
 def test_user():
-    assert os.environ["SPEARMINT._USER"] == config.SPEARMINT._USER
+    assert os.environ["SPEARMINT_USER"] == config.SPEARMINT_USER
 
 
 def test_config_file():
-    assert os.path.isfile(config.SPEARMINT._CONFIG)
+    assert os.path.isfile(config.SPEARMINT_CONFIG)
 
 
 def test_coerce_value():
@@ -43,12 +42,3 @@ def test_get_set():
     config.set("core", "test_value", "test")
     assert config.get("core", "test_value") == "test"
     assert config.CONFIG.get("core", "test_value") == "test"
-
-
-def test_search_config():
-    df = generate_fake_observations(n_observations=1)
-
-    # test against default config template
-    assert "treatment" in config.search_config(df, "experiment", "treatment")
-    assert "metric" in config.search_config(df, "experiment", "measures")
-    assert "attr_0" in config.search_config(df, "experiment", "attributes")

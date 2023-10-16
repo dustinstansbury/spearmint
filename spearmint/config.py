@@ -1,7 +1,9 @@
 import os
 import logging
-from configparser import ConfigParser
 import getpass
+
+from configparser import ConfigParser
+from typing import Any, Union, Iterable
 
 
 CONFIG_TEMPLATE = """
@@ -11,7 +13,7 @@ CONFIG_TEMPLATE = """
 # ----------------------- BEGIN TEMPLATE -----------------------
 
 [core]
-spearmint_home={SPEARMINT._HOME}
+spearmint_home={SPEARMINT_HOME}
 
 # Logging level
 logging_level=INFO
@@ -29,8 +31,7 @@ attributes=attr_0,attr_1
 default_alpha=.05
 min_obs_for_z=30
 
-[stan]:
-model_cache={SPEARMINT._HOME}/compiled_stan_models/
+[pymc]:
 default_bayesian_inference_method=sample
 """
 
@@ -39,7 +40,7 @@ TEMPLATE_BEGIN_PATTERN = (
 )
 
 
-def expand_env_var(env_var):
+def expand_env_var(env_var: str) -> None:
     """
     Expands (potentially nested) env vars by repeatedly applying
     `expandvars` and `expanduser` until interpolation stops having
@@ -55,11 +56,21 @@ def expand_env_var(env_var):
             env_var = interpolated
 
 
-def render_config_template(template):
+def render_config_template(template: str) -> str:
     """
     Generates a configuration from the provided template + variables defined in
     current scope
-    :param template: a config content templated with {{variables}}
+
+    Parameters
+    ----------
+    template : str
+        A configuration template with interpolations `{{variables}}`
+
+    Returns
+    -------
+    rendered_template : str
+        The template with variables interpolated from environment, global, and
+        local scope.
     """
     all_vars = {k: v for d in [globals(), locals()] for k, v in d.items()}
     return template.format(**all_vars)
@@ -67,67 +78,92 @@ def render_config_template(template):
 
 # ConfigParser is "old-style" class which is a classobj, not a type.
 # We thus use multiple inheritance with object to fix
-class AbracadabraConfigParser(ConfigParser, object):
+class SpearmintConfigParser(ConfigParser, object):
     """
     Custom config parser, with some validations
     """
 
-    def __init__(self, *args, **kwargs):
-        super(AbracadabraConfigParser, self).__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super(SpearmintConfigParser, self).__init__(*args, **kwargs)
         self.is_validated = False
 
-    def _validate(self):
+    def _validate(self) -> None:
         self.is_validated = True
 
-    def read(self, filenames):
+    def read(self, filenames: Union[str, Iterable[str]]) -> None:
         ConfigParser.read(self, filenames)
         self._validate()
 
 
-def mk_dir(dirname):
+def mk_dir(dirname: str) -> None:
+    """Make directory, including full file path
+
+    Parameters
+    ----------
+    dirname : str
+        _description_
+
+    Raises
+    ------
+    OSError if any trouble making the directory
+    """
     if not os.path.isdir(dirname):
         try:
             os.makedirs(dirname)
         except OSError as e:
-            raise Exception("Could not create directory {}:\n{}".format(dirname, e))
+            raise Exception(f"Could not create directory {dirname}:\n{e}")
 
 
 # Home directory and configuration locations.
-# We default to ~/spearmint and ~/spearmint/abracadspearmint.cfg if not provided
-if "SPEARMINT._HOME" not in os.environ:
-    SPEARMINT._HOME = expand_env_var("~/spearmint")
-    os.environ["SPEARMINT._HOME"] = SPEARMINT._HOME
+# We default to ~/.spearmint and ~/spearmint/spearmint.cfg if not provided
+if "SPEARMINT_HOME" not in os.environ:
+    SPEARMINT_HOME = expand_env_var("~/.spearmint")
+    os.environ["SPEARMINT_HOME"] = SPEARMINT_HOME
 else:
-    SPEARMINT._HOME = expand_env_var(os.environ["SPEARMINT._HOME"])
+    SPEARMINT_HOME = expand_env_var(os.environ["SPEARMINT_HOME"])
 
-mk_dir(SPEARMINT._HOME)
+mk_dir(SPEARMINT_HOME)
 
-if "SPEARMINT._CONFIG" not in os.environ:
-    if os.path.isfile(expand_env_var("~/abracadspearmint.cfg")):
-        SPEARMINT._CONFIG = expand_env_var("~/abracadspearmint.cfg")
+if "SPEARMINT_CONFIG" not in os.environ:
+    if os.path.isfile(expand_env_var("~/spearmint.cfg")):
+        SPEARMINT_CONFIG = expand_env_var("~/spearmint.cfg")
     else:
-        SPEARMINT._CONFIG = SPEARMINT._HOME + "/abracadspearmint.cfg"
+        SPEARMINT_CONFIG = SPEARMINT_HOME + "/spearmint.cfg"
 else:
-    SPEARMINT._CONFIG = expand_env_var(os.environ["SPEARMINT._CONFIG"])
+    SPEARMINT_CONFIG = expand_env_var(os.environ["SPEARMINT_CONFIG"])
 
 
-if "SPEARMINT._USER" not in os.environ:
-    SPEARMINT._USER = getpass.getuser()
-    os.environ["SPEARMINT._USER"] = SPEARMINT._USER
+if "SPEARMINT_USER" not in os.environ:
+    SPEARMINT_USER = getpass.getuser()
+    os.environ["SPEARMINT_USER"] = SPEARMINT_USER
 else:
-    SPEARMINT._USER = os.environ["SPEARMINT._USER"]
+    SPEARMINT_USER = os.environ["SPEARMINT_USER"]
 
-# Write the config file, if needed
-if not os.path.isfile(SPEARMINT._CONFIG):
-    logging.info(f"Creating new Abracadabra config file in: {SPEARMINT._CONFIG}")
-    with open(SPEARMINT._CONFIG, "w") as f:
+# If needed, write the config file
+if not os.path.isfile(SPEARMINT_CONFIG):
+    logging.info(f"Creating new spearment config file in: {SPEARMINT_CONFIG}")
+    with open(SPEARMINT_CONFIG, "w") as f:
         cfg = render_config_template(CONFIG_TEMPLATE)
         f.write(cfg.split(TEMPLATE_BEGIN_PATTERN)[-1].strip())
 
 
-def coerce_value(val):
+def coerce_value(val: Any) -> Any:
     """
-    Coerce config variables to proper types
+    Infer / coerce configuration variables to valid types
+
+    Parameters
+    ----------
+    val : Any
+        The value to coerce
+
+    Returns
+    -------
+    coerced_value : Any
+        The value with inferred type
+
+    Raises
+    ------
+    ValueError if can't infer the type from the value.
     """
 
     def isnumeric(val):
@@ -155,50 +191,44 @@ def coerce_value(val):
     return val
 
 
-CONFIG = AbracadabraConfigParser()
-CONFIG.read(SPEARMINT._CONFIG)
+CONFIG = SpearmintConfigParser()
+CONFIG.read(SPEARMINT_CONFIG)
 
 
 # Give the entire module get/set methods
-def get(section, key, **kwargs):
+def get(section: str, key: str, **kwargs) -> Any:
     """
-    Retrieve typed variables from config.
+    Retrieve properly-typed variables from config.
+
+    Parameters
+    ----------
+    section : str
+        The top-level section of the config to get
+    key : str
+        The specific config value to get
+
+    Returns
+    -------
+    value : Any
+        The propertly-typed configuration value
 
     Example
     -------
-    from abra import config
-    # print the currently-configure SPEARMINT._HOME directory
+    from spearmint import config
+    # print the currently-configure SPEARMINT_HOME directory
     print(config.get('core', 'spearmint_home'))
     """
     return coerce_value(CONFIG.get(section, key, **kwargs))
 
 
-def set(section, option, value, update=False):
+def set(section: str, option: str, value: Any):
     CONFIG.set(section, option, value)
-
-
-def search_config(df, section, key):
-    """
-    Search a dataframe `df` for parameters defined in the global configuration.
-
-    Parameters
-    ----------
-    df: dataframe
-        raw data to search
-    param_name: str
-        type of parameter to search ('entities', 'metrics', or 'attributes')
-    """
-    available = get(section, key)
-    available = [available] if not isinstance(available, list) else available
-    columns = df.columns
-    return [c for c in columns if c in available]
 
 
 DEFAULT_ALPHA = get("constants", "default_alpha")
 MIN_OBS_FOR_Z = get("constants", "min_obs_for_z")
 
-STAN_MODEL_CACHE = get("stan", "model_cache")
-DEFAULT_BAYESIAN_INFERENCE_METHOD = get("stan", "default_bayesian_inference_method")
+DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "default_bayesian_inference_method")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(get("core", "logging_level"))
