@@ -1,44 +1,44 @@
-import os
+import pytest
 import logging
-from spearmint import config
+import os
 
 
-def test_logger_level():
-    assert config.logger.level == getattr(
-        logging, (config.get("core", "logging_level"))
+def test_logger_level(test_config):
+    assert test_config.logger.level == getattr(
+        logging, (test_config.get("core", "logging_level"))
     )
 
 
-def test_expand_env_var():
-    assert "blammo" == config.expand_env_var("blammo")
+def test_expand_env_var(test_config):
+    assert "blammo" == test_config.expand_env_var("blammo")
 
 
-def test_render_config_template():
+def test_render_config_template(test_config):
     template = "{SPEARMINT_USER}"
-    assert config.render_config_template(template) == config.SPEARMINT_USER
+    assert test_config.render_config_template(template) == test_config.SPEARMINT_USER
 
 
-def test_home():
-    assert os.environ["SPEARMINT_HOME"] == config.SPEARMINT_HOME
+def test_home(test_config, test_env_vars):
+    assert test_env_vars["SPEARMINT_HOME"] == test_config.SPEARMINT_HOME
 
 
-def test_user():
-    assert os.environ["SPEARMINT_USER"] == config.SPEARMINT_USER
+def test_user(test_config, test_env_vars):
+    assert test_env_vars["SPEARMINT_USER"] == test_config.SPEARMINT_USER
 
 
-def test_config_file():
-    assert os.path.isfile(config.SPEARMINT_CONFIG)
+def test_config_file(test_config):
+    assert os.path.isfile(test_config.SPEARMINT_CONFIG)
 
 
-def test_coerce_value():
-    assert config.coerce_value("true") is True
-    assert config.coerce_value("false") is False
-    assert isinstance(config.coerce_value("1.0"), float)
-    assert isinstance(config.coerce_value("1"), int)
-    assert isinstance(config.coerce_value("a,b"), list)
+def test_coerce_value(test_config):
+    assert test_config.coerce_value("true") is True
+    assert test_config.coerce_value("false") is False
+    assert isinstance(test_config.coerce_value("1.0"), float)
+    assert isinstance(test_config.coerce_value("1"), int)
+    assert isinstance(test_config.coerce_value("a,b"), list)
 
 
-def test_get_set():
-    config.set("core", "test_value", "test")
-    assert config.get("core", "test_value") == "test"
-    assert config.CONFIG.get("core", "test_value") == "test"
+def test_get_set(test_config):
+    test_config.set("core", "test_value", "test")
+    assert test_config.get("core", "test_value") == "test"
+    assert test_config.CONFIG.get("core", "test_value") == "test"
