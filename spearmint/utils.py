@@ -2,34 +2,49 @@ import os
 import numpy as np
 import pandas as pd
 import string
-from pandas import DataFrame
+
+from spearmint.typing import Any, Iterable, Union, DataFrame
 
 
-def dict_to_object(item):
+def format_value(val: Union[float, Iterable[float]], precision: int = 4) -> str:
+    """Helper function for standardizing the precision of numerical and
+    iterable values, returning a string representation.
+
+    Parameters
+    ----------
+    val : Union[float, Iterable[float]]
+        The value to format into a string
+    precision : int
+        The output numerical precision
+
+    Returns
+    -------
+    formatted_value : str
+        Representation of `val` with proper precision
     """
-    Recursively convert a dictionary to an object.
-    """
-
-    def convert(item):
-        if isinstance(item, dict):
-            return type("DictToObject", (), {k: convert(v) for k, v in item.items()})
-        if isinstance(item, list):
-
-            def yield_convert(item):
-                for index, value in enumerate(item):
-                    yield convert(value)
-
-            return list(yield_convert(item))
-        else:
-            return item
-
-    return convert(item)
+    if isinstance(val, Iterable):
+        return f"{tuple((round(v, precision) for v in val))}"
+    return f"{round(val, precision)}"
 
 
-def ensure_dataframe(data, data_attr="data"):
+def ensure_dataframe(data: Any, data_attr: str = "data") -> DataFrame:
     """
     Check if an object is a dataframe, and if not, check if it has an
-    attribute that is a dataframe.
+    attribute that is a dataframe, and return that attribute
+
+    Parameters
+    ----------
+    data : Union[DataFrame, object]
+        The data to check
+
+    Returns
+    -------
+    data : DataFrame
+        A verified dataframe
+
+    Raises
+    ------
+    - ValueError if data `data.data_attr` isn't a DataFrame
     """
     if not isinstance(data, DataFrame):
         if hasattr(data, data_attr) and isinstance(getattr(data, data_attr), DataFrame):
@@ -40,9 +55,14 @@ def ensure_dataframe(data, data_attr="data"):
     return data
 
 
-def set_backend():
+def set_matplotlib_backend() -> str:
     """
-    Set supported matplotlb backend depending on platform.
+    Set supported matplotlb backend depending on the current platform.
+
+    Returns
+    -------
+    backend : str
+        The matplotlib backend being used
     """
     from sys import platform
     import matplotlib as mpl
@@ -52,12 +72,31 @@ def set_backend():
     return backend
 
 
+def safe_isnan(val: Any) -> bool:
+    """
+    Check if a value is a NaN, handling `None` values
+
+    Parameters
+    ----------
+    val : Any
+        A value to check
+
+    Returns
+    -------
+    is_nan : bool
+        Truth value of the the value being a NaN
+    """
+    if val is not None:
+        return np.isnan(val)
+    return False
+
+
 def generate_fake_observations(
-    n_observations=10000,
-    n_treatments=2,
-    n_attributes=2,
-    distribution="bernoulli",
-    seed=123,
+    n_observations: int = 10000,
+    n_treatments: int = 2,
+    n_attributes: int = 2,
+    distribution: str = "bernoulli",
+    seed: int = 123,
 ):
     """
     Create a dataframe of artificial observations to be used for testing and demos.
@@ -86,7 +125,20 @@ def generate_fake_observations(
             - 'poisson': the mean increases from 0 by 10 for each successive treatment
     seed: int
         The random number generator seed.
+
+    Returns
+    -------
+    fake_observations : DataFrame
+        Synthethic dataset with the columns:
+        -   'metric': metric with support of `distribution`
+        -   'treatment': the alphabetic label of treatments (e.g. 'A', 'B', etc.)
+        -   'attr_*': randomly-genrated on-hot encoded attributes associated with
+            each synthetic observation
+
     """
+    distribution_ = distribution.lower()
+    if distribution_ not in ("poisson", "bernoulli", "gaussian"):
+        raise ValueError(f"Unsupported distribution {distribution}")
     np.random.seed(seed)
 
     letters = string.ascii_uppercase
@@ -108,113 +160,29 @@ def generate_fake_observations(
         ]
         data[attr] = np.random.choice(attr_vals, size=n_observations)
 
-    # add measurements, each treatment has successively larger means
+    # Set the metric data type
+    data["metric"] = 0.0  # Fill data with default value for conversion
+    if distribution_ == "poisson":
+        dtype = int
+    elif distribution_ == "bernoulli":
+        dtype = bool
+    elif distribution_ == "gaussian":
+        dtype = float
+    data = data.astype({"metric": dtype})
+
+    # Add measurements, each treatment has successively larger means
     for delta, tr in enumerate(treatments):
         tr_mask = data.treatment == tr
         n_tr = sum(tr_mask)
-        if "gauss" in distribution:
+        if distribution_ == "gaussian":
             data.loc[tr_mask, "metric"] = delta + np.random.randn(n_tr)
-        elif "bern" in distribution:
+        elif distribution_ == "bernoulli":
             data.loc[tr_mask, "metric"] = list(
-                map(bool, np.round(0.1 * delta + np.random.random(n_tr)))
+                map(dtype, np.round(0.1 * delta + np.random.random(n_tr)))
             )
-        elif "poiss" in distribution:
+        elif distribution_ == "poisson":
             data.loc[tr_mask, "metric"] = list(
-                map(int, np.random.poisson(1 + delta, size=n_tr))
+                map(dtype, np.random.poisson(1 + delta, size=n_tr))
             )
 
     return data
-
-
-class suppress_stdout_stderr(object):
-    """
-    A context manager for doing a "deep suppression" of stdout and stderr in
-    Python, i.e. will suppress all print, even if the print originates in a
-    compiled C/Fortran sub-function.
-
-    Usage
-    -----
-    with suppress_stdout_stderr():
-        function_with_stdout_stderr()
-
-    Notes
-    -----
-    This *should* not suppress raised exceptions, since exceptions are printed
-    to stderr just before a script exits, and after the context manager has
-    exited.
-
-    For details see:
-    https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
-
-    """
-
-    def __init__(self):
-        # Open a pair of null files
-        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
-        # Save the actual stdout (1) and stderr (2) file descriptors.
-        self.save_fds = (os.dup(1), os.dup(2))
-
-    def __enter__(self):
-        # Assign the null pointers to stdout and stderr.
-        os.dup2(self.null_fds[0], 1)
-        os.dup2(self.null_fds[1], 2)
-
-    def __exit__(self, *args, **kwargs):
-        # Re-assign the real stdout/stderr back to (1) and (2)
-        os.dup2(self.save_fds[0], 1)
-        os.dup2(self.save_fds[1], 2)
-
-        # Close all pointers
-        os.close(self.null_fds[0])
-        os.close(self.null_fds[1])
-        os.close(self.save_fds[0])
-        os.close(self.save_fds[1])
-
-
-class run_context(suppress_stdout_stderr):
-    """
-    Context manager with optional input to allow or suppress stdout and stderr.
-
-    Parameters
-    ----------
-    suppress : bool
-        Whether or not to suppress stdout and stderr
-    """
-
-    def __init__(self, suppress=True, *args, **kwargs):
-        if suppress:
-            super(run_context, self).__init__(*args, **kwargs)
-
-        self.suppress = suppress
-
-    def __enter__(self):
-        if self.suppress:
-            super(run_context, self).__enter__()
-
-    def __exit__(self, *args, **kwargs):
-        if self.suppress:
-            super(run_context, self).__exit__()
-
-
-def safe_isnan(val):
-    if val is not None:
-        return np.isnan(val)
-    return False
-
-
-def safe_cast_json(data, mapping):
-    """
-    Apply safe casting of common problem data types (see TYPE_MAPPING).
-    """
-    _apply = lambda x: _safe_cast_json(x, mapping)
-    if isinstance(data, (str, bool)):
-        return data
-    elif isinstance(data, Mapping):
-        return type(data)({k: _apply(v) for k, v in list(data.items())})
-    elif isinstance(data, Sequence):
-        # # additional sequence processing, no None in sequences
-        # _data = [_apply(v) for v in data]
-        # _data = [d if d is not None else 0 for d in _data]
-        return type(data)(_apply(v) for v in data)
-    else:
-        return mapping.get(data, data) if not safe_isnan(data) else mapping[np.nan]

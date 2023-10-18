@@ -1,28 +1,58 @@
 import pytest
 import numpy as np
-from abra import utils
+from spearmint import utils
 
 
-def test_dict_to_object():
-    d = utils.dict_to_object({"a": "b"})
-    assert d.a == 'b'
+def test_format_value():
+    assert utils.format_value(1) == "1"
+    assert utils.format_value(1.0) == "1.0"
+    assert utils.format_value(1.23456) == "1.2346"
+    assert utils.format_value((1, 2)) == "(1, 2)"
+    assert utils.format_value((1.0, 2.0)) == "(1.0, 2.0)"
+    assert utils.format_value((1.234, 2.345), precision=2) == "(1.23, 2.35)"
 
 
-def test_ensure_dataframe(proportions_data_small):
+def test_ensure_dataframe():
+    test_data = utils.generate_fake_observations(distribution="bernoulli")
     with pytest.raises(ValueError):
         utils.ensure_dataframe(None)
-    assert utils.ensure_dataframe(proportions_data_small).equals(proportions_data_small)
+    assert utils.ensure_dataframe(test_data).equals(test_data)
 
     class DataObj:
-        data = proportions_data_small
+        data = test_data
 
-    assert utils.ensure_dataframe(DataObj(), 'data').equals(proportions_data_small)
+    assert utils.ensure_dataframe(DataObj(), "data").equals(test_data)
 
 
-def test_set_backend():
-    assert utils.set_backend() in ('pdf', 'agg')
+def test_set_matplotlib_backend():
+    assert utils.set_matplotlib_backend() in ("pdf", "agg")
+
 
 def test_safe_isnan():
     assert utils.safe_isnan(None) is False
     assert utils.safe_isnan(np.inf) == False
     assert utils.safe_isnan(np.nan) == True
+
+
+def test_generate_fake_observations():
+    fake_bernoulli = utils.generate_fake_observations(distribution="bernoulli")
+    assert fake_bernoulli.dtypes["metric"] == bool
+
+    fake_gaussian = utils.generate_fake_observations(distribution="gaussian")
+    assert fake_gaussian.dtypes["metric"] == float
+
+    fake_poisson = utils.generate_fake_observations(distribution="poisson")
+    assert fake_poisson.dtypes["metric"] == int
+
+    with pytest.raises(ValueError):
+        utils.generate_fake_observations(distribution="unsupported distribution")
+
+    n_attrs = 2
+    n_treatments = 4
+    fake_data = utils.generate_fake_observations(
+        n_treatments=n_treatments, n_attributes=n_attrs
+    )
+    n_columns = len(fake_data.columns)
+    n_attr_columns = n_columns - 3  # exclude ID, metric, or treatment columns
+    assert n_attr_columns == n_attrs
+    assert len(fake_data["treatment"].unique()) == n_treatments
