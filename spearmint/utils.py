@@ -3,7 +3,81 @@ import numpy as np
 import pandas as pd
 import string
 
-from spearmint.typing import Any, Iterable, Union, DataFrame
+from spearmint.typing import Any, Iterable, Union, DataFrame, Path
+
+BIG_FLOAT = 2.0**32
+SMALL_FLOAT = -(2.0**32)
+NAN_TYPE_MAPPING = {
+    np.inf: None,
+    -np.inf: None,
+    np.nan: None,
+}
+
+
+def mkdir(dirname: Union[str, Path]) -> None:
+    """Make directory, including full file path
+
+    Parameters
+    ----------
+    dirname : Union[str, Path]
+        The fullfile path to make
+
+    Raises
+    ------
+    OSError if any trouble creating the directory
+    """
+    if not os.path.isdir(dirname):
+        try:
+            os.makedirs(dirname)
+        except OSError as e:
+            raise Exception(f"Could not create directory {dirname}: {e}")
+
+
+def coerce_value(val: Any) -> Any:
+    """
+    Infer / coerce value to valid types
+
+    Parameters
+    ----------
+    val : Any
+        The value to coerce
+
+    Returns
+    -------
+    coerced_value : Any
+        The value with inferred type
+
+    Raises
+    ------
+    ValueError if can't infer the type from the value.
+    """
+
+    if val in NAN_TYPE_MAPPING:
+        return NAN_TYPE_MAPPING[val]
+
+    def isnumeric(val):
+        try:
+            float(val)
+            return True
+        except ValueError:
+            return False
+
+    if isnumeric(val):
+        try:
+            return int(val)
+        except ValueError:
+            return float(val)
+
+    lower_val = str(val.lower())
+    if lower_val in ("true", "false"):
+        if "f" in lower_val:
+            return False
+        else:
+            return True
+
+    if "," in val:
+        return [coerce_value(v.strip()) for v in val.split(",")]
+    return val
 
 
 def format_value(val: Union[float, Iterable[float]], precision: int = 4) -> str:
@@ -147,11 +221,11 @@ def generate_fake_observations(
     data = pd.DataFrame()
     data["id"] = list(range(n_observations))
 
-    # add treatments
+    # Add treatments
     treatments = list(letters[:n_treatments])
     data["treatment"] = np.random.choice(treatments, size=n_observations)
 
-    # add attributes (attributes should have no effect)
+    # Add attributes (attributes should have no effect)
     attribute_columns = ["attr_{}".format(i) for i in range(n_attributes)]
     for ai, attr in enumerate(attribute_columns):
         attr_vals = [
@@ -160,16 +234,6 @@ def generate_fake_observations(
         ]
         data[attr] = np.random.choice(attr_vals, size=n_observations)
 
-    # Set the metric data type
-    data["metric"] = 0.0  # Fill data with default value for conversion
-    if distribution_ == "poisson":
-        dtype = int
-    elif distribution_ == "bernoulli":
-        dtype = bool
-    elif distribution_ == "gaussian":
-        dtype = float
-    data = data.astype({"metric": dtype})
-
     # Add measurements, each treatment has successively larger means
     for delta, tr in enumerate(treatments):
         tr_mask = data.treatment == tr
@@ -177,12 +241,17 @@ def generate_fake_observations(
         if distribution_ == "gaussian":
             data.loc[tr_mask, "metric"] = delta + np.random.randn(n_tr)
         elif distribution_ == "bernoulli":
-            data.loc[tr_mask, "metric"] = list(
-                map(dtype, np.round(0.1 * delta + np.random.random(n_tr)))
-            )
+            data.loc[tr_mask, "metric"] = np.round(0.1 * delta + np.random.random(n_tr))
         elif distribution_ == "poisson":
-            data.loc[tr_mask, "metric"] = list(
-                map(dtype, np.random.poisson(1 + delta, size=n_tr))
-            )
+            data.loc[tr_mask, "metric"] = np.random.poisson(1 + delta, size=n_tr)
 
+    # Set the metric data type
+    if distribution_ == "poisson":
+        dtype = int
+    elif distribution_ == "bernoulli":
+        dtype = bool
+    elif distribution_ == "gaussian":
+        dtype = float
+
+    data = data.astype({"metric": dtype})
     return data

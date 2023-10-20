@@ -1,24 +1,14 @@
-from collections.abc import Sequence, Mapping
 import json
-from pandas import DataFrame
 import numpy as np
-from spearmint.utils import safe_cast_json, safe_isnan
-
-BIG = 2.0**32
-SMALL = -(2.0**32)
-TYPE_MAPPING = {
-    np.inf: None,
-    -np.inf: None,
-    np.nan: None,
-}  # uclear what the best choice is here
+from pandas import DataFrame
 
 
-class InitRepr(object):
+class InitRepr:
     """
-    __repr__ returns intialization command
+    Objects whose __repr__ returns an intialization command
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         class_name = self.__class__.__name__
         class_len = len(class_name)
         attr_str = [
@@ -28,49 +18,64 @@ class InitRepr(object):
         return f"{class_name}({attr_str})"
 
 
-class Jsonable(object):
+class Jsonable:
     """
-    Allows object ot be converted to a json string
+    Objects that can be converted to dict and JSON string
     """
 
-    def to_json(self):
+    def to_json(self) -> str:
+        """Serialize object to JSON string"""
         return json.dumps(self, default=lambda x: x.__dict__, sort_keys=True, indent=4)
 
-    @property
-    def json(self):
+    def to_dict(self) -> dict:
+        """Deserialize object to dictionary"""
         return json.loads(self.to_json())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.to_json()
 
 
-class Dataframeable(object):
+class Dataframeable:
     """
-    Export a set of attributes tabular format. Must implement a `json` property
-    method that returns a dict-like with the following structure (i.e. that
-    supported by pandas for generating a single-row dataframe from JSON):
-
-    {
-        "FIELD_1_NAME": [FIELD_1_VALUE],
-        "FIELD_2_NAME": [[FIELD_2_VALUE_A, FIELD_2_VALUE_B]],
-        "FIELD_3_NAME": [(FIELD_3_VALUE_A, FIELD_3_VALUE_B)], ...
-    }
+    Export an object to tabular format. Must overload/implement a `to_dict`
+    method that returns a dictionary representation of the object.
     """
 
-    @property
-    def json(self):
-        return self._json()
-
-    def _json(self):
-        raise NotImplementedError("Must implement _json method")
-
-    def to_dataframe(self, safe_cast=False):
+    def to_dict(self) -> dict:
         """
-        Export result to a dataframe. If `safe_cast` is True attempt to
+        Returns
+        -------
+        dictionary : dict
+            Representation of the object as a dictionary, e.g.
+            {
+                "ATTR_1_NAME": [ATTR_1_VALUE],
+                "ATTR_2_NAME": [[ATTR_2_VALUE_A, FIELD_2_VALUE_B]],
+                "ATTR_3_NAME": [(ATTR_3_VALUE_A, FIELD_3_VALUE_B)], ...
+            }
+
+        Raises
+        ------
+        NotImplementedError unless implemented
+        """
+        raise NotImplementedError()
+
+    def to_dataframe(self) -> DataFrame:
+        """
+        Export object to a dataframe. If `safe_cast` is True attempt to
         casting common problematic values (see TYPE_MAPPING); this can be useful
         for ensuring type safety, for example when uploading data to a database.
         """
-        _json = self.json
-        if safe_cast:
-            _json = safe_cast_json(_json, TYPE_MAPPING)
-        return DataFrame(_json)
+        return DataFrame(self.to_dict())
+
+    # def to_dataframe(self, safe_cast: bool = False) -> DataFrame:
+    #     """
+    #     Export object to a dataframe. If `safe_cast` is True attempt to
+    #     casting common problematic values (see TYPE_MAPPING); this can be useful
+    #     for ensuring type safety, for example when uploading data to a database.
+    #     """
+    #     _dict = self.to_dict()
+    #     if safe_cast:
+    #         from spearmint.utils import safe_cast_json
+
+    #         _dict = safe_cast_json(_dict, TYPE_MAPPING)
+    #     return DataFrame(_dict)

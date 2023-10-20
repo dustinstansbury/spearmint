@@ -3,6 +3,19 @@ import numpy as np
 from spearmint import utils
 
 
+def test_coerce_value():
+    assert utils.coerce_value("true") is True
+    assert utils.coerce_value("false") is False
+
+    assert utils.coerce_value(np.nan) is None
+    assert utils.coerce_value(np.inf) is None
+    assert utils.coerce_value(-np.inf) is None
+
+    assert isinstance(utils.coerce_value("1.0"), float)
+    assert isinstance(utils.coerce_value("1"), int)
+    assert isinstance(utils.coerce_value("a,b"), list)
+
+
 def test_format_value():
     assert utils.format_value(1) == "1"
     assert utils.format_value(1.0) == "1.0"

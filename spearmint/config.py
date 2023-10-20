@@ -3,7 +3,9 @@ import logging
 import getpass
 
 from configparser import ConfigParser
-from typing import Any, Union, Iterable
+
+from spearmint.utils import coerce_value, mkdir
+from spearmint.typing import Any, Union, Iterable
 
 
 CONFIG_TEMPLATE = """
@@ -95,25 +97,6 @@ class SpearmintConfigParser(ConfigParser, object):
         self._validate()
 
 
-def mk_dir(dirname: str) -> None:
-    """Make directory, including full file path
-
-    Parameters
-    ----------
-    dirname : str
-        _description_
-
-    Raises
-    ------
-    OSError if any trouble making the directory
-    """
-    if not os.path.isdir(dirname):
-        try:
-            os.makedirs(dirname)
-        except OSError as e:
-            raise Exception(f"Could not create directory {dirname}:\n{e}")
-
-
 # Home directory and configuration locations.
 # We default to ~/.spearmint and ~/spearmint/spearmint.cfg if not provided
 if "SPEARMINT_HOME" not in os.environ:
@@ -122,7 +105,7 @@ if "SPEARMINT_HOME" not in os.environ:
 else:
     SPEARMINT_HOME = expand_env_var(os.environ["SPEARMINT_HOME"])
 
-mk_dir(SPEARMINT_HOME)
+mkdir(SPEARMINT_HOME)
 
 if "SPEARMINT_CONFIG" not in os.environ:
     if os.path.isfile(expand_env_var("~/spearmint.cfg")):
@@ -145,50 +128,6 @@ if not os.path.isfile(SPEARMINT_CONFIG):
     with open(SPEARMINT_CONFIG, "w") as f:
         cfg = render_config_template(CONFIG_TEMPLATE)
         f.write(cfg.split(TEMPLATE_BEGIN_PATTERN)[-1].strip())
-
-
-def coerce_value(val: Any) -> Any:
-    """
-    Infer / coerce configuration variables to valid types
-
-    Parameters
-    ----------
-    val : Any
-        The value to coerce
-
-    Returns
-    -------
-    coerced_value : Any
-        The value with inferred type
-
-    Raises
-    ------
-    ValueError if can't infer the type from the value.
-    """
-
-    def isnumeric(val):
-        try:
-            float(val)
-            return True
-        except ValueError:
-            return False
-
-    if isnumeric(val):
-        try:
-            return int(val)
-        except ValueError:
-            return float(val)
-
-    lower_val = str(val.lower())
-    if lower_val in ("true", "false"):
-        if "f" in lower_val:
-            return False
-        else:
-            return True
-
-    if "," in val:
-        return [coerce_value(v.strip()) for v in val.split(",")]
-    return val
 
 
 CONFIG = SpearmintConfigParser()
@@ -221,13 +160,12 @@ def get(section: str, key: str, **kwargs) -> Any:
     return coerce_value(CONFIG.get(section, key, **kwargs))
 
 
-def set(section: str, option: str, value: Any):
+def set(section: str, option: str, value: Any) -> None:
     CONFIG.set(section, option, value)
 
 
 DEFAULT_ALPHA = get("constants", "default_alpha")
 MIN_OBS_FOR_Z = get("constants", "min_obs_for_z")
-
 DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "default_bayesian_inference_method")
 
 logger = logging.getLogger(__name__)
