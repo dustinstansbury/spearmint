@@ -1,56 +1,76 @@
 import pytest
 import numpy as np
-from spearmint.stats import (
-    Samples,
-    MultipleComparisonCorrection,
-    EmpiricalCdf,
-    ProportionComparison,
-)
-from abra import stats
+from spearmint import stats
 
 
-def test_multiple_comparison():
-    p_values = np.arange(0.001, 0.1, 0.01)
-    mc = MultipleComparisonCorrection(p_values, method="b")
-
-    assert mc.alpha_corrected < mc.alpha_orig
-    assert mc.accept_hypothesis[0]
-    assert not mc.accept_hypothesis[-1]
-
-    with pytest.raises(ValueError):
-        MultipleComparisonCorrection(p_values, method="unknown")
+TEST_SAMPLES_NAME = "TestSamples"
+TEST_CONTINUOUS_SAMPLE_VARIANCE = 1.0
+TEST_BINARY_SAMPLE_VARIANCE = 0.5**2
+TEST_COUNT_SAMPLE_RATE = 10
 
 
-def test_highest_density_interval():
-    samples = np.random.randn(1000)
-    hdi = stats.highest_density_interval(samples)
-    with pytest.raises(ValueError):
-        hdi = stats.highest_density_interval([1], 1.0)
+@pytest.fixture
+def continuous_test_samples():
+    np.random.seed(123)
+    return stats.Samples(
+        np.random.randn(1000) * TEST_CONTINUOUS_SAMPLE_VARIANCE**0.5,
+        name=TEST_SAMPLES_NAME,
+    )
+
+
+@pytest.fixture
+def binary_test_samples():
+    np.random.seed(123)
+    return stats.Samples(
+        np.random.rand(1000),
+        name=TEST_SAMPLES_NAME,
+    )
+
+
+@pytest.fixture
+def count_test_samples():
+    np.random.seed(123)
+    return stats.Samples(
+        np.random.poisson(TEST_COUNT_SAMPLE_RATE, 1000),
+        name=TEST_SAMPLES_NAME,
+    )
 
 
 def test_bonferroni_correction():
     p_vals_orig = [0.05, 0.05]
     alpha_orig = 0.05
-    corrected = stats.bonferroni(alpha_orig, p_vals_orig)
+    corrected = stats.bonferroni_correction(alpha_orig, p_vals_orig)
     assert corrected < alpha_orig
 
 
 def test_sidak_correction():
     p_vals_orig = [0.05, 0.05]
     alpha_orig = 0.05
-    corrected = stats.sidak(alpha_orig, p_vals_orig)
+    corrected = stats.sidak_correction(alpha_orig, p_vals_orig)
     assert corrected < alpha_orig
 
 
 def test_fdr_bh_correction():
     p_vals_orig = [0.5, 0.5]
     fdr_orig = 0.05
-    corrected = stats.fdr_bh(fdr_orig, p_vals_orig)
+    corrected = stats.fdr_bh_correction(fdr_orig, p_vals_orig)
     assert corrected < fdr_orig
 
     p_vals_orig = [0.05, 0.05]
-    corrected = stats.fdr_bh(fdr_orig, p_vals_orig)
+    corrected = stats.fdr_bh_correction(fdr_orig, p_vals_orig)
     assert corrected == fdr_orig
+
+
+def test_multiple_comparison_correction():
+    p_values = np.arange(0.001, 0.1, 0.01)
+    mc = stats.MultipleComparisonCorrection(p_values, method="b")
+
+    assert mc.alpha_corrected < mc.alpha_orig
+    assert mc.accept_hypothesis[0]
+    assert not mc.accept_hypothesis[-1]
+
+    with pytest.raises(ValueError):
+        stats.MultipleComparisonCorrection(p_values, method="unknown")
 
 
 def test_estimate_experiment_sample_sizes_z():
@@ -60,7 +80,7 @@ def test_estimate_experiment_sample_sizes_z():
     delta = prob_variation - prob_control
     assert stats.estimate_experiment_sample_sizes(
         delta=delta, statistic="z", std_control=std_control, std_variation=std_variation
-    ) == [39236, 39236]
+    ) == (39236, 39236)
 
 
 def test_estimate_experiment_sample_sizes_t():
@@ -70,7 +90,7 @@ def test_estimate_experiment_sample_sizes_t():
     delta = prob_variation - prob_control
     assert stats.estimate_experiment_sample_sizes(
         delta=delta, statistic="t", std_control=std_control, std_variation=std_variation
-    ) == [39237, 39237]
+    ) == (39237, 39237)
 
 
 def test_estimate_experiment_sample_sizes_ratio():
@@ -87,7 +107,7 @@ def test_estimate_experiment_sample_sizes_ratio():
         power=0.9,
         control_exposure_time=2.0,
         sample_size_ratio=0.5,
-    ) == [8590, 4295]
+    ) == (8590, 4295)
 
 
 def test_estimate_experiment_sample_sizes_unknown():
@@ -102,11 +122,19 @@ def test_cohens_d_sample_size_unknown_statistic():
         )
 
 
-def test_empirical_cdf():
-    # Standard Normal samples
+def test_highest_density_interval():
     samples = np.random.randn(1000)
-    ecdf = EmpiricalCdf(samples)
+    hdi = stats.highest_density_interval(samples, credible_mass=0.9)
+    assert hdi[0] >= -1.96  # test lower HDI for 95% hdi
+    assert hdi[1] <= 1.96  # test upper HDI for 95% hdi
+    with pytest.raises(ValueError):
+        # Not enough samples
+        stats.highest_density_interval([1], 1.0)
 
+
+def test_empirical_cdf_class(continuous_test_samples):
+    observations = continuous_test_samples._raw_observations
+    ecdf = stats.EmpiricalCdf(observations)
     assert ecdf.samples_cdf[-1] == 1.0
 
     # __call__
@@ -114,14 +142,161 @@ def test_empirical_cdf():
 
     # evaluate
     assert np.all(ecdf.evaluate([-100, 100]) == np.array([0.0, 1.0]))
-    assert len(ecdf.evaluate()) == len(samples)
+    assert len(ecdf.evaluate()) == len(observations)
 
 
-def test_samples():
-    np.random.seed(123)
-    samples_ = np.random.randn(10000)
-    samples = Samples(samples_)
-    assert samples.mean <= 0.01
-    assert samples.std - 1 <= 0.01
-    assert not np.all(samples.permute() == samples.permute())
-    assert np.all(samples.sort() == sorted(samples_))
+def test_samples(continuous_test_samples):
+    assert continuous_test_samples.mean <= 0.01
+    assert continuous_test_samples.std - 1 <= 0.01
+    assert not np.all(
+        continuous_test_samples.permute() == continuous_test_samples.permute()
+    )
+    assert np.all(
+        continuous_test_samples.sort()
+        == sorted(continuous_test_samples._raw_observations)
+    )
+    continuous_test_samples.summary  # print the table
+    assert len(continuous_test_samples._summary_table._print_history) > 0
+
+
+def test_samples_summary_table(continuous_test_samples):
+    samples_table = stats.SamplesSummaryTable(samples=continuous_test_samples)
+    samples_table.print()
+    printed_lines = samples_table._print_history[-1].split("\n")
+
+    assert "Samples Summary" in printed_lines[0]
+    assert TEST_SAMPLES_NAME in printed_lines[2]
+    assert "# Samples" in printed_lines[4]
+    assert "Mean" in printed_lines[5]
+    assert "Standard Error" in printed_lines[6]
+    assert "Variance" in printed_lines[7]
+
+
+def test_continuous_samples_comparison_table(continuous_test_samples):
+    control_samples = continuous_test_samples
+    variation_samples = continuous_test_samples
+
+    # Single variation instance
+    samples_table = stats.SamplesComparisonTable(
+        control_samples=control_samples, variation_samples=variation_samples
+    )
+    samples_table.print()
+    printed_lines = samples_table._print_history[-1].split("\n")
+
+    assert "Samples Comparison" in printed_lines[0]
+    assert TEST_SAMPLES_NAME in printed_lines[2]
+    assert "Mean" in printed_lines[5]
+    assert "Standard Error" in printed_lines[6]
+    assert "Variance" in printed_lines[7]
+    assert "Delta" in printed_lines[8]
+
+    # Multiple variation instance
+    samples_table = stats.SamplesComparisonTable(
+        control_samples=control_samples,
+        variation_samples=[variation_samples, variation_samples],
+    )
+    samples_table.print()
+    printed = samples_table._print_history[-1]
+    assert "Samples Comparison" in printed
+    assert TEST_SAMPLES_NAME in printed
+
+
+def test_mean_comparison(continuous_test_samples):
+    # Same samples, so
+    means_comparison = stats.MeanComparison(
+        samples_a=continuous_test_samples, samples_b=continuous_test_samples
+    )
+    means_comparison.comparison  # test printed summary table
+    assert len(means_comparison._comparison_table._print_history) > 0
+    assert means_comparison.delta == 0
+    assert means_comparison.alpha == stats.DEFAULT_ALPHA
+    assert means_comparison.test_direction == stats.DEFAULT_TEST_DIRECTION
+    assert np.isclose(
+        means_comparison.pooled_variance, TEST_CONTINUOUS_SAMPLE_VARIANCE, atol=0.01
+    )
+    assert means_comparison.delta_relative == 0
+    assert means_comparison.effect_size == 0
+    # overlapping distributions, power should be similar to false positive rate
+    assert np.isclose(means_comparison.power, means_comparison.alpha, atol=0.001)
+    ttest = means_comparison.ttest
+    assert ttest["statistic_name"] == "t"
+    assert ttest["statistic_value"] == 0
+    assert ttest["p_value"] == 0.5
+    assert ttest["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(ttest["power"], ttest["alpha"], atol=0.001)
+
+    assert (
+        ttest["df"] == (continuous_test_samples.nobs + continuous_test_samples.nobs) - 2
+    )
+
+
+def test_proportion_comparison(binary_test_samples):
+    # Same samples
+    proportion_comparison = stats.ProportionComparison(
+        samples_a=binary_test_samples, samples_b=binary_test_samples
+    )
+    assert proportion_comparison.delta == 0
+    assert np.isclose(
+        proportion_comparison.pooled_variance, TEST_BINARY_SAMPLE_VARIANCE, atol=0.01
+    )
+    assert proportion_comparison.delta_relative == 0
+    assert proportion_comparison.effect_size == 0
+    # overlapping distributions, power should be similar to false positive rate
+    assert np.isclose(
+        proportion_comparison.power, proportion_comparison.alpha, atol=0.001
+    )
+
+    ztest = proportion_comparison.ztest
+    assert ztest["statistic_name"] == "z"
+    assert ztest["statistic_value"] == 0
+    assert ztest["p_value"] == 0.5
+    assert ztest["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(ztest["power"], ztest["alpha"], atol=0.001)
+
+
+def test_rates_comparison(count_test_samples):
+    # Same samples
+    rate_comparison = stats.RateComparison(
+        samples_a=count_test_samples, samples_b=count_test_samples
+    )
+
+    assert rate_comparison.delta == 1.0
+    assert rate_comparison.delta_relative == 1.0
+    assert np.isclose(rate_comparison.pooled_variance, TEST_COUNT_SAMPLE_RATE, atol=0.1)
+    assert rate_comparison.effect_size == 0
+    # overlapping distributions, power should be similar to false positive rate
+    assert np.isclose(rate_comparison.power, rate_comparison.alpha, atol=0.001)
+
+    rates_test = rate_comparison.rates_test
+    assert rates_test["statistic_name"] == "W"
+    assert rates_test["statistic_value"] == 0
+    assert rates_test["p_value"] == 0.5
+    assert rates_test["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(rates_test["power"], rates_test["alpha"], atol=0.001)
+
+
+def test_bootstrap_comparison(continuous_test_samples):
+    # Same samples
+    bs_comparison = stats.BootstrapStatisticComparison(
+        samples_a=continuous_test_samples,
+        samples_b=continuous_test_samples,
+        n_bootstraps=1000,
+    )
+
+    assert np.isclose(bs_comparison.delta, 0.0, atol=0.001)
+    assert np.isclose(bs_comparison.delta_relative, 0.0, atol=0.05)
+    assert np.isclose(
+        bs_comparison.pooled_variance, TEST_CONTINUOUS_SAMPLE_VARIANCE, atol=0.1
+    )
+    assert np.isclose(bs_comparison.effect_size, 0.0, atol=0.001)
+
+    # overlapping distributions, power should be similar to false positive rate
+    assert np.isclose(bs_comparison.power, bs_comparison.alpha, atol=0.05)
+
+    bootstrap_test = bs_comparison.bootstrap_test
+    assert bootstrap_test["statistic_function_name"] == "mean"
+    assert bootstrap_test["statistic_name"] == "bootstrap_delta"
+    assert np.isclose(bootstrap_test["statistic_value"], 0, atol=0.001)
+    assert np.isclose(bootstrap_test["p_value"], 0.5, atol=0.05)
+    assert bootstrap_test["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(bootstrap_test["power"], bootstrap_test["alpha"], atol=0.01)

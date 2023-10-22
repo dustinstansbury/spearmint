@@ -171,7 +171,7 @@ def generate_fake_observations(
     n_attributes: int = 2,
     distribution: str = "bernoulli",
     seed: int = 123,
-):
+) -> DataFrame:
     """
     Create a dataframe of artificial observations to be used for testing and demos.
     Treatments have different means, but segments defined by the attributes have

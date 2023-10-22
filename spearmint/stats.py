@@ -1,21 +1,41 @@
-from spearmint.config import DEFAULT_ALPHA, logger
-from spearmint.mixin import InitRepr
-from statsmodels.stats.api import DescrStatsW, CompareMeans
-from statsmodels.distributions.empirical_distribution import ECDF
-from statsmodels.stats.power import tt_ind_solve_power, zt_ind_solve_power
-from statsmodels.stats.proportion import proportions_ztest, binom_test
-from scipy.stats import norm
-from scipy import optimize
-from pandas import DataFrame
 import numpy as np
 
+from scipy import optimize
 
-CORRECTIONS = {"b": "bonferroni", "s": "sidak", "bh": "fdr_bh"}
+from scipy.stats import norm
+from statsmodels.stats.api import DescrStatsW, CompareMeans
+from statsmodels.distributions.empirical_distribution import ECDF
+
+from spearmint.typing import Union, List, Callable, Iterable, Tuple, Dict, Any
+from spearmint.config import (
+    DEFAULT_ALPHA,
+    DEFAULT_TEST_DIRECTION,
+    MIN_OBS_FOR_Z_TEST,
+    logger,
+)
+from spearmint.utils import format_value
+from spearmint.mixin import InitRepr
+from spearmint.table import SpearmintTable
 
 
-def bonferroni(alpha_orig, p_values):
+SUPPORTED_POWER_STATISTICS = ("t", "z")
+
+
+def _get_solve_power_function(statistic: str) -> Callable:
+    if statistic not in SUPPORTED_POWER_STATISTICS:
+        raise ValueError(f"Statistic '{statistic}' not supported for power calculation")
+
+    if statistic == "t":
+        from statsmodels.stats.power import tt_ind_solve_power as solve_power
+    elif statistic == "z":
+        from statsmodels.stats.power import zt_ind_solve_power as solve_power
+    return solve_power
+
+
+def bonferroni_correction(alpha_orig: float, p_values: Iterable[float]) -> float:
     """
-    Bonferrnoi correction.
+    Calculate the correcteed alpha value for a frequentist hypothesis test using
+    Bonferroni's method.
 
     en.wikipedia.org/wiki/Bonferroni_correction
 
@@ -23,20 +43,22 @@ def bonferroni(alpha_orig, p_values):
     ----------
     alpha_orig : float
         alpha value before correction
-    p_values: list[float]
-        p values resulting from all the tests
+    p_values: Iterable[float]
+        The p-values associated with concurrent hypothesis tests being run
 
     Returns
     -------
     alpha_corrected: float
         new critical value (i.e. the corrected alpha)
     """
-    return alpha_orig / len(p_values)
+    n_tests = len(p_values)
+    return alpha_orig / n_tests
 
 
-def sidak(alpha_orig, p_values):
+def sidak_correction(alpha_orig: float, p_values: Iterable[float]) -> float:
     """
-    Sidak correction.
+    Calculate the correcteed alpha value for a frequentist hypothesis test using
+    Sidak's method.
 
     en.wikipedia.org/wiki/%C5%A0id%C3%A1k_correction
 
@@ -44,18 +66,19 @@ def sidak(alpha_orig, p_values):
     ----------
     alpha_orig : float
         alpha value before correction
-    p_values: list[float]
-        p values resulting from all the tests
+    p_values: Iterable[float]
+        The p-values associated with concurrent hypothesis tests being run
 
     Returns
     -------
     alpha_corrected: float
         new critical value (i.e. the corrected alpha)
     """
-    return 1.0 - (1.0 - alpha_orig) ** (1.0 / len(p_values))
+    n_tests = len(p_values)
+    return 1.0 - (1.0 - alpha_orig) ** (1.0 / n_tests)
 
 
-def fdr_bh(fdr, p_values):
+def fdr_bh_correction(fdr: float, p_values: Iterable[float]) -> float:
     """
     Benjamini-Hochberg false-discovery rate adjustment procedure.
 
@@ -66,13 +89,13 @@ def fdr_bh(fdr, p_values):
     fdr : float
         False Discovery Rate (q*), proportion of significant results that are
         actually false positives
-    p_values: list[float]
-        p values resulting from all the tests
+    p_values: Iterable[float]
+        The p-values associated with concurrent hypothesis tests being run
 
     Returns
     -------
     alpha_corrected: float
-        new critical value (i.e. the corrected alpha)
+        The corrected alpha value
     """
     n_tests = len(p_values)
 
@@ -86,13 +109,74 @@ def fdr_bh(fdr, p_values):
     return p_i(rank)
 
 
+MULTIPLE_COMPARISON_CORRECTION_METHODS = {
+    "b": bonferroni_correction,
+    "bonferroni": bonferroni_correction,
+    "s": sidak_correction,
+    "sidak": sidak_correction,
+    "bh": fdr_bh_correction,
+    "fdr_bh": fdr_bh_correction,
+}
+
+
+def _get_multiple_comparison_correction_function(
+    method: Union[str, Callable]
+) -> Callable:
+    if isinstance(method, Callable):
+        if MULTIPLE_COMPARISON_CORRECTION_METHODS.values():
+            return method
+    elif isinstance(method, str):
+        if method in MULTIPLE_COMPARISON_CORRECTION_METHODS.keys():
+            return MULTIPLE_COMPARISON_CORRECTION_METHODS[method]
+
+    raise ValueError(f"Multiple correction method {method} not supported")
+
+
+class MultipleComparisonCorrection(InitRepr):
+    """
+    Perform multiple comparison adjustment of alpha based on a sequence of
+    p_values that result from two or more hypothesis tests inference procedures.
+
+    param p_values : list[float]
+        A list of p_values resulting from two or more hypothesis tests.
+    method :  str
+        One of the following correction methods:
+            - 'bonferroni', 'b' : one-step Bonferroni correction
+            - 'sidak', 's' : one-step Sidak correction
+            - 'fdr_bh', 'bh; : Benjamini/Hochberg (non-negative)
+    alpha : float in (0, 1)
+        The desired probability of Type I error
+    reject_null: list[bool]
+        For each probablity, whether or not to reject the null hypothsis given
+        the updated values for alpha.
+    """
+
+    __ATTRS__ = ["ntests", "method", "alpha_orig", "alpha_corrected"]
+
+    def __init__(self, p_values, method="sidak", alpha=DEFAULT_ALPHA):
+        self.mc_correction_method = _get_multiple_comparison_correction_function(method)
+        self.ntests = len(p_values)
+        self.alpha_orig = alpha
+        self.alpha_corrected = self.mc_correction_method(alpha, p_values)
+        self.accept_hypothesis = [p < self.alpha_corrected for p in p_values]
+
+    @property
+    def mc_correction_method_name(self) -> str:
+        return self.mc_correction_method.__name__.split("_correction")[0]
+
+
 def estimate_experiment_sample_sizes(
-    delta, statistic="z", alpha=0.05, power=0.8, *args, **kwargs
-):
+    delta: float,
+    statistic: str = "z",
+    alpha: float = 0.05,
+    power: float = 0.8,
+    *args,
+    **kwargs,
+) -> Tuple[int, int]:
     """
     Calculate the sample size required for each treatement in order to observe a
-    difference of `delta` between control and variation groups, for a given setting
-    of `alpha`, `power`.
+    difference of `delta` between control and variation groups, given a
+    particular `alpha` (Type I error rate) and `power` (1 - Type II error rate).
 
     Parameters
     ----------
@@ -101,7 +185,7 @@ def estimate_experiment_sample_sizes(
     statistic : string
         Either:
             - 'z' or 't' if interpreting effect size as scaled difference of means
-            - 'rates_ratio' if interpreeting effect size as the ratio of means
+            - 'rates_ratio' if interpereting effect size as the ratio of means
     alpha : float [0, 1)
             The assumed Type I error of the test
     power : float [0, 1)
@@ -111,51 +195,50 @@ def estimate_experiment_sample_sizes(
 
     Returns
     -------
-    sample_sizes : list[int]
-        The estiamated sample sizes for the control and variation treatments
+    sample_sizes : List[int]
+        The estimated sample sizes for the control and variation treatments
 
     Example 1: Continuous Variables
-    -------------------------------
-    # Estimate the sample size required to observe significant difference between
-    # two binomial distributions that differ by .01 in mean probability with
-    # Type I error = 0.05 (default) and Power = 0.8 (default)
+    ----
 
-    prob_control = .49
-    std_control = (prob_control * (1 - prob_control))**.5  # Binomial std
-    prob_variation = std_variation = .50
-    delta = prob_variation - prob_control
+    Estimate the sample size required to observe significant difference between
+    two binomial distributions that differ by .01 in mean probability with
+    Type I error = 0.05 (default) and Power = 0.8 (default)
 
-    print(
-        estimate_experiment_sample_sizes(
-            delta=delta,
-            statistic='z',
-            std_control=std_control,
-            std_variation=std_variation
-        )
+    ```python
+    >>> prob_control = .49
+    >>> std_control = (prob_control * (1 - prob_control))**.5  # Binomial std
+    >>> prob_variation = std_variation = .50
+    >>> delta = prob_variation - prob_control
+    >>> estimate_experiment_sample_sizes(
+        delta=delta,
+        statistic='z',
+        std_control=std_control,
+        std_variation=std_variation
     )
-    # [39236, 39236]
+    (39236, 39236)
+    ```python
 
-    Example 2 - Count Variables
-    ---------------------------
-    # Replicate Example 1 from Gu et al, 2008
+    Example 2: Count Variables
+    ---
+    Replicate Example 1 from Gu et al, 2008
 
-    R = 4  # ratio under alternative hypothesis
-    control_rate = .0005
-    variation_rate = R * control_rate
-    delta = variation_rate - control_rate
-
-    print(
-        estimate_experiment_sample_sizes(
-            delta,
-            statistic='rates_ratio',
-            control_rate=control_rate,
-            alpha=.05,
-            power=.9,
-            control_exposure_time=2.,
-            sample_size_ratio=.5
-        )
+    ```python
+    >>> R = 4  # ratio under alternative hypothesis
+    >>> control_rate = .0005
+    >>> variation_rate = R * control_rate
+    >>> delta = variation_rate - control_rate
+    >>> estimate_experiment_sample_sizes(
+        delta,
+        statistic='rates_ratio',
+        control_rate=control_rate,
+        alpha=.05,
+        power=.9,
+        control_exposure_time=2.,
+        sample_size_ratio=.5
     )
-    # [8590, 4295]
+    (8590, 4295)
+    ```
     """
     if statistic in ("t", "z"):
         # std_control and/or std_variation are in *args, or **kwargs
@@ -166,21 +249,39 @@ def estimate_experiment_sample_sizes(
         raise ValueError("Unknown statistic")
 
 
-def cohens_d(delta, std_control, std_variation=None):
+def cohens_d(delta: float, std_control: float, std_variation: float = None) -> float:
+    """Calculate the Cohen's d effect size comparing two samples. For details
+    see https://en.wikiversity.org/wiki/Cohen%27s_d
+
+    Parameters
+    ----------
+    delta : float
+        The measured difference in means between the two samples
+    std_control : float
+        The standard deviation for the control sample
+    std_variation : float, optional
+        If provided, the variation for the treatment sample. If None provided,
+        we assume the treatment has the same standard deviation as the control.
+
+    Returns
+    -------
+    float
+        Cohen'd d metric for effect size.
+    """
     std_variation = std_variation if std_variation else std_control
     std_pooled = np.sqrt((std_control**2 + std_variation**2) / 2.0)
     return delta / std_pooled
 
 
 def cohens_d_sample_size(
-    delta,
-    alpha,
-    power,
-    statistic,
-    std_control,
-    std_variation=None,
-    sample_size_ratio=1.0,
-):
+    delta: float,
+    alpha: float,
+    power: float,
+    statistic: str,
+    std_control: float,
+    std_variation: float = None,
+    sample_size_ratio: float = 1.0,
+) -> Tuple[int, int]:
     """
     Calculate sample size required to observe a significantly reliable difference
     between groups a and b. Assumes Cohen's d definition of effect size and an
@@ -201,63 +302,59 @@ def cohens_d_sample_size(
     Returns
     -------
     sample_sizes : list[int]
-        The estiamated sample sizes for the control and variation treatments
+        The estimated sample sizes for the control and variation treatments
 
     Example
     -------
-    # Get estimate of sample size required to observe a significant difference between
-    # two binomial distributions that differ by .01 in mean probability
+    Estimate of sample sizes required to observe a significant difference between
+    two binomial distributions that have the same variance, but differ by .01
+    in mean probability.
 
-    prob_control = .49
-    std_control = (prob_control * (1 - prob_control))**.5  # Binomial std
-    prob_variation = std_variation = .50
-    delta = prob_variation - prob_control
-
-    print(
-        cohens_d_sample_size(
-            delta=delta,
-            alpha=.05,
-            power=.8,
-            statistic='z',
-            std_control=std_control,
-            std_variation=std_variation
-        )
+    ```python
+    >>> mean_prob_control = .49
+    >>> mean_prob_variation = std_variation = .5
+    >>> std_control = (mean_prob_control * (1 - mean_prob_control))**.5  # Bernoulli stddev
+    >>> std_variation = std_control
+    >>> delta = mean_prob_variation - mean_prob_control
+    >>> cohens_d_sample_size(
+        delta=delta,
+        alpha=.05,
+        power=.8,
+        statistic='z',
+        std_control=std_control,
+        std_variation=std_variation
     )
-    # [39236, 39236]
+    (39228, 39228)
+    ```
 
     References
     ----------
     Cohen, J. (1988). Statistical power analysis for the behavioral sciences
         (2nd ed.). Hillsdale, NJ: Lawrence Earlbaum Associates.
     """
-    SUPPORTED_STATISTICS = ("t", "z")
+
     effect_size = cohens_d(delta, std_control, std_variation)
 
-    if statistic in SUPPORTED_STATISTICS:
-        power_func = "{}t_ind_solve_power".format(statistic)
-        N1 = int(
-            eval(power_func)(
-                effect_size, alpha=alpha, power=power, ratio=sample_size_ratio
-            )
+    solve_power_function = _get_solve_power_function(statistic)
+    N1 = int(
+        solve_power_function(
+            effect_size, alpha=alpha, power=power, ratio=sample_size_ratio
         )
-        N2 = int(N1 * sample_size_ratio)
-        return [N1, N2]
-    else:
-        raise ValueError(
-            "Unknown statistic, must be either {!r}".format(SUPPORTED_STATISTICS)
-        )
+    )
+    N2 = int(N1 * sample_size_ratio)
+    return N1, N2
 
 
 def ratio_sample_size(
-    alpha,
-    power,
-    delta,
-    control_rate,
-    control_exposure_time=1.0,
-    null_ratio=1.0,
-    sample_size_ratio=1.0,
-    exposure_time_ratio=1.0,
-):
+    alpha: float,
+    power: float,
+    delta: float,
+    control_rate: float,
+    control_exposure_time: float = 1.0,
+    null_ratio: float = 1.0,
+    sample_size_ratio: float = 1.0,
+    exposure_time_ratio: float = 1.0,
+) -> Tuple[int, int]:
     """
     Calculate sample size required to observe a significantly reliable ratio of
     rates between variation and control groups. Follows power calculation outlined
@@ -281,32 +378,33 @@ def ratio_sample_size(
 
     Returns
     -------
-    N1, N2 : tuple
+    sample_sizes : Tuple[int, int]
         Sample sizes for each group
 
     Example
     -------
-    # Replicate Example 1 from Gu et al, 2008
+    Replicate Example 1 from Gu et al, 2008
 
-    R = 4  # ratio under alternative hypothesis
-    control_rate = .0005
-    variation_rate = R * control_rate
-    delta = variation_rate - control_rate
-
-    print(
-        ratio_sample_size(
-            alpha=.05,
-            power=.9,
-            delta=delta,
-            control_rate=control_rate,
-            control_exposure_time=2.,
-            sample_size_ratio=.5
-        )
+    ```python
+    >>> R = 4  # ratio under alternative hypothesis
+    >>> control_rate = .0005
+    >>> variation_rate = R * control_rate
+    >>> delta = variation_rate - control_rate
+    >>> ratio_sample_size(
+        alpha=.05,
+        power=.9,
+        delta=delta,
+        control_rate=control_rate,
+        control_exposure_time=2.,
+        sample_size_ratio=.5
     )
-    # returns [8590, 4295], which have been validated to be more accurate than
-    # the result reported in Gu et al, due to rounding precision. For details
-    # see "Example 2 – Validation using Gu (2008)" section of
-    # http://ncss-wpengine.netdna-ssl.com/wp-content/themes/ncss/pdf/Procedures/PASS/Tests_for_the_Ratio_of_Two_Poisson_Rates.pdf
+    (8590, 4295)
+    ```
+
+    Returns (8590, 4295), which have been validated to be more accurate than
+    the result reported in Gu et al, due to rounding precision. For details
+    see "Example 2 – Validation using Gu (2008)" section of
+    http://ncss-wpengine.netdna-ssl.com/wp-content/themes/ncss/pdf/Procedures/PASS/Tests_for_the_Ratio_of_Two_Poisson_Rates.pdf
 
     References
     ----------
@@ -358,182 +456,257 @@ def ratio_sample_size(
         method="SLSQP",
         tol=1e-10,
     )
+    return tuple(int(np.ceil(n)) for n in results.x)
 
-    return [int(np.ceil(n)) for n in results.x]
 
-
-class MultipleComparisonCorrection(InitRepr):
+def highest_density_interval(
+    samples: Iterable[float], credible_mass: float = 0.95
+) -> Tuple[float, float]:
     """
-    Perform multiple comparison adjustment of alpha based on a sequence of
-    p_values that result from two or more hypothesis tests inference procedures.
+    Determine the bounds of the interval of width `credible_mass` with
+    the highest density under the distribution of samples.
 
-    param p_values : list[float]
-        A list of p_values resulting from two or more hypothesis tests.
-    method :  str
-        One of the following correction methods:
-            'bonferroni', 'b' : one-step Bonferroni correction
-            'sidak', 's' : one-step Sidak correction
-            'fdr_bh', 'bh; : Benjamini/Hochberg (non-negative)
-    alpha : float in (0, 1)
-        the desired probability of Type I error
-    reject_nul: list[bool]
-        For each probablity, whether or not to reject the null hypothsis given
-        the updated values for alpha.
+    Parameters
+    ----------
+    samples: list
+        The samples to compute the interval over
+    credible_mass: float in (0, 1)
+        The credible mass under the empricial distribution
+
+    Returns
+    -------
+    hdi: Tuple[float, float]
+        The lower and upper bounds of the highest density interval
+
+    Example
+    -------
+    >>> samples = np.random.randn(100000)  # standard normal samples
+    >>> highest_density_interval(samples, credible_mass=0.95)  # should be approx +/- 1.96
+    (-1.9600067573529922, 1.9562495685489785)
     """
+    _samples = np.asarray(sorted(samples))
+    n = len(_samples)
 
-    __ATTRS__ = ["ntests", "method", "alpha_orig", "alpha_corrected"]
+    interval_idx_inc = int(np.floor(credible_mass * n))
+    n_intervals = n - interval_idx_inc
+    interval_width = _samples[interval_idx_inc:] - _samples[:n_intervals]
 
-    def __init__(self, p_values, method="sidak", alpha=DEFAULT_ALPHA):
-        if method not in set(list(CORRECTIONS.keys()) + list(CORRECTIONS.values())):
-            raise ValueError("Correction method {!r} not supported".format(method))
+    if len(interval_width) == 0:
+        raise ValueError("Too few elements for interval calculation")
 
-        self.method = CORRECTIONS[method] if method in CORRECTIONS else method
-        self.alpha_orig = alpha
-        self.alpha_corrected = eval(self.method)(alpha, p_values)
-        self.ntests = len(p_values)
-        self.accept_hypothesis = [p < self.alpha_corrected for p in p_values]
+    min_idx = np.argmin(interval_width)
+    hdi_min = _samples[min_idx]
+    hdi_max = _samples[min_idx + interval_idx_inc]
+    return hdi_min, hdi_max
 
 
-class EmpiricalCdf(object):
+class EmpiricalCdf:
     """
     Class that calculates the empirical cumulative distribution function for a
-    set of samples. Performs some additional cacheing for performance.
+    set of samples.
     """
 
-    def __init__(self, samples):
+    def __init__(self, samples: Iterable[float]):
         self.samples = samples
         self._cdf = ECDF(samples)
 
     @property
-    def samples_cdf(self):
+    def samples_cdf(self) -> ECDF:
         """
-        Return the cdf evaluated at those samples used to calculate the cdf
+        Return the cdf evaluated at those samples used to estimate the cdf
         parameters.
         """
         if not hasattr(self, "_samples_cdf"):
             self._samples_cdf = self.evaluate(sorted(self.samples))
         return self._samples_cdf
 
-    def __call__(self, values):
+    def __call__(self, values: Iterable[float] = None) -> ECDF:
+        """
+        Callable interface for the EmpiricalCdf object
+
+        Parameters
+        ----------
+        values: Iterable[float]
+            Observations at which to evaluate the CDF.
+
+        Returns
+        -------
+        ECDF: statsmodels.distributions.empirical_distribution.ECDF
+            An empricial cumulative distribution funcion object. For details,
+            see https://www.statsmodels.org/stable/generated/statsmodels.distributions.empirical_distribution.ECDF.html
+        """
         return self.evaluate(values)
 
-    def evaluate(self, values=None):
+    def evaluate(self, values: Iterable[float] = None) -> ECDF:
         """
-        Evaluate the cdf for a sequence of values
+        Evaluate the cdf for a sequence of values. If None provided, evaluate
+        at all the `samples` used to estimate the CDF
+
+        Parameters
+        ----------
+        values: Iterable[float]
+            Observations at which to evaluate the CDF.
+
+        Returns
+        -------
+        ECDF: statsmodels.distributions.empirical_distribution.ECDF
+            An empricial cumulative distribution funcion object. For details,
+            see https://www.statsmodels.org/stable/generated/statsmodels.distributions.empirical_distribution.ECDF.html
         """
         if values is None:
-            values = self.samples
+            return self.samples_cdf
         return self._cdf(values)
 
 
 class Samples(DescrStatsW):
     """
     Class for holding samples and calculating various statistics on those
-    samples.
-
-    Parameters
-    ----------
-    samples: array-like
-        the data set of sample values
+    samples. Any invalid observations (None, nan, or inf) are ignored.
     """
 
-    def __init__(self, observations, name=None):
-        self.name = name
-        observations = self._valid_observations(observations)
-        super(Samples, self).__init__(np.array(observations))
+    def __init__(self, observations: Iterable[float], name: str = None):
+        """
+        Parameters
+        ----------
+        observations : Iterable[float]
+            An array-like of observations
+        name : str, optional
+            A name used when displaying the sample statistics.
 
-    def _valid_observations(self, observations):
+        Raises
+        ------
+        ValueError if all observations are None, nan, or Inf.
+        """
+        self.name = name
+        self._raw_observations = observations
+        self._summary_table = None
+        valid_observations = self._valid_observations(observations)
+        super(Samples, self).__init__(valid_observations)
+
+    def _valid_observations(self, observations: Iterable[float]) -> np.ndarray:
         def valid(o):
             if o is None:
                 return False
             if np.isnan(o):
                 return False
+            if np.isinf(0):
+                return False
             return True
 
         observations = list(filter(valid, observations))
         if self.name:
-            name_string = "{!r}".format(self.name)
+            name_string = f"{self.name}"
         else:
             name_string = ""
         if not observations:
-            raise ValueError("All {} observations are nan or None".format(name_string))
+            raise ValueError(f"All {name_string} observations are nan or None")
         else:
-            return observations
+            return np.array(observations)
 
-    def __repr__(self):
-        header = "Samples(name={!r})".format(self.name if self.name else None)
-        return """{}
-Summary:
-𝛮  : {}
-𝝁  : {:1.4f}
-𝝈² : {:1.4f}""".format(
-            header, self.nobs, self.mean, self.var
-        )
+    @property
+    def summary(self) -> None:
+        """Print a summary table for the valid observations in the sample"""
+        if self._summary_table is None:
+            self._summary_table = SamplesSummaryTable(self)
+        self._summary_table.print()
 
-    def permute(self):
+    def permute(self) -> np.ndarray:
+        """Shuffle the samples"""
         return np.random.choice(self.data, int(self.nobs))
 
-    def sort(self):
+    def sort(self) -> np.ndarray:
+        """Return the observations in ascending order"""
         if not hasattr(self, "_sorted"):
             self._sorted = sorted(self.data)
         return self._sorted
 
-    def percentiles(self, prct=[2.5, 25, 50, 75, 97.5]):
+    def percentiles(
+        self, prct: Iterable[float] = (2.5, 25, 50, 75, 97.5)
+    ) -> np.ndarray:
+        """Calculate the provided percentiles of the sample
+
+        Parameters
+        ----------
+        prct : Iterable[float]
+            Values in the range (0, 100) defining the percentiles to calcualte.
+
+        Returns
+        -------
+        percentiles : np.ndarray
+            The associated values in samples for the provided `prct` percentiles.
+        """
         return np.percentile(self.data, prct)
 
     @property
-    def cdf(self):
+    def cdf(self) -> EmpiricalCdf:
+        """Return the empricial cumulative distribution function for the samples"""
         if not hasattr(self, "_cdf"):
             self._cdf = EmpiricalCdf(self.data)
         return self._cdf
 
-    def prob_greater_than(self, values):
+    def prob_greater_than(self, values: Iterable[float]) -> np.ndarray:
         """
-        Return the probability of being larger than values under the emprical
-        CDF
+        Return the cumulative probability of `values` under the current samples'
+        empirical CDF.
         """
         return 1.0 - self.cdf(np.asarray(values, dtype=float))
 
-    def ci(self, alpha=0.05, alternative="two-sided"):
+    def confidence_interval(self, confidence: float = 0.95) -> Tuple[float, float]:
         """
-        Calculate the (1-alpha)-th confidence interval around the mean.
-        Assumes Gaussian approximation.
+        Calculate the `confidence`-% confidence interval around the mean estimate,
+        assuming a Gaussian approximation for the sample distribution.
+
+        Parameters
+        ----------
+        confidence : float
+            Confidence level for the interval.
 
         Returns
         -------
-        ci : tuple (lo, hi)
-            the (1-alpha) % confidence interval around the mean estimate.
+        ci : Tuple[float, float]
+            The upper and lower bounds of the the `confidence`-% confidence interval
+            around the mean estimate.
         """
-        return self.zconfint_mean(alpha, alternative)[:2]
+        alpha = 1 - confidence
+        return self.zconfint_mean(alpha)[:2]
 
-    def std_err(self, alpha=0.05, alternative="two-sided"):
+    @property
+    def std_err(self) -> float:
+        return self.calculate_std_err()
+
+    def calculate_std_err(self, confidence: float = 0.95) -> float:
         """
+        Standard error of the mean estimate, assuming a Gaussian error distribution.
+
         Returns
         -------
-        std_err : tuple (lo, hi)
-            the standard error interval around the mean estimate.
+        std_err : Tuple[float, float]
+            The standard error interval around the mean estimate.
         """
-        _alpha = alpha / 2.0 if alternative == "two-sided" else alpha
-        z = norm.ppf(1 - _alpha)
+        alpha = 1 - confidence
+        z = norm.ppf(1 - alpha)
         ci = z * (self.var / self.nobs) ** 0.5
+
         return self.mean - ci, self.mean + ci
 
-    def hdi(self, alpha=0.05):
+    def highest_density_interval(
+        self, credible_mass: float = 0.95
+    ) -> Tuple[float, float]:
         """
-        Calcualte the highest central density interval that leaves `alpha`
+        Calculate the highest central density interval that leaves `alpha`
         probability remaining.
 
         Parameters
         ----------
-        alpha: float in (0, 1)
-            1 - critical mass
+        credible_mass: float in (0, 1)
+            The amount of probability under the returned HDI
 
         Returns
         -------
-        hdi: tuple (boundary_lower, boundary_upper)
-            The boundary of the highest density interval for the sample distribution
+        hdi: Tuple[float, float]
+            The boundary of the highest density interval for the sample
+            distribution, (HDI_lower, HDI_upper)
         """
-        credible_mass = 1 - alpha
         try:
             _hdi = highest_density_interval(self.data, credible_mass)
             return (round(_hdi[0], 4), round(_hdi[1], 4))
@@ -541,97 +714,173 @@ Summary:
             logger.warn(e)
             return (None, None)
 
-    def hist(self, ref_val=None, *hist_args, **hist_kwargs):
-        """
-        Render histogram of the samples. Plot a vertical reference line, if
-        requested.
 
-        """
-        from matplotlib import pyplot as plt
+class SamplesSummaryTable(SpearmintTable):
+    def __init__(self, samples: Samples):
+        """Summary statistics comparing control and variation samples"""
+        sample_name = samples.name if samples.name is not None else ""
+        super().__init__(title="Samples Summary")
 
-        pl = plt.hist(self.data.astype(float), *hist_args, **hist_kwargs)
-        if ref_val is not None:
-            plt.axvline(ref_val, c="gray", linestyle="--", linewidth=2)
-        return pl
+        self.add_column("", justify="right")
+        self.add_column(sample_name)
 
-    def plot_probability(self, *args, **kwargs):
-        """
-        Evaulate and display the sample probability function.
-        """
-        self.prob.plot(*args, **kwargs)
+        self.add_row(
+            "# Samples",
+            format_value(samples.nobs),
+        )
+        self.add_row(
+            "Mean",
+            format_value(samples.mean),
+        )
+        self.add_row(
+            "Standard Error",
+            format_value(samples.std_err),
+        )
+        self.add_row(
+            "Variance",
+            format_value(samples.var),
+        )
+
+
+class SamplesComparisonTable(SpearmintTable):
+    def __init__(
+        self,
+        control_samples: Samples,
+        variation_samples: Union[Samples, List[Samples]],
+        metric_name: str = "",
+    ):
+        """Summary statistics comparing control and variation samples"""
+        super().__init__(title="Samples Comparison")
+
+        if isinstance(variation_samples, Samples):
+            variation_samples = [variation_samples]
+
+        self.add_column(metric_name, justify="right")
+        self.add_column(control_samples.name)
+
+        for vs in variation_samples:
+            self.add_column(vs.name)
+
+        def get_variation_row_values(value, precision=4):
+            "handle case when there are more than one variation conditions"
+            return [
+                format_value(getattr(vs, value), precision=precision)
+                for vs in variation_samples
+            ]
+
+        self.add_row(
+            "# Samples",
+            format_value(control_samples.nobs),
+            *get_variation_row_values("nobs", precision=1),
+        )
+        self.add_row(
+            "Mean",
+            format_value(control_samples.mean),
+            *get_variation_row_values("mean", precision=4),
+        )
+        self.add_row(
+            "Standard Error",
+            format_value(control_samples.std_err),
+            *get_variation_row_values("std_err", precision=4),
+        )
+        self.add_row(
+            "Variance",
+            format_value(control_samples.var),
+            *get_variation_row_values("var", precision=4),
+        )
+        deltas = [None] + [
+            format_value(control_samples.mean - vs.mean, precision=4)
+            for vs in variation_samples
+        ]
+        self.add_row("Delta", *deltas)
 
 
 class MeanComparison(CompareMeans):
     """
-    Class for comparing the means of two sample distributions, provides a number
-    of helpful summary statistics about the comparison.
-
-    Parameters
-    ----------
-    samples_a : Samples instance
-        Group a samples
-    samples_b : Samples instance
-        Group b samples
-    alpha : float in (0, 1)
-        The assumed Type I error
-    test_statistic: str
-        The name of the test statistic used.
-            't': for t-statistic (small sample size, N <= 30)
-            'z': for z-statistic (large samples size, N > 30)
-    hypothesis : str
-        Defines the assumed alternative hypothesis. Can be :
-            'larger'
-            'smaller'
-            'unequal' (i.e. two-tailed test)
+    Class for comparing the means of two continuous sample distributions,
+    provides a number of helpful summary statistics about the comparison. Assumes
+    the distributions can be approximated with a Gaussian distrubution.
     """
 
     def __init__(
         self,
-        samples_a,
-        samples_b,
-        alpha=DEFAULT_ALPHA,
-        test_statistic="t",
-        hypothesis="larger",
+        samples_a: Samples,
+        samples_b: Samples,
+        alpha: float = DEFAULT_ALPHA,
+        test_statistic: str = "t",
+        hypothesis: str = "larger",
     ):
+        """
+        Parameters
+        ----------
+        samples_a : `Samples`
+            Samples from group A (e.g. control group)
+        samples_b : `Samples`
+            Samples from group B (e.g. treatment group)
+        alpha : float in (0, 1)
+            The acceptable Type I error rate in the comparison
+        test_statistic: str
+            The name of the hypothesis test statistic used in the comparison.
+                -   't': to use a t-test (small sample size, N <= 30)
+                -   'z': to use a z-test (large samples size, N > 30)
+        hypothesis : str
+            Defines the assumed alternative hypothesis. Can be either:
+                -   'larger': indicating we hypothesize that group B's mean is
+                    larger than group A's
+                -   'smaller': indicating we hypothesize that group B's mean is
+                    smaller than group A's
+                -   'unequal': indicating we hypothesize that group B's mean is
+                    not equal to group A's (i.e. two-tailed test).
+        """
         super(MeanComparison, self).__init__(samples_a, samples_b)
 
         self.alpha = alpha
         self.test_statistic = test_statistic
         self.hypothesis = hypothesis
         self.warnings = []
+        self._comparison_table = None
 
     @property
-    def pooled_variance(self):
+    def pooled_variance(self) -> float:
+        """The pooled variance of the the two groups"""
         return ((self.d2.nobs - 1) * self.d2.var + (self.d1.nobs - 1) * self.d1.var) / (
             self.d2.nobs + self.d1.nobs - 2
         )
 
     @property
-    def delta(self):
+    def delta(self) -> float:
+        """The absolute difference between the group means"""
         return self.d1.mean - self.d2.mean
 
     @property
-    def delta_relative(self):
+    def delta_relative(self) -> float:
+        """The relative difference between the group means"""
         return (self.d1.mean - self.d2.mean) / np.abs(self.d2.mean)
 
     @property
-    def effect_size(self):
+    def effect_size(self) -> float:
+        """The Cohen's d effect size of the comparison"""
         return self.delta / np.sqrt(self.pooled_variance)
 
     @property
-    def test_direction(self):
+    def test_direction(self) -> str:
+        """
+        The directionality of the hyopthesis test. Will either be 'larger',
+        'smaller', or 'two-sided'
+        """
         return self.hypothesis if self.hypothesis != "unequal" else "two-sided"
 
     @property
-    def power(self):
+    def power(self) -> float:
         """
-        Statistical power (i.e. 𝜷 of the comparison)
+        The statistical power of the comparison (i.e. 1-beta of the comparison,
+        where beta is the Type II error rate)
         """
         ratio = self.d1.nobs / self.d2.nobs
 
-        f_stat = "{}t_ind_solve_power".format(self.test_statistic)
+        solve_power_function = _get_solve_power_function(self.test_statistic)
 
-        return eval(f_stat)(
+        return solve_power_function(
             effect_size=self.effect_size,
             nobs1=self.d2.nobs,
             alpha=self.alpha,
@@ -639,45 +888,90 @@ class MeanComparison(CompareMeans):
             alternative=self.test_direction,
         )
 
+    @property
+    def comparison(self) -> None:
+        """Displays a table summarizing the sample comparison comparison."""
+        if self._comparison_table is None:
+            self._comparison_table = SamplesComparisonTable(self.d1, self.d2)
+        self._comparison_table.print()
+
+    @property
+    def ttest(self) -> Dict[str, Any]:
+        """_summary_
+
+        Returns
+        -------
+        Dict[str, Any]
+            test_results: Dict[str, float]
+            The results of the test, with the following structure:
+            ```
+            {
+                "statistic_name": "t",
+                "statistic_value": float,
+                "p_value": float,
+                "df": int,
+                "hypothesis": str
+            }
+            ```
+        """
+        tstat, pval, df = self.ttest_ind(alternative=self.test_direction)
+        return {
+            "statistic_name": "t",
+            "statistic_value": tstat,
+            "df": df,
+            "hypothesis": self.hypothesis,
+            "p_value": pval,
+            "alpha": self.alpha,
+            "power": self.power,
+        }
+
 
 class ProportionComparison(MeanComparison):
     """
-    Class for comparing the proportions of two sample distributions, provides a number
-    of helpful summary statistics about the comparison. In order to use the
-    z-distribution, we assume normality or proportions and thus, by proxy, adequate
-    sample sizes (i.e. > 30).
-
-    Parameters
-    ----------
-    samples_a : Samples instance
-        Group a samples
-    samples_b : Samples instance
-        Group b samples
-    alpha : float in (0, 1)
-        The assumed Type I error
-    hypothesis : str
-        Defines the assumed alternative hypothesis. Can be :
-            'larger'
-            'smaller'
-            'unequal' (i.e. two-tailed test)
+    Class for comparing the proportions of two sample distributions, provides a
+    number of helpful summary statistics about the comparison. In order to use the
+    z-distribution, we assume normality oF proportions and thus, by proxy, adequate
+    sample sizes (e.g. N > 30).
     """
 
-    def __init__(self, variance_assumption="pooled", *args, **kwargs):
+    def __init__(self, variance_assumption: str = "pooled", *args, **kwargs):
+        """
+        Parameters
+        ----------
+        samples_a : `Samples`
+            Samples from group A (e.g. control group)
+        samples_b : `Samples`
+            Samples from group B (e.g. treatment group)
+        alpha : float in (0, 1)
+            The acceptable Type I error rate in the comparison
+        hypothesis : str
+            Defines the assumed alternative hypothesis. Can be either:
+                -   'larger': indicating we hypothesize that group B's mean is
+                    larger than group A's
+                -   'smaller': indicating we hypothesize that group B's mean is
+                    smaller than group A's
+                -   'unequal': indicating we hypothesize that group B's mean is
+                    not equal to group A's (i.e. two-tailed test).
+        variance_assumption : str, optional
+            The assumed variance assumption. If "pooled" (default), we calculate
+            the pooled variance, otherwise we simply calculate the global
+            variance across both samples
+        """
+
         super(ProportionComparison, self).__init__(test_statistic="z", *args, **kwargs)
         nobs = min(self.d1.nobs, self.d2.nobs)
 
-        # to use Normal approx, must have large N
-        if nobs < 30:
-            warning = "Normality assumption violated, at least 30 observations required. Smallest sample size is {}".format(
-                nobs
-            )
+        # to use Normal approx, must have "large" N
+        if nobs < MIN_OBS_FOR_Z_TEST:
+            warning = "Normality assumption violated, > {MIN_OBS_FOR_Z_TEST} observations required."
+
             logger.warn(warning)
             self.warnings.append(warning)
 
         self.variance_assumption = variance_assumption
 
     @property
-    def pooled_variance(self):
+    def pooled_variance(self) -> float:
         if self.variance_assumption == "pooled":
             p1 = self.d1.mean
             p2 = self.d2.mean
@@ -690,15 +984,41 @@ class ProportionComparison(MeanComparison):
             p = np.mean(np.r_[self.d1.data, self.d2.data])
             return p * (1 - p)
 
-    def ztest(self):
+    @property
+    def ztest(self) -> Dict[str, Any]:
+        """Test for difference in proportions based on normal (z) test
+
+        Returns
+        -------
+        test_results: Dict[str, float]
+            The results of the test, with the following structure:
+            ```
+            {
+                "statistic_name": "z",
+                "statistic_value": float,
+                "p_value": float,
+                "hypothesis": str
+            }
+            ```
+        """
+        from statsmodels.stats.proportion import proportions_ztest
+
         prop_var = self.pooled_variance
         n_1 = self.d1.nobs
         s_1 = sum(self.d1.data)
         n_2 = self.d2.nobs
         s_2 = sum(self.d2.data)
-        return proportions_ztest(
+        zstat, pval = proportions_ztest(
             [s_1, s_2], [n_1, n_2], alternative=self.test_direction, prop_var=prop_var
         )
+        return {
+            "statistic_name": "z",
+            "statistic_value": zstat,
+            "hypothesis": self.hypothesis,
+            "p_value": pval,
+            "alpha": self.alpha,
+            "power": self.power,
+        }
 
 
 class RateComparison(MeanComparison):
@@ -707,32 +1027,40 @@ class RateComparison(MeanComparison):
     of helpful summary statistics about the comparison. Uses the exact conditional
     test based on binomial distribution, as described in Gu et al (2008)
 
-    Parameters
-    ----------
-    samples_a : Samples instance
-        Group a samples
-    samples_b : Samples instance
-        Group b samples
-    alpha : float in (0, 1)
-        The assumed Type I error
-    hypothesis : str
-        Defines the assumed alternative hypothesis. Can be :
-            'larger'
-            'smaller'
-            'unequal' (i.e. two-tailed test)
-
     References
     ----------
     Gu, Ng, Tang, Schucany 2008: Testing the Ratio of Two Poisson Rates,
     Biometrical Journal 50 (2008) 2, 2008
     """
 
-    def __init__(self, null_ratio=1.0, *args, **kwargs):
+    def __init__(self, null_ratio: float = 1.0, *args, **kwargs):
+        """
+        Parameters
+        ----------
+        samples_a : `Samples`
+                Samples from group A (e.g. control group)
+        samples_b : `Samples`
+            Samples from group B (e.g. treatment group)
+        alpha : float in (0, 1)
+        hypothesis : str
+                Defines the assumed alternative hypothesis. Can be either:
+                    -   'larger': indicating we hypothesize that group B's mean is
+                        larger than group A's
+                    -   'smaller': indicating we hypothesize that group B's mean is
+                        smaller than group A's
+                    -   'unequal': indicating we hypothesize that group B's mean is
+                        not equal to group A's (i.e. two-tailed test).
+
+        null_ratio : float, optional
+            The ratio of the two samples underneath the null hypothesis. Default
+            is 1.0, i.e. that the two samples are equivalent, and thus their
+            ratio is unity.
+        """
         super(RateComparison, self).__init__(test_statistic="W", *args, **kwargs)
         self.null_ratio = null_ratio
 
     @property
-    def rates_ratio(self):
+    def rates_ratio(self) -> float:
         """
         Return the comparison ratio of the null rates ratio and the observed
         rates ratio.
@@ -743,31 +1071,41 @@ class RateComparison(MeanComparison):
         return self.null_ratio / actual_ratio
 
     @property
-    def delta(self):
+    def delta(self) -> float:
         """
         Delta is the ratio of the variation to the control rates
         """
         return self.d1.mean / self.d2.mean
 
     @property
-    def delta_relative(self):
+    def delta_relative(self) -> float:
+        """Return the athe ratio of the variation to the control rates"""
         return self.delta
 
-    def rates_test(self):
+    @property
+    def rates_test(self) -> Dict[str, Any]:
         """
         Run the rates comparison hyptothesis test. Uses the W5 statistic defined
         in Gu et al., 2008
 
         Returns
         -------
-        W : float
-            The W5 statistic from Gu et al., 2008
-        p_value : float
-            The p-value associated with W
+        test_results : Dict[str, Any]
+            The results of the test, with the following structure:
+            ```
+            {
+                "statistic_name": "W",
+                "statistic_value": float,
+                "p_value": float,
+                "hypothesis": str
+            }
+            ```
+            The (W-statistic, p-value) of the test, where W-statistic is the W5
+            statistic from Gu et al., 2008.
         """
         X1, X2 = self.d2.sum, self.d1.sum
         t1, t2 = self.d2.nobs, self.d1.nobs
-        d = float(t1) / t2
+        d = t1 / t2
         W = (
             2
             * (
@@ -778,23 +1116,30 @@ class RateComparison(MeanComparison):
         )
 
         if self.hypothesis == "larger":
-            p_val = 1 - norm.cdf(W)
+            pval = 1 - norm.cdf(W)
         elif self.hypothesis == "smaller":
-            p_val = norm.cdf(W)
+            pval = norm.cdf(W)
         elif self.hypothesis == "unequal":
-            p_val = 1 - norm.cdf(abs(W))
+            pval = 1 - norm.cdf(abs(W))
 
-        return W, p_val
+        return {
+            "statistic_name": "W",
+            "statistic_value": W,
+            "hypothesis": self.hypothesis,
+            "p_value": pval,
+            "alpha": self.alpha,
+            "power": self.power,
+        }
 
     @property
-    def effect_size(self):
+    def effect_size(self) -> float:
         """
         Effect size ranges from 0-1
         """
         return 1 - self.rates_ratio
 
     @property
-    def power(self):
+    def power(self) -> float:
         """
         Return the statistical power of the current test. Follows the calculation
         from W statistic 5 in Gu et al., 2008
@@ -817,69 +1162,52 @@ class RateComparison(MeanComparison):
         return round(norm.cdf(W), 4)
 
 
-def highest_density_interval(samples, mass=0.95):
-    """
-    Determine the bounds of the interval of width `mass` with the highest density
-    under the distribution of samples.
-
-    Parameters
-    ----------
-    samples: list
-        The samples to compute the interval over
-    mass: float (0, 1)
-        The credible mass under the empricial distribution
-
-    Returns
-    -------
-    hdi: tuple(float)
-        The lower and upper bounds of the highest density interval
-    """
-    _samples = np.asarray(sorted(samples))
-    n = len(_samples)
-
-    interval_idx_inc = int(np.floor(mass * n))
-    n_intervals = n - interval_idx_inc
-    interval_width = _samples[interval_idx_inc:] - _samples[:n_intervals]
-
-    if len(interval_width) == 0:
-        raise ValueError("Too few elements for interval calculation")
-
-    min_idx = np.argmin(interval_width)
-    hdi_min = _samples[min_idx]
-    hdi_max = _samples[min_idx + interval_idx_inc]
-    return hdi_min, hdi_max
-
-
 class BootstrapStatisticComparison(MeanComparison):
     """
     Class for comparing a bootstrapped test statistic for two samples. Provides
     a number of helpful summary statistics about the comparison.
 
-    Parameters
-    ----------
-    samples_a : Samples instance
-        Group a samples
-    samples_b : Samples instance
-        Group b samples
-    alpha : float in (0, 1)
-        The assumed Type I error
-    hypothesis : str
-        Defines the assumed alternative hypothesis. Can be :
-            'larger'
-            'smaller'
-            'unequal' (i.e. two-tailed test)
-    n_bootstraps : int
-        The number of bootstrap samples to draw use for estimates.
-    statistic_function : function
-        Function that returns a scalar test statistic when provided a sequence
-        of samples.
-
     References
     ----------
-    Efron, B. (1981). "Nonparametric estimates of standard error: The jackknife, the bootstrap and other methods". Biometrika. 68 (3): 589–599
+    Efron, B. (1981). "Nonparametric estimates of standard error: The jackknife,
+    the bootstrap and other methods". Biometrika. 68 (3): 589-599
     """
 
-    def __init__(self, n_bootstraps=1000, statistic_function=None, *args, **kwargs):
+    def __init__(
+        self,
+        n_bootstraps: int = 1000,
+        statistic_function: Callable = None,
+        *args,
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        samples_a : `Samples`
+            Samples from group A (e.g. control group)
+        samples_b : `Samples`
+            Samples from group B (e.g. treatment group)
+        alpha : float in (0, 1)
+            The acceptable Type I error rate in the comparison
+        hypothesis : str
+            Defines the assumed alternative hypothesis. Can be either:
+                -   'larger': indicating we hypothesize that group B's mean is
+                    larger than group A's
+                -   'smaller': indicating we hypothesize that group B's mean is
+                    smaller than group A's
+                -   'unequal': indicating we hypothesize that group B's mean is
+                    not equal to group A's (i.e. two-tailed test).
+
+        n_bootstraps : int
+            The number of bootstrap samples to draw use for estimates.
+        statistic_function : Callable, optional
+            Function that returns a scalar test statistic when provided a sequence
+            of samples. Defaults to the mean.
+        *args, **kwargs:
+            Valid arguments to `MeanComparison`
+
+
+        """
         statistic_function = statistic_function if statistic_function else np.mean
         statistic_name = statistic_function.__name__
         super(BootstrapStatisticComparison, self).__init__(
@@ -888,16 +1216,25 @@ class BootstrapStatisticComparison(MeanComparison):
         self.statistic_function = statistic_function
         self.n_bootstraps = n_bootstraps
 
-    def bootstrap_test(self):
+    @property
+    def bootstrap_test(self) -> Dict[str, Any]:
         """
         Run the sample comparison hyptothesis test. Uses the bootstrapped sample statistics
 
         Returns
         -------
-        delta: float
-            The observed difference in test statistic
-        p_value : float
-            The p-value associated with delta
+        test_results: Dict[str, Any]
+            The results of the test, with the following structure:
+            ```
+            {
+                "statistic_name": "bootstrap_delta",
+                "statistic_value": float,
+                "statistic_function_name": str,
+                "n_bootstraps": int,
+                "p_value": float,
+                "hypothesis": str
+            }
+            ```
         """
         all_samples = np.concatenate([self.d1.data, self.d2.data]).astype(float)
 
@@ -937,28 +1274,38 @@ class BootstrapStatisticComparison(MeanComparison):
         )
 
         if self.hypothesis == "larger":
-            p_val = 1 - self.null_dist.cdf(self.delta)
+            pval = 1 - self.null_dist.cdf(self.delta)
         elif self.hypothesis == "smaller":
-            p_val = self.null_dist.cdf(self.delta)
+            pval = self.null_dist.cdf(self.delta)
         elif self.hypothesis == "unequal":
-            p_val = 1 - self.null_dist.cdf(abs(self.delta))
+            pval = 1 - self.null_dist.cdf(abs(self.delta))
 
-        return self.delta, p_val
+        return {
+            "statistic_name": "bootstrap_delta",
+            "statistic_value": self.delta,
+            "statistic_function_name": self.statistic_function.__name__,
+            "n_bootstraps": self.n_bootstraps,
+            "hypothesis": self.hypothesis,
+            "p_value": pval,
+            "alpha": self.alpha,
+            "power": self.power,
+        }
 
-    def confidence_interval(self, alpha=0.05):
+    def confidence_interval(self, confidence: float = 0.95) -> Tuple[float, float]:
         """
         Calculate the (1-alpha)-th confidence interval around the statistic delta.
         Uses bootstrapped approximation the statistic sampling distribution.
 
         Returns
         -------
-        ci : tuple (lo, hi)
-            the (1-alpha) % confidence interval around the statistic estimate.
+        ci : Tuple[float, float]
+            the `confidence`-% confidence interval around the statistic estimate.
         """
+        alpha = 1 - confidence
         return self.deltas_dist.percentiles([100 * alpha, 100 * (1 - alpha)])
 
     @property
-    def deltas_dist(self):
+    def deltas_dist(self) -> Samples:
         if not hasattr(self, "_deltas_dist"):
             d1_samples = np.random.choice(
                 self.d1.data, (int(self.d1.nobs), self.n_bootstraps), replace=True
@@ -981,53 +1328,28 @@ class BootstrapStatisticComparison(MeanComparison):
         return self._deltas_dist
 
     @property
-    def delta(self):
+    def delta(self) -> float:
         """
-        Delta is difference in test statistics
+        Return the average difference in test statistic distributions
         """
         return self.deltas_dist.mean
 
     @property
-    def delta_relative(self):
+    def delta_relative(self) -> float:
+        """Return the average difference in test statistic distributions, as
+        a percent change.
+        """
         return self.delta / np.abs(self.statistic_function(self.d2.data))
 
     @property
-    def power(self):
+    def power(self) -> float:
         """
-        Return the statistical power of the current test. Uses
+        Return the statistical power of the current test.
         """
+
+        # Need to run the bootstrap in order to obtain the power
+        if not hasattr(self, "null_dist"):
+            _ = self.bootstrap_test
+
         critical_value = self.null_dist.percentiles(100 * (1 - self.alpha))
         return self.deltas_dist.prob_greater_than(critical_value)
-
-
-def highest_density_interval(samples, mass=0.95):
-    """
-    Determine the bounds of the interval of width `mass` with the highest density
-    under the distribution of samples.
-
-    Parameters
-    ----------
-    samples: list
-        The samples to compute the interval over
-    mass: float (0, 1)
-        The credible mass under the empricial distribution
-
-    Returns
-    -------
-    hdi: tuple(float)
-        The lower and upper bounds of the highest density interval
-    """
-    _samples = np.asarray(sorted(samples))
-    n = len(_samples)
-
-    interval_idx_inc = int(np.floor(mass * n))
-    n_intervals = n - interval_idx_inc
-    interval_width = _samples[interval_idx_inc:] - _samples[:n_intervals]
-
-    if len(interval_width) == 0:
-        raise ValueError("Too few elements for interval calculation")
-
-    min_idx = np.argmin(interval_width)
-    hdi_min = _samples[min_idx]
-    hdi_max = _samples[min_idx + interval_idx_inc]
-    return hdi_min, hdi_max

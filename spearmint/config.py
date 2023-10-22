@@ -20,21 +20,21 @@ spearmint_home={SPEARMINT_HOME}
 # Logging level
 logging_level=INFO
 
-# Default experiment values, used to reduce parameter
-# footprint for common Experiment instantiations
+# Defaults
 [experiment]
-control=control
-treatment=treatment
+default_control_name=control
+default_treatment_name=treatment
 enrollment=enrollment
-measures=metric
-attributes=attr_0,attr_1
+default_measure_names=metric
+default_attribute_names=attr_0,attr_1
 
-[constants]:
+[hypothesis_test]:
 default_alpha=.05
-min_obs_for_z=30
+default_test_direction=larger
+min_obs_for_z_test=30
 
 [pymc]:
-default_bayesian_inference_method=sample
+default_mcmc_sampler=nuts
 """
 
 TEMPLATE_BEGIN_PATTERN = (
@@ -164,9 +164,10 @@ def set(section: str, option: str, value: Any) -> None:
     CONFIG.set(section, option, value)
 
 
-DEFAULT_ALPHA = get("constants", "default_alpha")
-MIN_OBS_FOR_Z = get("constants", "min_obs_for_z")
-DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "default_bayesian_inference_method")
+DEFAULT_ALPHA = get("hypothesis_test", "default_alpha")
+DEFAULT_TEST_DIRECTION = get("hypothesis_test", "default_test_direction")
+MIN_OBS_FOR_Z_TEST = get("hypothesis_test", "min_obs_for_z_test")
+# DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "bayesian_inference_method")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(get("core", "logging_level"))

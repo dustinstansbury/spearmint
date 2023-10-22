@@ -75,21 +75,29 @@ class Dataset:
 
         # treatment
         treatment = (
-            treatment if treatment else search_config(df, "experiment", "treatment")[0]
+            treatment
+            if treatment
+            else search_config(df, "experiment", "default_treatment_name")[0]
         )
         _check_columns_in_df(treatment, "treatment")
         self.treatment = treatment
 
         # measures
         measures = [measures] if isinstance(measures, str) else measures
-        measures = measures if measures else search_config(df, "experiment", "measures")
+        measures = (
+            measures
+            if measures
+            else search_config(df, "experiment", "default_measure_names")
+        )
         _check_columns_in_df(measures, "measure")
         self.measures = measures
 
         # attributes
         attributes = [attributes] if isinstance(attributes, str) else attributes
         attributes = (
-            attributes if attributes else search_config(df, "experiment", "attributes")
+            attributes
+            if attributes
+            else search_config(df, "experiment", "default_attribute_names")
         )
         _check_columns_in_df(attributes, "attribute")
         self.attributes = attributes
