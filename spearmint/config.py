@@ -3,6 +3,9 @@ import logging
 import getpass
 
 from configparser import ConfigParser
+from dataclasses import dataclass
+
+import holoviews as hv
 
 from spearmint.utils import coerce_value, mkdir
 from spearmint.typing import Any, Union, Iterable
@@ -32,6 +35,11 @@ default_attribute_names=attr_0,attr_1
 default_alpha=.05
 default_test_direction=larger
 min_obs_for_z_test=30
+
+[vis]
+vis_backend=matplotlib
+figure_width_pixels=800
+figure_height_pixels=400
 
 [pymc]:
 default_mcmc_sampler=nuts
@@ -134,7 +142,7 @@ CONFIG = SpearmintConfigParser()
 CONFIG.read(SPEARMINT_CONFIG)
 
 
-# Give the entire module get/set methods
+# Give this module get/set methods
 def get(section: str, key: str, **kwargs) -> Any:
     """
     Retrieve properly-typed variables from config.
@@ -164,10 +172,101 @@ def set(section: str, option: str, value: Any) -> None:
     CONFIG.set(section, option, value)
 
 
+# Configure Logging
+logger = logging.getLogger(__name__)
+logger.setLevel(get("core", "logging_level"))
+
+# Configure Hypothesis testing
 DEFAULT_ALPHA = get("hypothesis_test", "default_alpha")
 DEFAULT_TEST_DIRECTION = get("hypothesis_test", "default_test_direction")
 MIN_OBS_FOR_Z_TEST = get("hypothesis_test", "min_obs_for_z_test")
 # DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "bayesian_inference_method")
 
-logger = logging.getLogger(__name__)
-logger.setLevel(get("core", "logging_level"))
+
+# Configure Visualization
+# TODO: add these to default config
+_DEFAULT_VIS_BACKEND = get("vis", "vis_backend")
+FIGURE_WIDTH_PIXELS = get("vis", "figure_width_pixels")
+FIGURE_HEIGHT_PIXELS = get("vis", "figure_height_pixels")
+
+
+def _get_vis_backend():
+    if _DEFAULT_VIS_BACKEND == "bokeh":
+        try:
+            import bokeh
+
+            return "bokeh"
+        except:
+            logger.warning(
+                "Bokeh not available, falling back to matplotlib visualizaiton backend"
+            )
+            return "matplotlib"
+
+    return _DEFAULT_VIS_BACKEND
+
+
+# Set the visualization backend
+VIS_BACKEND = _get_vis_backend()
+hv.extension(VIS_BACKEND)
+
+
+def _get_figure_params():
+    """Return backend-specific figure params"""
+
+    def _get_figsize_kwargs():
+        if VIS_BACKEND == "bokeh":
+            return dict(width=FIGURE_WIDTH_PIXELS, height=FIGURE_HEIGHT_PIXELS)
+        elif VIS_BACKEND == "matplotlib":
+            import matplotlib
+
+            pix_per_inch = matplotlib.rcParams["figure.dpi"]
+            aspect_ratio = FIGURE_WIDTH_PIXELS / FIGURE_HEIGHT_PIXELS
+            fig_inches = max([FIGURE_WIDTH_PIXELS, FIGURE_HEIGHT_PIXELS]) / pix_per_inch
+            return {"aspect": aspect_ratio, "fig_inches": fig_inches}
+
+    def _get_hover_kwargs():
+        if VIS_BACKEND == "matplotlib":
+            # No hover in matplotlib
+            return {}
+        return {"tools": ["hover"]}
+
+    figure_kwargs = {}
+    figure_kwargs.update(_get_figsize_kwargs())
+    figure_kwargs.update(_get_hover_kwargs())
+
+    return figure_kwargs
+
+
+def _get_points_plot_params():
+    if VIS_BACKEND == "matplotlib":
+        return {"s": 50}
+    return {"size": 5}
+
+
+FIGURE_PARAMS = _get_figure_params()
+POINTS_PLOT_PARAMS = _get_points_plot_params()
+
+
+@dataclass
+class COLORS:
+    blue = "#4257B2"
+    light_blue = "#A1C4FD"
+    cyan = "#3CCFCF"
+    green = "#388E34"
+    light_green = "#28CC7D"
+    dark_green = "#006060"
+    yellow = "#FFCD1F"
+    salmon = "#FF725B"
+    red = "#FB3640"
+    dark_red = "#AE2024"
+    purple = "#8842C0"
+    gray = "#687174"
+    dark_gray = "#455357"
+    light_gray = "#C0CACE"
+    brown = "#665000"
+
+
+DEFAULT_COLOR = COLORS.blue
+CONTROL_COLOR = COLORS.blue
+VARIATION_COLOR = COLORS.green
+DIFF_COLOR = COLORS.dark_gray

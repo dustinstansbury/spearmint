@@ -1293,7 +1293,7 @@ class BootstrapStatisticComparison(MeanComparison):
 
     def confidence_interval(self, confidence: float = 0.95) -> Tuple[float, float]:
         """
-        Calculate the (1-alpha)-th confidence interval around the statistic delta.
+        Calculate the `confidence`-% confidence interval around the statistic delta.
         Uses bootstrapped approximation the statistic sampling distribution.
 
         Returns
