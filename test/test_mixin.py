@@ -4,7 +4,7 @@ from spearmint import mixin
 
 
 def test_init_repr():
-    class TestRepr(mixin.InitRepr):
+    class TestRepr(mixin.InitReprMixin):
         __ATTRS__ = ["abra"]
         abra = "cadabra"
 
@@ -13,7 +13,7 @@ def test_init_repr():
 
 
 def test_jsonable():
-    class TestJsonable(mixin.Jsonable):
+    class TestJsonable(mixin.JsonableMixin):
         def __init__(self):
             self.abra = "cadabra"
 
@@ -25,11 +25,11 @@ def test_jsonable():
 
 
 def test_dataframeable():
-    class ValidDataFrameable(mixin.Dataframeable):
+    class ValidDataFrameable(mixin.DataframeableMixin):
         def to_dict(self):
             return {"abra": ["cadabra", "calamazam"]}
 
-    class InvalidDataframeable(mixin.Dataframeable):
+    class InvalidDataframeable(mixin.DataframeableMixin):
         pass
 
     with pytest.raises(NotImplementedError):
@@ -39,6 +39,6 @@ def test_dataframeable():
     vdf_dict = vdf.to_dict()
     assert vdf_dict == {"abra": ["cadabra", "calamazam"]}
     df = vdf.to_dataframe()
-    assert "abra" in df.columns
+    assert df.columns == ["abra"]
     assert df.iloc[0].values == "cadabra"
     assert df.iloc[1].values == "calamazam"
