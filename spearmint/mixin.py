@@ -1,9 +1,11 @@
 import json
-import numpy as np
 from pandas import DataFrame
 
+from spearmint.utils import isnumeric
+from spearmint.typing import Iterable
 
-class InitRepr:
+
+class InitReprMixin:
     """
     Objects whose __repr__ returns an intialization command
     """
@@ -18,7 +20,7 @@ class InitRepr:
         return f"{class_name}({attr_str})"
 
 
-class Jsonable:
+class JsonableMixin:
     """
     Objects that can be converted to dict and JSON string
     """
@@ -35,7 +37,7 @@ class Jsonable:
         return self.to_json()
 
 
-class Dataframeable:
+class DataframeableMixin:
     """
     Export an object to tabular format. Must overload/implement a `to_dict`
     method that returns a dictionary representation of the object.
@@ -65,17 +67,20 @@ class Dataframeable:
         casting common problematic values (see TYPE_MAPPING); this can be useful
         for ensuring type safety, for example when uploading data to a database.
         """
-        return DataFrame(self.to_dict())
 
-    # def to_dataframe(self, safe_cast: bool = False) -> DataFrame:
-    #     """
-    #     Export object to a dataframe. If `safe_cast` is True attempt to
-    #     casting common problematic values (see TYPE_MAPPING); this can be useful
-    #     for ensuring type safety, for example when uploading data to a database.
-    #     """
-    #     _dict = self.to_dict()
-    #     if safe_cast:
-    #         from spearmint.utils import safe_cast_json
+        def is_valid_value(v):
+            if v is None:
+                return False
+            if isinstance(v, Iterable) and len(v) == 0:
+                return False
+            return True
 
-    #         _dict = safe_cast_json(_dict, TYPE_MAPPING)
-    #     return DataFrame(_dict)
+        _dict = {k: v for k, v in self.to_dict().items() if is_valid_value(v)}
+        return DataFrame(_dict)
+
+        # for k, v in self.to_dict().items():
+        #     # make values a sequence for dataframe API
+        #     if v:
+        #         _dict[k] = v
+
+        # return DataFrame(self.to_dict())
