@@ -264,9 +264,3 @@ class COLORS:
     dark_gray = "#455357"
     light_gray = "#C0CACE"
     brown = "#665000"
-
-
-DEFAULT_COLOR = COLORS.blue
-CONTROL_COLOR = COLORS.blue
-VARIATION_COLOR = COLORS.green
-DIFF_COLOR = COLORS.dark_gray

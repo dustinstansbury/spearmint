@@ -6,10 +6,20 @@ from holoviews.element.chart import Curve
 from spearmint.config import (
     FIGURE_PARAMS,
     POINTS_PLOT_PARAMS,
-    DEFAULT_COLOR,
+    COLORS,
 )
 from spearmint.utils import format_value
 from spearmint import distributions
+
+
+DEFAULT_COLOR = COLORS.blue
+CONTROL_COLOR = COLORS.blue
+VARIATION_COLOR = COLORS.green
+DELTA_COLOR = COLORS.dark_gray
+
+POSITIVE_COLOR = COLORS.green
+NEGATIVE_COLOR = COLORS.red
+NEUTRAL_COLOR = COLORS.gray
 
 
 def plot_interval(
