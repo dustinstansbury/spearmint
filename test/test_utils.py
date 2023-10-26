@@ -1,6 +1,25 @@
 import pytest
 import numpy as np
+import os
 from spearmint import utils
+
+
+def test_rmdir_mkdir(testdir):
+    # assert original directory exists
+    assert os.path.isdir(testdir)
+
+    # rmdir
+    utils.rmdir(testdir)
+    assert not os.path.isdir(testdir)
+
+    # mkdir
+    utils.mkdir(testdir)
+    assert os.path.isdir(testdir)
+
+
+def test_process_warnings():
+    assert utils.process_warnings("a warning") == "a warning"
+    assert utils.process_warnings(["a", "warning"]) == "a; warning"
 
 
 def test_coerce_value():

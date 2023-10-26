@@ -14,7 +14,6 @@ from spearmint.config import (
     logger,
 )
 from spearmint.utils import format_value
-from spearmint.mixin import InitRepr
 from spearmint.table import SpearmintTable
 
 
@@ -132,7 +131,7 @@ def _get_multiple_comparison_correction_function(
     raise ValueError(f"Multiple correction method {method} not supported")
 
 
-class MultipleComparisonCorrection(InitRepr):
+class MultipleComparisonCorrection:
     """
     Perform multiple comparison adjustment of alpha based on a sequence of
     p_values that result from two or more hypothesis tests inference procedures.
@@ -808,7 +807,7 @@ class MeanComparison(CompareMeans):
         samples_b: Samples,
         alpha: float = DEFAULT_ALPHA,
         test_statistic: str = "t",
-        hypothesis: str = "larger",
+        hypothesis: str = DEFAULT_TEST_DIRECTION,
     ):
         """
         Parameters

@@ -1,6 +1,7 @@
 import pytest
 import os
 import tempfile
+import shutil
 
 TEST_ENV_VARS = {"SPEARMINT_USER": "test", "SPEARMINT_HOME": tempfile.mkdtemp()}
 
@@ -26,10 +27,26 @@ def test_config():
 
 
 @pytest.fixture()
+def testdir():
+    tmpdir = tempfile.mkdtemp()
+    yield tmpdir
+    shutil.rmtree(tmpdir)
+
+
+@pytest.fixture()
 def test_observations():
     from spearmint.utils import generate_fake_observations
 
     return generate_fake_observations(distribution="bernoulli")
+
+
+@pytest.fixture()
+def test_samples():
+    from spearmint.utils import generate_fake_observations
+    from spearmint.stats import Samples
+
+    observations = generate_fake_observations(distribution="bernoulli")["metric"].values
+    return Samples(observations=observations, name="test")
 
 
 @pytest.fixture()

@@ -1,9 +1,10 @@
 import os
+import shutil
 import numpy as np
 import pandas as pd
 import string
 
-from spearmint.typing import Any, Iterable, Union, DataFrame, Path
+from spearmint.typing import Any, List, Iterable, Union, DataFrame, Path
 
 BIG_FLOAT = 2.0**32
 SMALL_FLOAT = -(2.0**32)
@@ -27,10 +28,38 @@ def mkdir(dirname: Union[str, Path]) -> None:
     OSError if any trouble creating the directory
     """
     if not os.path.isdir(dirname):
-        try:
-            os.makedirs(dirname)
-        except OSError as e:
-            raise Exception(f"Could not create directory {dirname}: {e}")
+        os.makedirs(dirname)
+
+
+def rmdir(dirname: Union[str, Path]) -> None:
+    """Remove the fullpath to the directory
+
+    Parameters
+    ----------
+    dirname : Union[str, Path]
+        The fullfile path to remove
+
+    Raises
+    ------
+    OSError if any trouble creating the directory
+    """
+    if os.path.isdir(dirname):
+        shutil.rmtree(dirname)
+
+
+def process_warnings(warnings: Union[str, List[str]]) -> str:
+    """Convert sequence of warnings into a string"""
+    if isinstance(warnings, list):
+        warnings = "; ".join(warnings)
+    return warnings
+
+
+def isnumeric(val):
+    try:
+        float(val)
+        return True
+    except ValueError:
+        return False
 
 
 def coerce_value(val: Any) -> Any:
@@ -54,13 +83,6 @@ def coerce_value(val: Any) -> Any:
 
     if val in NAN_TYPE_MAPPING:
         return NAN_TYPE_MAPPING[val]
-
-    def isnumeric(val):
-        try:
-            float(val)
-            return True
-        except ValueError:
-            return False
 
     if isnumeric(val):
         try:
@@ -170,7 +192,7 @@ def generate_fake_observations(
     n_treatments: int = 2,
     n_attributes: int = 2,
     distribution: str = "bernoulli",
-    seed: int = 123,
+    random_seed: int = 123,
 ) -> DataFrame:
     """
     Create a dataframe of artificial observations to be used for testing and demos.
@@ -213,7 +235,7 @@ def generate_fake_observations(
     distribution_ = distribution.lower()
     if distribution_ not in ("poisson", "bernoulli", "gaussian"):
         raise ValueError(f"Unsupported distribution {distribution}")
-    np.random.seed(seed)
+    np.random.seed(random_seed)
 
     letters = string.ascii_uppercase
     n_treatments = min(n_treatments, 6)
@@ -255,3 +277,20 @@ def generate_fake_observations(
 
     data = data.astype({"metric": dtype})
     return data
+
+
+def generate_fake_samples(
+    name: str = None,
+    distribution: str = "bernoulli",
+    random_seed: int = 123,
+    n_observations: int = 1000,
+):
+    from spearmint.stats import Samples
+
+    observations = generate_fake_observations(
+        n_observations=n_observations,
+        n_treatments=1,
+        distribution=distribution,
+        random_seed=random_seed,
+    )["metric"].values
+    return Samples(observations=observations, name=name)
