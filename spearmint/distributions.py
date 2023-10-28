@@ -6,17 +6,17 @@ import holoviews as hv
 from holoviews.element.chart import Curve, Bars
 from holoviews.core.overlay import Overlay
 
-from spearmint.config import FIGURE_PARAMS, DEFAULT_COLOR
+from spearmint.config import FIGURE_PARAMS, COLORS
 from spearmint.typing import Union, List, Tuple
-from spearmint.utils import format_value
 
 N_GRID_POINTS = 100
+DEFAULT_DISTRIBUTION_COLOR = COLORS.blue
 
 
 class ProbabilityDistribution:
     """Base class for plottable probability distributions"""
 
-    def __init__(self, label: str = "", color: str = DEFAULT_COLOR):
+    def __init__(self, label: str = "", color: str = DEFAULT_DISTRIBUTION_COLOR):
         self.label = label
         self.color = color
 
@@ -170,7 +170,14 @@ class Binomial(Pmf):
         self.dist = stats.binom(n, p)
 
     def values_grid(self):
-        return np.arange(0, self.n + 1)
+        _min = self.ppf(1e-4)
+        _max = self.ppf(1 - 1e-4)
+        resolution = int(_max - _min) + 1
+
+        if resolution > 25:
+            resolution = 26
+
+        return np.floor(np.linspace(_min, _max, resolution)).astype(int)
 
 
 class Poisson(Pmf):
