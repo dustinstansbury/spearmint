@@ -14,7 +14,7 @@ class ExtendedInferenceResults(InferenceResults):
             hypothesis="larger",
             alpha=alpha,
             accept_hypothesis=False,
-            model_name="test_model",
+            inference_method="test_model",
             warnings=["a warning"],
             *args,
             **kwargs
