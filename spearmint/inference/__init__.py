@@ -1,21 +1,23 @@
-from spearmint.inference.inference_base import InferenceProcedure, FrequentistProcedure
+from spearmint.inference.inference_base import InferenceProcedure, InferenceResults
 
 
-def get_inference_procedure(method, **infer_params):
-    _method = method.lower().replace("-", "").replace("_", "").replace(" ", "")
-    if _method in ("meansdelta"):
-        from abra import MeansDelta as IP
+def get_inference_procedure(
+    inference_method: str, **inference_params
+) -> InferenceProcedure:
+    _method = inference_method.lower().replace("-", "_").replace(" ", "_")
+    if _method in ("means_delta"):
+        from .frequentist.means_delta import MeansDelta as IP
 
-    elif _method in ("proportionsdelta"):
-        from abra import ProportionsDelta as IP
+    elif _method in ("proportions_delta"):
+        from .frequentist.proportions_delta import ProportionsDelta as IP
 
-    elif _method in ("ratesratio"):
-        from abra import RatesRatio as IP
+    elif _method in ("rates_ratio"):
+        from .frequentist.rates_ratio import RatesRatio as IP
 
     elif _method in ("bootstrap"):
-        from abra import BootstrapDelta as IP
+        from .frequentist.bootstrap_delta import BootstrapDelta as IP
 
-    elif method in (
+    elif _method in (
         "gaussian",
         "bernoulli",
         "binomial",
@@ -24,13 +26,11 @@ def get_inference_procedure(method, **infer_params):
         "student_t",
         "exp_student_t",
     ):
-        from abra import BayesianDelta as IP
-
-        infer_params.update({"model_name": method})
+        from .bayesian.bayesian_delta import BayesianDelta as IP
     else:
-        raise ValueError("Unknown inference method {!r}".format(method))
+        raise ValueError("Unknown inference method {!r}".format(inference_method))
 
-    return IP(method=method, **infer_params)
+    return IP(inference_method=inference_method, **inference_params)
 
 
-__all__ = ["InferenceProcedure", "FrequentistProcedure"]
+__all__ = ["InferenceProcedure", "InferenceResults", "get_inference_procedure"]
