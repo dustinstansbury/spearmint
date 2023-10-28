@@ -1,69 +1,88 @@
-from datetime import datetime
-from spearmint.dataset import Dataset
-from spearmint.stats import Samples, MultipleComparisonCorrection
-from spearmint.mixin import InitRepr
-from spearmint.config import DEFAULT_ALPHA
-from spearmint.hypothesis_test import HypothesisTestSuiteResults
 import copy
 
+from datetime import datetime
+from pandas import DataFrame
 
-class Experiment(InitRepr):
-    """
-    Parameters
-    ----------
-    data : DataFrame
-        the tabular data to analyze, must have columns that correspond
-        with `treatment`, `measures`, `attributes`, and `enrollment` if any
-        of those are defined.
-    treatment : str
-        The column in `data` that identifies the association of each
-        enrollment in the experiment with one of the experiment conditions. If
-        None provided, the global config is searched to identify potential
-        treatments in `data`.
-    measures : list[str]
-        Columns in the dataset that are associated with indicator measurements.
-        If None provided, the global config is searched to identify potential
-        measures in `data`.
-    attributes : list[str]
-        the columns in `data` that define segmenting attributes
-        associated with each enrollment in the experiment. If None provided, the
-        global config is searched to identify potential attributes in `data`.
-    name : str
-        the name of the experiment
-    date : datetime.datetime
-        the datetime of the experiment analysis
-    enrollment_strategy : str
-        metadata for the type of enrollment used to generate the data
-    meta : list[str]
-        Any additional columns in `data` that should be included in the experiment
-        dataset. These columns can be used for additional / custom segmentations.
-    """
+from spearmint.typing import List
+from spearmint.config import DEFAULT_ALPHA
+from spearmint.dataset import Dataset
+from spearmint.stats import Samples
 
-    __ATTRS__ = ["name", "enrollment_strategy", "date"]
+from spearmint.stats import MultipleComparisonCorrection
+from spearmint.hypothesis_test import (
+    HypothesisTest,
+    HypothesisTestGroup,
+    InferenceResults,
+    GroupInferenceResults,
+)
+
+
+class Experiment:
+    """
+    Container for data and metadata, used to run various hypothesis tests on
+    subsets of the data.
+    """
 
     def __init__(
         self,
-        data,
-        treatment=None,
-        measures=None,
-        attributes=None,
-        date=None,
-        name=None,
-        enrollment_strategy=None,
-        meta=None,
+        data: DataFrame,
+        treatment: str = None,
+        measures: List[str] = None,
+        attributes: List[str] = None,
+        # date: datetime.datetime = None,
+        # name: str = None,
+        metadata: List[str] = None,
     ):
+        """
+        Parameters
+        ----------
+        data : DataFrame
+            the tabular data to analyze, must have columns that correspond
+            with `treatment`, `measures`, `attributes`, and `enrollment` if any
+            of those are defined.
+        treatment : str
+            The column in `data` that identifies the association of each
+            enrollment in the experiment with one of the experiment conditions. If
+            None provided, the global config is searched to identify potential
+            treatments in `data`.
+        measures : List[str]
+            Columns in `data` that are associated with indicator measurements.
+            If None provided, the global config is searched to identify potential
+            measures in `data`.
+        attributes : List[str]
+            the columns in `data` that define segmenting attributes
+            associated with each enrollment in the experiment. If None provided, the
+            global config is searched to identify potential attributes in `data`.
+        metadata : List[str]
+            Any additional columns in `data` that should be included in the
+            experiment dataset. For examples, these columns can be used for
+            custom metrics or segmentations.
+
+        name : str
+            the name of the experiment
+        """
+
         # metadata
-        if date is None:
-            self.date = datetime.now().date()
-        elif isinstance(date, datetime):
-            self.date = date
-        else:
-            raise ValueError("date parameter must be a datetime.datetime object")
+        # if date is None:
+        #     self.date = datetime.now().date()
+        # elif isinstance(date, datetime):
+        #     self.date = date
+        # else:
+        #     raise ValueError("date parameter must be a datetime.datetime object")
 
-        self.name = name
-        self.enrollment_strategy = enrollment_strategy
+        # self.name = name
 
-        self.dataset = Dataset(data, treatment, measures, attributes, meta)
+        self.created_at = datetime.now()
+        self.run_on = None
+
+        # TODO: update `df`` to`data`` in Dataset class for consistency
+        self.dataset = Dataset(
+            df=data,
+            treatment=treatment,
+            measures=measures,
+            attributes=attributes,
+            metadata=metadata,
+        )
 
     @property
     def ds(self):
@@ -86,13 +105,13 @@ class Experiment(InitRepr):
 
     def run_test(
         self,
-        test,
-        alpha=DEFAULT_ALPHA,
-        correction_method=None,
-        display_results=False,
-        visualize_results=False,
-        inference_kwargs=None,
-    ):
+        test: HypothesisTest,
+        alpha: float = DEFAULT_ALPHA,
+        correction_method: str = None,
+        display_results: bool = False,
+        visualize_results: bool = False,
+        # **inference_kwargs,
+    ) -> InferenceResults:
         """
         Given a HypothesisTest, run the test and return the results.
 
@@ -133,7 +152,7 @@ class Experiment(InitRepr):
             control_samples,
             variation_samples,
             alpha=alpha,
-            inference_kwargs=inference_kwargs,
+            # inference_kwargs=inference_kwargs,
         )
         test_results.correction_method = correction_method
 
@@ -143,22 +162,24 @@ class Experiment(InitRepr):
         if visualize_results:
             test_results.visualize()
 
+        test_results.run_on = datetime.now()
         return test_results
 
-    def run_test_suite(
+    def run_test_group(
         self,
-        test_suite,
+        test_group: HypothesisTestGroup,
         alpha=DEFAULT_ALPHA,
-        display_results=False,
-        visualize_results=False,
-        inference_kwargs=None,
-    ):
+        display_results: bool = False,
+        visualize_results: bool = False,
+        **inference_kwargs,
+    ) -> GroupInferenceResults:
         """
-        Given a HypothesisTestSuite, run all tests, perform multiple comparison
-        alpha correction, and adjust inference.
+        Run all tests, in a group, performing alpha correction, and adjusting
+        the inference results to mitigate multiple comparison error.
 
+        Parameters
         ----------
-        test : HypothesisTest
+        test_group : HypothesisTestGroup
             A hypothesis test object
         alpha : float
             The Type I error assumed by the experimenter when running the test
@@ -169,37 +190,49 @@ class Experiment(InitRepr):
 
         Returns
         -------
-        test_results: an instance of a HypothesisTestSuiteResults or subclass
-            The results of the statistical test suite.
+        test_results: GroupInferenceResults
+            The corrected results of the statistical inferences, when applied
+            within the context of the group.
         """
-        corrected_tests = [copy.deepcopy(t) for t in test_suite.tests]
+
+        corrected_tests = [copy.deepcopy(t) for t in test_group.tests]
 
         # run original tests
-        original_test_results = [
-            self.run_test(test, alpha, inference_kwargs=inference_kwargs)
-            for test in test_suite.tests
+        original_results = [
+            self.run_test(test, alpha, **inference_kwargs) for test in test_group.tests
         ]
 
+        # Run grouped test with correction
         # get p_values for multiple comparison procedure
-        p_values = [t.p_value for t in original_test_results]
+        p_values = [t.p_value for t in original_results]
 
-        correction_method = test_suite.correction_method
+        correction_method = test_group.correction_method
         correction = MultipleComparisonCorrection(
             p_values=p_values, alpha=alpha, method=correction_method
         )
 
-        # rerun tests with updated alpha
-        corrected_test_results = []
-        for test in corrected_tests:
-            corrected_result = self.run_test(
+        # Rerun hypothesis tests with updated alpha
+        corrected_results = [
+            self.run_test(
                 test,
                 alpha=correction.alpha_corrected,
-                correction_method=correction.method,
+                correction_method=correction.mc_correction_method,
             )
-            corrected_result.correction_method = correction_method
-            corrected_result.render_tables()  # update display params
-            corrected_test_results.append(corrected_result)
+            for test in corrected_tests
+        ]
 
-        return HypothesisTestSuiteResults(
-            test_suite.tests, original_test_results, corrected_test_results, correction
+        test_group_results = GroupInferenceResults(
+            test_group=test_group,
+            correction=correction,
+            original_results=original_results,
+            corrected_results=corrected_results,
         )
+
+        if display_results:
+            test_group_results.display()
+
+        if visualize_results:
+            test_group_results.visualize()
+
+        test_group_results.run_at = datetime.now()
+        return test_group_results
