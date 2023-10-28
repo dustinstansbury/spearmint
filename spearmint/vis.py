@@ -3,6 +3,7 @@ import numpy as np
 import holoviews as hv
 from holoviews.element.chart import Curve
 
+from spearmint.typing import FilePath
 from spearmint.config import (
     FIGURE_PARAMS,
     POINTS_PLOT_PARAMS,
@@ -15,7 +16,7 @@ from spearmint import distributions
 DEFAULT_COLOR = COLORS.blue
 CONTROL_COLOR = COLORS.blue
 VARIATION_COLOR = COLORS.green
-DELTA_COLOR = COLORS.dark_gray
+DELTA_COLOR = COLORS.black
 
 POSITIVE_COLOR = COLORS.green
 NEGATIVE_COLOR = COLORS.red
@@ -75,7 +76,7 @@ def plot_interval(
     ):
         raise ValueError("Too many interval values are inf")
     middle = np.mean((left, right)) if middle is None else middle
-    INFTY_SCALE = 4
+    INFTY_SCALE = 2
 
     _left = middle - INFTY_SCALE * np.abs(right) if left in (np.inf, -np.inf) else left
     _right = (
@@ -221,3 +222,16 @@ def plot_poisson(
         form an Overlay
     """
     return distributions.Poisson(mu=mu, label=label, color=color).plot(**plot_kwargs)
+
+
+def save_visualization(visualization: hv.Element, outfile: FilePath) -> None:
+    """Export visualization to disk
+
+    Parameters
+    ----------
+    visualization : hv.Element
+        A holoviews visiualzation element to save
+    outfile : FilePath
+        The fullfile location on disk to export the visualization.
+    """
+    hv.save(visualization, outfile)
