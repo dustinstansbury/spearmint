@@ -682,7 +682,8 @@ class Samples(DescrStatsW):
         std_err : Tuple[float, float]
             The standard error interval around the mean estimate.
         """
-        alpha = 1 - confidence
+        alpha = (1 - confidence) / 2.0
+
         z = norm.ppf(1 - alpha)
         ci = z * (self.var / self.nobs) ** 0.5
 
@@ -769,8 +770,8 @@ class SamplesComparisonTable(SpearmintTable):
 
         self.add_row(
             "# Samples",
-            format_value(control_samples.nobs),
-            *get_variation_row_values("nobs", precision=1),
+            format_value(control_samples.nobs, precision=0),
+            *get_variation_row_values("nobs", precision=0),
         )
         self.add_row(
             "Mean",
@@ -788,7 +789,7 @@ class SamplesComparisonTable(SpearmintTable):
             *get_variation_row_values("var", precision=4),
         )
         deltas = [None] + [
-            format_value(control_samples.mean - vs.mean, precision=4)
+            format_value(vs.mean - control_samples.mean, precision=4)
             for vs in variation_samples
         ]
         self.add_row("Delta", *deltas)
@@ -806,7 +807,7 @@ class MeanComparison(CompareMeans):
         samples_a: Samples,
         samples_b: Samples,
         alpha: float = DEFAULT_ALPHA,
-        test_statistic: str = "t",
+        test_statistic_name: str = "t",
         hypothesis: str = DEFAULT_TEST_DIRECTION,
     ):
         """
@@ -818,7 +819,7 @@ class MeanComparison(CompareMeans):
             Samples from group B (e.g. treatment group)
         alpha : float in (0, 1)
             The acceptable Type I error rate in the comparison
-        test_statistic: str
+        test_statistic_name: str
             The name of the hypothesis test statistic used in the comparison.
                 -   't': to use a t-test (small sample size, N <= 30)
                 -   'z': to use a z-test (large samples size, N > 30)
@@ -831,10 +832,10 @@ class MeanComparison(CompareMeans):
                 -   'unequal': indicating we hypothesize that group B's mean is
                     not equal to group A's (i.e. two-tailed test).
         """
-        super(MeanComparison, self).__init__(samples_a, samples_b)
+        super().__init__(samples_a, samples_b)
 
         self.alpha = alpha
-        self.test_statistic = test_statistic
+        self.test_statistic_name = test_statistic_name
         self.hypothesis = hypothesis
         self.warnings = []
         self._comparison_table = None
@@ -877,7 +878,7 @@ class MeanComparison(CompareMeans):
         """
         ratio = self.d1.nobs / self.d2.nobs
 
-        solve_power_function = _get_solve_power_function(self.test_statistic)
+        solve_power_function = _get_solve_power_function(self.test_statistic_name)
 
         return solve_power_function(
             effect_size=self.effect_size,
@@ -895,14 +896,13 @@ class MeanComparison(CompareMeans):
         self._comparison_table.print()
 
     @property
-    def ttest(self) -> Dict[str, Any]:
-        """_summary_
+    def t_test_stats(self) -> Dict[str, Any]:
+        """Results for a t-test (small sample sizes)
 
         Returns
         -------
-        Dict[str, Any]
-            test_results: Dict[str, float]
-            The results of the test, with the following structure:
+        test_stats : Dict[str, Any]
+            The resulting test statistics, with the following structure:
             ```
             {
                 "statistic_name": "t",
@@ -913,11 +913,40 @@ class MeanComparison(CompareMeans):
             }
             ```
         """
-        tstat, pval, df = self.ttest_ind(alternative=self.test_direction)
+
+        tstat, pval, degrees_freedom = self.ttest_ind(alternative=self.test_direction)
         return {
             "statistic_name": "t",
             "statistic_value": tstat,
-            "df": df,
+            "degrees_freedom": degrees_freedom,
+            "hypothesis": self.hypothesis,
+            "p_value": pval,
+            "alpha": self.alpha,
+            "power": self.power,
+        }
+
+    @property
+    def z_test_stats(self) -> Dict[str, Any]:
+        """Results for a z-test (large sample sizes)
+
+        Returns
+        -------
+        test_stats : Dict[str, Any]
+            The resulting test statistics, with the following structure:
+            ```
+            {
+                "statistic_name": "t",
+                "statistic_value": float,
+                "p_value": float,
+                "df": int,
+                "hypothesis": str
+            }
+            ```
+        """
+        tstat, pval = self.ztest_ind(alternative=self.test_direction)
+        return {
+            "statistic_name": "z",
+            "statistic_value": tstat,
             "hypothesis": self.hypothesis,
             "p_value": pval,
             "alpha": self.alpha,
@@ -957,12 +986,15 @@ class ProportionComparison(MeanComparison):
             variance across both samples
         """
 
-        super(ProportionComparison, self).__init__(test_statistic="z", *args, **kwargs)
+        super().__init__(test_statistic_name="z", *args, **kwargs)
         nobs = min(self.d1.nobs, self.d2.nobs)
 
         # to use Normal approx, must have "large" N
         if nobs < MIN_OBS_FOR_Z_TEST:
-            warning = "Normality assumption violated, > {MIN_OBS_FOR_Z_TEST} observations required."
+            warning = (
+                "Normality assumption violated, > ",
+                f"{MIN_OBS_FOR_Z_TEST} observations required.",
+            )
 
             logger.warn(warning)
             self.warnings.append(warning)
@@ -984,16 +1016,16 @@ class ProportionComparison(MeanComparison):
             return p * (1 - p)
 
     @property
-    def ztest(self) -> Dict[str, Any]:
-        """Test for difference in proportions based on normal (z) test
+    def z_test_stats(self) -> Dict[str, Any]:
+        """Test statistics for proportions comparison on normal (z) test
 
         Returns
         -------
-        test_results: Dict[str, float]
-            The results of the test, with the following structure:
+        test_stats: Dict[str, float]
+            The resulting test statistics, with the following structure:
             ```
             {
-                "statistic_name": "z",
+                "statistic_name": str = "z",
                 "statistic_value": float,
                 "p_value": float,
                 "hypothesis": str
@@ -1055,7 +1087,7 @@ class RateComparison(MeanComparison):
             is 1.0, i.e. that the two samples are equivalent, and thus their
             ratio is unity.
         """
-        super(RateComparison, self).__init__(test_statistic="W", *args, **kwargs)
+        super().__init__(test_statistic_name="W", *args, **kwargs)
         self.null_ratio = null_ratio
 
     @property
@@ -1064,9 +1096,7 @@ class RateComparison(MeanComparison):
         Return the comparison ratio of the null rates ratio and the observed
         rates ratio.
         """
-        actual_ratio = float(self.d1.sum * self.d1.nobs) / float(
-            self.d2.sum * self.d2.nobs
-        )
+        actual_ratio = (self.d1.sum * self.d1.nobs) / (self.d2.sum * self.d2.nobs)
         return self.null_ratio / actual_ratio
 
     @property
@@ -1082,15 +1112,15 @@ class RateComparison(MeanComparison):
         return self.delta
 
     @property
-    def rates_test(self) -> Dict[str, Any]:
+    def rates_test_stats(self) -> Dict[str, Any]:
         """
         Run the rates comparison hyptothesis test. Uses the W5 statistic defined
         in Gu et al., 2008
 
         Returns
         -------
-        test_results : Dict[str, Any]
-            The results of the test, with the following structure:
+        test_stats : Dict[str, Any]
+            The resulting test statistics, with the following structure:
             ```
             {
                 "statistic_name": "W",
@@ -1208,22 +1238,22 @@ class BootstrapStatisticComparison(MeanComparison):
 
         """
         statistic_function = statistic_function if statistic_function else np.mean
-        statistic_name = statistic_function.__name__
-        super(BootstrapStatisticComparison, self).__init__(
-            test_statistic=f"{statistic_name}", *args, **kwargs
+        statistic_function_name = statistic_function.__name__
+        super().__init__(
+            test_statistic_name=f"{statistic_function_name}", *args, **kwargs
         )
         self.statistic_function = statistic_function
         self.n_bootstraps = n_bootstraps
 
     @property
-    def bootstrap_test(self) -> Dict[str, Any]:
+    def bootstrap_test_stats(self) -> Dict[str, Any]:
         """
         Run the sample comparison hyptothesis test. Uses the bootstrapped sample statistics
 
         Returns
         -------
-        test_results: Dict[str, Any]
-            The results of the test, with the following structure:
+        test_stats: Dict[str, Any]
+            The resulting test statistics, with the following structure:
             ```
             {
                 "statistic_name": "bootstrap_delta",
@@ -1269,7 +1299,7 @@ class BootstrapStatisticComparison(MeanComparison):
 
         # The null sampling distribution of test_statistic deltas
         self.null_dist = Samples(
-            d2_statistics - d1_statistics, name=f"{self.test_statistic}-null"
+            d2_statistics - d1_statistics, name=f"{self.test_statistic_name}-null"
         )
 
         if self.hypothesis == "larger":
@@ -1321,7 +1351,7 @@ class BootstrapStatisticComparison(MeanComparison):
             )
 
             self._deltas_dist = Samples(
-                d1_statistics - d2_statistics, name=f"{self.test_statistic}-deltas"
+                d1_statistics - d2_statistics, name=f"{self.test_statistic_name}-deltas"
             )
 
         return self._deltas_dist
