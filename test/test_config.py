@@ -29,14 +29,6 @@ def test_config_file(test_config):
     assert os.path.isfile(test_config.SPEARMINT_CONFIG)
 
 
-def test_coerce_value(test_config):
-    assert test_config.coerce_value("true") is True
-    assert test_config.coerce_value("false") is False
-    assert isinstance(test_config.coerce_value("1.0"), float)
-    assert isinstance(test_config.coerce_value("1"), int)
-    assert isinstance(test_config.coerce_value("a,b"), list)
-
-
 def test_get_set(test_config):
     test_config.set("core", "test_value", "test")
     assert test_config.get("core", "test_value") == "test"

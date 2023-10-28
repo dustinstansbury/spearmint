@@ -6,7 +6,8 @@ class SpearmintTable(RichTable):
     """Consistently-formatted Rich table with history"""
 
     def __init__(self, title: str = None, **rich_table_kwargs):
-        """_summary_
+        """
+        Formatted table with print history
 
         Parameters
         ----------

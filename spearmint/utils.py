@@ -54,7 +54,7 @@ def process_warnings(warnings: Union[str, List[str]]) -> str:
     return warnings
 
 
-def isnumeric(val):
+def isnumeric(val: Any) -> bool:
     try:
         float(val)
         return True
@@ -64,7 +64,7 @@ def isnumeric(val):
 
 def coerce_value(val: Any) -> Any:
     """
-    Infer / coerce value to valid types
+    Infer and cast value to valid types
 
     Parameters
     ----------
@@ -83,7 +83,6 @@ def coerce_value(val: Any) -> Any:
 
     if val in NAN_TYPE_MAPPING:
         return NAN_TYPE_MAPPING[val]
-
     if isnumeric(val):
         try:
             return int(val)
@@ -120,6 +119,8 @@ def format_value(val: Union[float, Iterable[float]], precision: int = 4) -> str:
     """
     if isinstance(val, Iterable):
         return f"{tuple((round(v, precision) for v in val))}"
+    if precision == 0:
+        return f"{int(val)}"
     return f"{round(val, precision)}"
 
 
