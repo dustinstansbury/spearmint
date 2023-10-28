@@ -264,3 +264,4 @@ class COLORS:
     dark_gray = "#455357"
     light_gray = "#C0CACE"
     brown = "#665000"
+    black = "#000000"
