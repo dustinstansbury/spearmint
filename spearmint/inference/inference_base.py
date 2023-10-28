@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 
+from datetime import datetime
+
 from holoviews import Element
 
-from spearmint.typing import FilePath, List
+from spearmint.typing import FilePath, List, Callable
 from spearmint.mixin import DataframeableMixin
 from spearmint.stats import Samples, SamplesComparisonTable, DEFAULT_ALPHA
 from spearmint.utils import process_warnings
@@ -68,10 +70,11 @@ class InferenceResults(DataframeableMixin):
         hypothesis: str,
         alpha: float,
         accept_hypothesis: bool,
-        model_name: str = None,
-        comparision_type: str = None,
+        inference_method: str = None,
+        comparison_type: str = None,
         warnings: List[str] = [],
         aux: dict = {},
+        visualization_function: Callable = None,
     ):
         self.control = control
         self.variation = variation
@@ -82,10 +85,14 @@ class InferenceResults(DataframeableMixin):
         self.hypothesis = hypothesis
         self.alpha = alpha
         self.accept_hypothesis = accept_hypothesis
-        self.model_name = model_name
-        self.comparision_type = comparision_type
+        self.inference_method = inference_method
+        self.comparison_type = comparison_type
         self.warnings = process_warnings(warnings)
         self.aux = aux
+        self.visualization_function = visualization_function
+
+        self.created_at: datetime.now()
+        self.run_at: datetime.timestamp = None
 
         # These properties should be updated by the running the inference
         # self.segmentation = None
@@ -118,7 +125,7 @@ class InferenceResults(DataframeableMixin):
             option for std-out-only reporting
         """
         try:
-            return self._render_visualization(outfile, *args, **kwargs)
+            return self.visualization_function(self, outfile)
 
         except Exception as e:
             raise InferenceResultsVisualizationError(e)
@@ -199,7 +206,7 @@ class InferenceResults(DataframeableMixin):
                 ("alpha", self.alpha),
                 ("hypothesis", self.hypothesis),
                 ("accept_hypothesis", self.accept_hypothesis),
-                ("model_name", self.model_name),
+                ("inference_method", self.inference_method),
                 # ("segmentation", self.segmentation),
                 ("warnings", self.warnings),
             ]
@@ -235,12 +242,16 @@ class InferenceProcedure(ABC):
     def __init__(
         self,
         inference_method: str,
+        metric_name: str = None,
         hypothesis: str = "larger",
         alpha: float = DEFAULT_ALPHA,
     ):
         self.inference_method = inference_method
+        self.metric_name = metric_name
         self.hypothesis = hypothesis
         self.alpha = alpha
+
+        # These are updated after runnint the inference procedure
         self._results = None
 
     @abstractmethod
@@ -260,7 +271,7 @@ class InferenceProcedure(ABC):
         self,
         control_samples: Samples,
         variation_samples: Samples,
-        **inference_kwargs,
+        # **inference_kwargs,
     ) -> InferenceResults:
         """
         Run inference procedure on control / variation samples, and report results
@@ -280,7 +291,7 @@ class InferenceProcedure(ABC):
             The results of running the inference procedure
 
         """
-        self._run_inference(control_samples, variation_samples, **inference_kwargs)
+        self._run_inference(control_samples, variation_samples)
         self._results = self._make_results()
         return self.results
 
