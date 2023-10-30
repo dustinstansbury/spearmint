@@ -2,7 +2,7 @@ from spearmint.inference.inference_base import InferenceProcedure, InferenceResu
 
 
 def get_inference_procedure(
-    inference_method: str, **inference_params
+    inference_method: str, **inference_procedure_init_params
 ) -> InferenceProcedure:
     _method = inference_method.lower().replace("-", "_").replace(" ", "_")
     if _method in ("means_delta"):
@@ -30,7 +30,7 @@ def get_inference_procedure(
     else:
         raise ValueError("Unknown inference method {!r}".format(inference_method))
 
-    return IP(inference_method=inference_method, **inference_params)
+    return IP(inference_method=inference_method, **inference_procedure_init_params)
 
 
 __all__ = ["InferenceProcedure", "InferenceResults", "get_inference_procedure"]

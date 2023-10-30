@@ -30,11 +30,6 @@ def visualize_means_delta_results(
         color=vis.VARIATION_COLOR,
     )
 
-    distribution_plot = control_dist * variation_dist
-    distribution_plot = distribution_plot.relabel("Sample Comparison").opts(
-        legend_position="right"
-    )
-
     # Mean confidence intervals
     control_ci = vis.plot_interval(
         *results.control.std_err,
@@ -52,8 +47,10 @@ def visualize_means_delta_results(
         show_interval_text=True,
     )
 
-    ci_plot = control_ci * variation_ci
-    ci_plot = ci_plot.relabel("Mean Estimates").opts(legend_position="right")
+    distribution_plot = control_dist * variation_dist * control_ci * variation_ci
+    distribution_plot = distribution_plot.relabel(
+        "Sample Distribution\nand Mean Estimates"
+    ).opts(legend_position="right", xlabel="Value", ylabel="pdf")
 
     # Delta distribution
     mean_delta = results.variation.mean - results.control.mean
@@ -98,11 +95,11 @@ def visualize_means_delta_results(
     delta_plot = delta_dist * delta_ci * zero_delta_vline
     delta_plot = (
         delta_plot.relabel("Means Delta")
-        .opts(xlabel="delta")
+        .opts(xlabel="delta", ylabel="pdf")
         .opts(legend_position="right")
     )
 
-    visualization = distribution_plot + ci_plot + delta_plot
+    visualization = distribution_plot + delta_plot
     visualization.opts(shared_axes=False).cols(1)
 
     if outfile is not None:
@@ -148,13 +145,6 @@ class MeansDelta(FrequentistInferenceProcedure):
     def _run_inference(
         self, control_samples: Samples, variation_samples: Samples
     ) -> None:
-        # convert observations to Samples, if needed
-        if isinstance(control_samples, (list, ndarray)):
-            control_samples = Samples(control_samples)
-
-        if isinstance(variation_samples, (list, ndarray)):
-            variation_samples = Samples(variation_samples)
-
         nobs = min(control_samples.nobs, variation_samples.nobs)
         test_statistic_name = "z" if nobs > MIN_OBS_FOR_Z_TEST else "t"
         self.comparison = MeanComparison(

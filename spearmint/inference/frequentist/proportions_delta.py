@@ -1,4 +1,4 @@
-from numpy import inf
+import numpy as np
 
 from spearmint.typing import Tuple, FilePath
 from spearmint.stats import Samples, ProportionComparison
@@ -30,30 +30,30 @@ def visualize_proportions_delta_results(
         alpha=0.5,
     ).opts(axiswise=True)
 
-    distribution_plot = control_dist * variation_dist
-    distribution_plot = distribution_plot.relabel("Sample Comparison").opts(
-        legend_position="right"
-    )
+    def get_binomial_cis(samples):
+        """Convert proportionality to trials"""
+        cis = np.round(np.array(samples.std_err) * samples.nobs).astype(int)
+        mean = np.round(samples.mean * samples.nobs).astype(int)
+        return cis[0], cis[1], mean
 
-    # Proportion/conversion rate confidence intervals plot
     control_ci = vis.plot_interval(
-        *results.control.std_err,
-        middle=results.control.mean,
+        *get_binomial_cis(results.control),
         label=results.control.name,
         color=vis.CONTROL_COLOR,
         show_interval_text=True,
     )
 
     variation_ci = vis.plot_interval(
-        *results.variation.std_err,
-        middle=results.variation.mean,
+        *get_binomial_cis(results.variation),
         label=results.variation.name,
         color=vis.VARIATION_COLOR,
         show_interval_text=True,
     )
 
-    ci_plot = control_ci * variation_ci
-    ci_plot = ci_plot.relabel("Proportionality Estimates").opts(legend_position="right")
+    distribution_plot = control_dist * variation_dist * control_ci * variation_ci
+    distribution_plot = distribution_plot.relabel(
+        "Sample Distribution\nand Mean Estimates"
+    ).opts(legend_position="right", xlabel="# Successful Trials", ylabel="pdf")
 
     # Delta distribution plot
     mean_delta = results.variation.mean - results.control.mean
@@ -71,10 +71,10 @@ def visualize_proportions_delta_results(
 
     if results.hypothesis == "larger":
         left_bound = results.delta_confidence_interval[0]
-        right_bound = inf
+        right_bound = np.inf
     elif results.hypothesis == "smaller":
         right_bound = results.delta_confidence_interval[1]
-        left_bound = inf
+        left_bound = np.inf
     else:
         left_bound = results.delta_confidence_interval[0]
         right_bound = results.delta_confidence_interval[1]
@@ -97,12 +97,13 @@ def visualize_proportions_delta_results(
 
     delta_plot = delta_dist * delta_ci * zero_delta_vline
     delta_plot = (
-        delta_plot.relabel("Proportions Delta")
-        .opts(xlabel="delta")
+        delta_plot.relabel("Proportionality Delta")
+        .opts(xlabel="delta", ylabel="pdf")
         .opts(legend_position="right")
     )
 
-    visualization = distribution_plot + ci_plot + delta_plot
+    # visualization = distribution_plot + ci_plot + delta_plot
+    visualization = distribution_plot + delta_plot
     visualization.opts(shared_axes=False).cols(1)
     if outfile is not None:
         vis.save_visualization(visualization, outfile)
@@ -153,13 +154,8 @@ class ProportionsDelta(FrequentistInferenceProcedure):
     ) -> None:
         """
         Run the inference procedure over the samples with a selected alpha
-        valuee
+        value
         """
-        if not isinstance(control_samples, Samples):
-            control_samples = Samples(control_samples)
-
-        if not isinstance(variation_samples, Samples):
-            variation_samples = Samples(variation_samples)
 
         self.comparison = ProportionComparison(
             samples_a=variation_samples,

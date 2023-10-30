@@ -29,10 +29,6 @@ def visualize_rates_ratio_results(
         alpha=0.5,
     )
 
-    distribution_plot = control_dist * variation_dist
-    distribution_plot = distribution_plot.relabel("Sample Comparison").opts(
-        legend_position="right"
-    )
     # Proportion/conversion rate confidence intervals plot
     control_ci = vis.plot_interval(
         *results.control.std_err,
@@ -49,8 +45,11 @@ def visualize_rates_ratio_results(
         color=vis.VARIATION_COLOR,
         show_interval_text=True,
     )
-    ci_plot = control_ci * variation_ci
-    ci_plot = ci_plot.relabel("Rate Estimates").opts(legend_position="right")
+
+    distribution_plot = control_dist * variation_dist * control_ci * variation_ci
+    distribution_plot = distribution_plot.relabel(
+        f"Sample Distribution\nand Mean Estimates"
+    ).opts(legend_position="right", xlabel="N Events", ylabel="pdf")
 
     # Delta distribution plot
     mean_ratio = results.variation.mean / results.control.mean
@@ -94,11 +93,11 @@ def visualize_rates_ratio_results(
     delta_plot = delta_dist * delta_ci * one_delta_vline
     delta_plot = (
         delta_plot.relabel("Rates Ratio")
-        .opts(xlabel="delta")
+        .opts(xlabel="ratio", ylabel="pdf")
         .opts(legend_position="right")
     )
 
-    visualization = distribution_plot + ci_plot + delta_plot
+    visualization = distribution_plot + delta_plot
     visualization.opts(shared_axes=False).cols(1)
 
     if outfile is not None:
@@ -196,12 +195,6 @@ class RatesRatio(FrequentistInferenceProcedure):
         control_samples: Samples,
         variation_samples: Samples,
     ) -> None:
-        if isinstance(control_samples, (list, np.ndarray)):
-            control_samples = Samples(control_samples)
-
-        if isinstance(variation_samples, (list, np.ndarray)):
-            variation_samples = Samples(variation_samples)
-
         self.comparison = RateComparison(
             samples_a=variation_samples,
             samples_b=control_samples,

@@ -75,10 +75,10 @@ class Pdf(ProbabilityDistribution):
         return self.dist.pdf(values)
 
     def plot(self, **plot_opts) -> Curve:
-        curve_data = self.get_series()
+        plot_data = self.get_series()
         plot_opts.update(FIGURE_PARAMS)
         return hv.Curve(
-            data=curve_data, label=self.label, kdims="value", vdims="pdf"
+            data=plot_data, label=self.label, kdims="value", vdims="pdf"
         ).opts(color=self.color, **plot_opts)
 
 
@@ -95,11 +95,17 @@ class Pmf(ProbabilityDistribution):
 
     def plot(self, **plot_opts) -> Bars:
         values, pmf = self.get_series()
-        bar_data = zip(values, pmf)
+        plot_data = zip(values, pmf)
         plot_opts.update(FIGURE_PARAMS)
-        return hv.Bars(
-            data=bar_data, label=self.label, kdims="value", vdims="pmf"
+
+        return hv.Curve(
+            data=plot_data, label=self.label, kdims="value", vdims="pdf"
         ).opts(color=self.color, **plot_opts)
+
+        # TODO: fix Bars axes representation in favor of Curve
+        # return hv.Bars(
+        #     data=bar_data, label=self.label, kdims="value", vdims="pmf"
+        # ).opts(color=self.color, **plot_opts)
 
 
 class ProbabilityDistributionGroup:
@@ -191,8 +197,8 @@ class Poisson(Pmf):
         self.dist = stats.poisson(mu)
 
     def values_grid(self):
-        _min = self.ppf(1e-4)
-        _max = self.ppf(1 - 1e-4)
+        _min = self.ppf(1e-5)
+        _max = self.ppf(1 - 1e-5)
         return np.arange(_min, _max)
 
 
