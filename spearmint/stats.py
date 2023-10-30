@@ -1205,7 +1205,7 @@ class BootstrapStatisticComparison(MeanComparison):
     def __init__(
         self,
         n_bootstraps: int = 1000,
-        statistic_function: Callable = None,
+        statistic_function: Callable = np.mean,
         *args,
         **kwargs,
     ):
@@ -1237,10 +1237,9 @@ class BootstrapStatisticComparison(MeanComparison):
 
 
         """
-        statistic_function = statistic_function if statistic_function else np.mean
         statistic_function_name = statistic_function.__name__
         super().__init__(
-            test_statistic_name=f"{statistic_function_name}", *args, **kwargs
+            test_statistic_name=f"bootstrap_{statistic_function_name}", *args, **kwargs
         )
         self.statistic_function = statistic_function
         self.n_bootstraps = n_bootstraps
@@ -1310,7 +1309,7 @@ class BootstrapStatisticComparison(MeanComparison):
             pval = 1 - self.null_dist.cdf(abs(self.delta))
 
         return {
-            "statistic_name": "bootstrap_delta",
+            "statistic_name": self.test_statistic_name,
             "statistic_value": self.delta,
             "statistic_function_name": self.statistic_function.__name__,
             "n_bootstraps": self.n_bootstraps,
@@ -1319,6 +1318,9 @@ class BootstrapStatisticComparison(MeanComparison):
             "alpha": self.alpha,
             "power": self.power,
         }
+
+    def delta_ci(self) -> Tuple:
+        return self.confidence_interval(1 - self.alpha)
 
     def confidence_interval(self, confidence: float = 0.95) -> Tuple[float, float]:
         """
@@ -1331,6 +1333,7 @@ class BootstrapStatisticComparison(MeanComparison):
             the `confidence`-% confidence interval around the statistic estimate.
         """
         alpha = 1 - confidence
+
         return self.deltas_dist.percentiles([100 * alpha, 100 * (1 - alpha)])
 
     @property

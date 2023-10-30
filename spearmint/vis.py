@@ -3,7 +3,7 @@ import numpy as np
 import holoviews as hv
 from holoviews.element.chart import Curve
 
-from spearmint.typing import FilePath
+from spearmint.typing import FilePath, Iterable
 from spearmint.config import (
     FIGURE_PARAMS,
     POINTS_PLOT_PARAMS,
@@ -32,6 +32,8 @@ def plot_interval(
     show_interval_text: bool = False,
     vertical_offset: float = 0.0,
     fontsize: int = 12,
+    xlabel: str = "",
+    ylabel: str = "",
     **plot_opts,
 ) -> Curve:
     """Plot an interval spanning (left, right).
@@ -90,7 +92,9 @@ def plot_interval(
     interval_data = ((_left, _right), (vertical_offset, vertical_offset))
     plot_opts.update(FIGURE_PARAMS)
     interval = (
-        hv.Curve(data=interval_data, label=label).opts(color=color, **plot_opts)
+        hv.Curve(data=interval_data, label=label).opts(
+            color=color, xlabel=xlabel, ylabel=ylabel, **plot_opts
+        )
         * middle_point
     )
     if show_interval_text:
@@ -222,6 +226,17 @@ def plot_poisson(
         form an Overlay
     """
     return distributions.Poisson(mu=mu, label=label, color=color).plot(**plot_kwargs)
+
+
+def plot_kde(
+    samples: Iterable[float],
+    color: str = DEFAULT_COLOR,
+    label: str = "KDE",
+    **plot_kwargs,
+) -> Curve:
+    return distributions.Kde(samples=samples, label=label, color=color).plot(
+        **plot_kwargs
+    )
 
 
 def save_visualization(visualization: hv.Element, outfile: FilePath) -> None:

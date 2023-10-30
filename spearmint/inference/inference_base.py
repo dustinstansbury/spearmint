@@ -245,6 +245,7 @@ class InferenceProcedure(ABC):
         metric_name: str = None,
         hypothesis: str = "larger",
         alpha: float = DEFAULT_ALPHA,
+        **inference_procedure_init_params,
     ):
         self.inference_method = inference_method
         self.metric_name = metric_name
