@@ -49,9 +49,12 @@ def rmdir(dirname: Union[str, Path]) -> None:
 
 def process_warnings(warnings: Union[str, List[str]]) -> str:
     """Convert sequence of warnings into a string"""
-    if isinstance(warnings, list):
-        warnings = "; ".join(warnings)
-    return warnings
+
+    if len(warnings) > 0:
+        if isinstance(warnings, list):
+            flattened_warnings = [item for lst in warnings for item in lst]
+            warnings = "\n".join(flattened_warnings)
+        return warnings
 
 
 def isnumeric(val: Any) -> bool:
