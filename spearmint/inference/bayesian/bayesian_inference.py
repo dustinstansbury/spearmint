@@ -357,13 +357,11 @@ class BayesianInferenceProcedure(InferenceProcedure):
         ----------
         inference_procedure: str
             The name of the inference model to use:
-                -   "gaussian"       : Gaussian model (continuous)
-                -   "student-t"      : Student's t model (continuous)
-                -   "binomial"       : Binomial model (binary)
-                -   "beta-binomial"  : Beta-Binomial model (binary)
-                -   "bernoulli"      : Bernoulli model (binary)
-                -   "poisson"        : Poisson model (counts)
-                -   "gamma-poisson"  : Gamma-Poisson model (counts)
+                -   "gaussian"       : Hierarchical Gaussian model (continuous)
+                -   "student-t"      : Hierarchical Student's t model (continuous)
+                -   "binomial"       : Beta-Binomial hierarchical model (binary)
+                -   "bernoulli"      : Beta-Bernoulli hierarchical model (binary)
+                -   "poisson"        : Gamma-Poisson hierarichcal model (counts)
         parameter_estimation_method: str
             The method used estimate the posterior model parameters. One of:
                 -   'mcmc' : use Markov Chain Monte Carlo via PyMC. All models,
