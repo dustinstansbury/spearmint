@@ -6,13 +6,13 @@
 
 # ⚠️ This fork is a WIP
  The goals of this fork are to...
-- [ ] update to newer version of python (>=3.10)
-- [ ] update to 100% Python
-  - [ ] convert all Stan MCMC models to PyMC5
+- [X] update to newer version of python (>=3.10)
+- [X] update to 100% Python
+  - [X] convert all Stan MCMC models to PyMC5
   - [ ] use analytic solutions to Bayesian inference where possible (e.g. conjugate prior models)
-- [ ] improve reporting
-  - [ ] better terminal output (e.g. via rich)
-  - [ ] modern interactive plotting
+- [X] improve reporting
+  - [X] better terminal output (e.g. via rich)
+  - [X] modern interactive plotting
 ## Features
 - Offers a simple and intuitive, yet powerful API for running, visualizing, and interpreting statistically-rigorous hypothesis tests with none of the hastle of jumping between various statistical or visualization packages.
 - Supports most common variable types used in AB Tests inlcuding:
@@ -25,11 +25,11 @@
 | Variable Type | Model Class| `inference_method` parameter  |
 |---|---|---|
 | Continuous | Frequentist| `'means_delta'` (t-test) |
-|  | Bayesian| `'gaussian'`, `'student_t'`, `'exp_student_t'`|
+|  | Bayesian| `'gaussian'`, `'student_t'`|
 | Binary / Proportions | Frequentist| `'proportions_delta'` (z-test) |
-|  | Bayesian| `'binomial'`, `'beta_binomial'`, `'bernoulli'`  |
+|  | Bayesian| `'binomial'`, `'bernoulli'`  |
 | Counts/Rates  |Frequentist| `'rates_ratio'`
-|  |Bayesian| `'gamma_poisson'`  |
+|  |Bayesian| `'poisson'`  |
 | Non-parametric  |Bootstrap| `'bootstrap'` |
 
 - Supports multiple customizations:
