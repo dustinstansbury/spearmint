@@ -85,7 +85,7 @@ def plot_interval(
         middle + INFTY_SCALE * np.abs(left) if right in (np.inf, -np.inf) else right
     )
 
-    middle_point = hv.Points(data=(middle, vertical_offset)).opts(
+    middle_point = hv.Points(data=(middle, vertical_offset), label=label).opts(
         color=color, **POINTS_PLOT_PARAMS
     )
 
@@ -100,10 +100,7 @@ def plot_interval(
     if show_interval_text:
         annotation_text = f"{format_value(middle, precision=2)}\n{format_value((left, right), precision=2)}"
         annotation = hv.Text(
-            middle,
-            vertical_offset,
-            annotation_text,
-            fontsize=fontsize,
+            middle, vertical_offset, annotation_text, fontsize=fontsize, label=label
         ).opts(color=color)
         interval *= annotation
 
