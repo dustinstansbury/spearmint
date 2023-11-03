@@ -35,7 +35,7 @@ def plot_interval(
     xlabel: str = "",
     ylabel: str = "",
     **plot_opts,
-) -> Curve:
+) -> Curve:  # noqa
     """Plot an interval spanning (left, right).
 
     Parameters
@@ -107,14 +107,13 @@ def plot_interval(
     return interval
 
 
-# Functional interface
 def plot_gaussian(
     mean: float = 0,
     std: float = 1,
     color: str = DEFAULT_COLOR,
     label: str = "Gaussian",
     **plot_kwargs,
-) -> Curve:
+) -> Curve:  # noqa
     """
     Plot a Gaussian distribution with parameters `mean` and `std`.
 
@@ -172,7 +171,7 @@ def plot_binomial(
     color: str = DEFAULT_COLOR,
     label: str = "Binomial",
     **plot_kwargs,
-) -> Curve:
+) -> Curve:  # noqa
     """
     Plot a Binomial distribution with proportionality parameter `p` and trials
     parameters `n`
@@ -204,7 +203,7 @@ def plot_poisson(
     color: str = DEFAULT_COLOR,
     label: str = "Poisson",
     **plot_kwargs,
-) -> Curve:
+) -> Curve:  # noqa
     """Plot a Poisson distribution with rate/mean parameter `mu`.
 
     Parameters
@@ -236,7 +235,7 @@ def plot_kde(
     )
 
 
-def save_visualization(visualization: hv.Element, outfile: FilePath) -> None:
+def save_visualization(visualization: hv.Element, outfile: FilePath) -> None:  # noqa
     """Export visualization to disk
 
     Parameters
