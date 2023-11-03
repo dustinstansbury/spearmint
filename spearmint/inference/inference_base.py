@@ -5,6 +5,7 @@ from datetime import datetime
 
 from holoviews import Element
 
+from spearmint.config import logger
 from spearmint.typing import FilePath, List, Callable
 from spearmint.mixin import DataframeableMixin
 from spearmint.stats import Samples, SamplesComparisonTable, DEFAULT_ALPHA
@@ -130,12 +131,6 @@ class InferenceResults(DataframeableMixin):
         except Exception as e:
             raise InferenceResultsVisualizationError(e)
 
-    def _render_visualization(self):
-        raise NotImplemented(
-            "No implementation of `_render_visualization` for ",
-            f"class {self.__name__}, cannot execute `.visualize`",
-        )
-
     def _render_stats_table(self):
         raise NotImplemented(
             "No implementation of `_render_stats_table` for ",
@@ -178,9 +173,6 @@ class InferenceResults(DataframeableMixin):
     def summary(self):
         self.samples_comparison
         self.stats
-
-    def __repr__(self) -> None:
-        self.summary
 
     @property
     def _base_properties(self):
@@ -272,7 +264,6 @@ class InferenceProcedure(ABC):
         self,
         control_samples: Samples,
         variation_samples: Samples,
-        # **inference_kwargs,
     ) -> InferenceResults:
         """
         Run inference procedure on control / variation samples, and report results
@@ -310,3 +301,34 @@ class InferenceProcedure(ABC):
                 " Or check the implementation of `_make_results`",
             )
         return self._results
+
+
+def get_inference_procedure(
+    inference_method: str, **inference_procedure_init_params
+) -> InferenceProcedure:
+    _method = inference_method.lower().replace("-", "_").replace(" ", "_")
+    if _method in ("means_delta"):
+        from .frequentist.means_delta import MeansDelta as IP
+
+    elif _method in ("proportions_delta"):
+        from .frequentist.proportions_delta import ProportionsDelta as IP
+
+    elif _method in ("rates_ratio"):
+        from .frequentist.rates_ratio import RatesRatio as IP
+
+    elif _method in ("bootstrap"):
+        from .frequentist.bootstrap_delta import BootstrapDelta as IP
+
+    elif _method in (
+        "gaussian",
+        "bernoulli",
+        "binomial",
+        "beta_binomial",
+        "gamma_poisson",
+        "student_t",
+        "exp_student_t",
+    ):
+        from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP
+    else:
+        raise ValueError(f"Unknown inference method {inference_method}")
+    return IP(inference_method=inference_method, **inference_procedure_init_params)
