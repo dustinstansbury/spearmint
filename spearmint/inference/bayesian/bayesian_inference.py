@@ -304,6 +304,9 @@ def _get_bayesian_inference_model(
     if model_name == "bernoulli":
         from .models.binary import build_bernoulli_model as model_builder
 
+    if model_name == "binomial":
+        from .models.binary import build_binomial_model as model_builder
+
     if model_name == "poisson":
         from .models.counts import build_poisson_model as model_builder
 
