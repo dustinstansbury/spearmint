@@ -460,14 +460,14 @@ def ratio_sample_size(
 
 def highest_density_interval(
     samples: Iterable[float], credible_mass: float = 0.95
-) -> Tuple[float, float]:
+) -> np.ndarray:
     """
-    Determine the bounds of the interval of width `credible_mass` with
-    the highest density under the distribution of samples.
+    Calculate the bounds of the highest density interval (HDI) with width
+    `credible_mass` under the distribution of samples.
 
     Parameters
     ----------
-    samples: list
+    samples: Iterable[float]
         The samples to compute the interval over
     credible_mass: float in (0, 1)
         The credible mass under the empricial distribution
@@ -496,7 +496,7 @@ def highest_density_interval(
     min_idx = np.argmin(interval_width)
     hdi_min = _samples[min_idx]
     hdi_max = _samples[min_idx + interval_idx_inc]
-    return hdi_min, hdi_max
+    return np.array((hdi_min, hdi_max))
 
 
 class EmpiricalCdf:
@@ -689,12 +689,10 @@ class Samples(DescrStatsW):
 
         return self.mean - ci, self.mean + ci
 
-    def highest_density_interval(
-        self, credible_mass: float = 0.95
-    ) -> Tuple[float, float]:
+    def hdi(self, credible_mass: float = 0.95) -> np.ndarray:
         """
-        Calculate the highest central density interval that leaves `alpha`
-        probability remaining.
+        Calculate the bounds of the highest density interval (HDI) with width
+        `credible_mass` under the distribution of samples.
 
         Parameters
         ----------
@@ -708,10 +706,11 @@ class Samples(DescrStatsW):
             distribution, (HDI_lower, HDI_upper)
         """
         try:
-            _hdi = highest_density_interval(self.data, credible_mass)
-            return (round(_hdi[0], 4), round(_hdi[1], 4))
+            hdi = highest_density_interval(self.data, credible_mass)
+            # unpack
+            return hdi[0], hdi[1]
         except Exception as e:
-            logger.warn(e)
+            logger.warning(e)
             return (None, None)
 
 
