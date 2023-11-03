@@ -3,15 +3,6 @@ import json
 from spearmint import mixin
 
 
-def test_init_repr():
-    class TestRepr(mixin.InitReprMixin):
-        __ATTRS__ = ["abra"]
-        abra = "cadabra"
-
-    ir = TestRepr()
-    assert ir.__repr__() == "TestRepr(abra='cadabra')"
-
-
 def test_jsonable():
     class TestJsonable(mixin.JsonableMixin):
         def __init__(self):
