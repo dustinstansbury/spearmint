@@ -41,13 +41,14 @@ def _get_model_datatype(model_name: str) -> Union[float, int]:
     return int
 
 
-def _get_comparison_params(model_name):
+def _get_delta_param(model_name):
+    """Bayesian mnodel param we calculate delta on"""
     if model_name in CONTINUOUS_MODEL_NAMES:
-        return r"mu", 0.0
+        return "mu"
     elif model_name in BINARY_MODEL_NAMES:
-        return "p", 0.0
+        return "p"
     elif model_name in COUNTS_MODEL_NAMES:
-        return "lambda", 1.0
+        return "lambda"
 
 
 from spearmint.inference.inference_base import InferenceResults, OrderedDict
@@ -195,7 +196,7 @@ def visualize_bayesian_delta_results(
     variation_posterior = results.variation_posterior
     delta_samples = results.delta_posterior
     credible_mass = 1 - results.alpha
-    comparison_param, null_delta = _get_comparison_params(results.model_name)
+    comparison_param = _get_delta_param(results.model_name)
 
     control_dist = vis.plot_kde(
         samples=control_posterior.data,
@@ -251,9 +252,9 @@ def visualize_bayesian_delta_results(
         vertical_offset=-(max_pdf_height * 0.01),
     )
 
-    vline = hv.Spikes(
-        ([null_delta], [max_pdf_height]), vdims="pdf", label="Null Delta"
-    ).opts(color=vis.COLORS.red)
+    vline = hv.Spikes(([0.0], [max_pdf_height]), vdims="pdf", label="Null Delta").opts(
+        color=vis.COLORS.red
+    )
 
     delta_plot = delta_dist * delta_ci * vline
     delta_plot_title = f"Posterior {comparison_param} Delta"
@@ -434,7 +435,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
         self.control = control_samples
         self.variation = variation_samples
 
-        comparison_param, _ = _get_comparison_params(self.model_name)
+        comparison_param = _get_delta_param(self.model_name)
         self.control_posterior = self.posterior_samples(f"{comparison_param}_control")
         self.variation_posterior = self.posterior_samples(
             f"{comparison_param}_variation"
