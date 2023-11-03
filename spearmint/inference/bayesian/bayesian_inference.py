@@ -15,22 +15,14 @@ from spearmint.inference.inference_base import (
 
 N_MEAN_FIELD_SAMPLES = 1000
 
-CONTINUOUS_MODEL_NAMES = [
-    "gaussian",
-    "student_t",
-    "exp_student_t",
-]
+CONTINUOUS_MODEL_NAMES = ["gaussian", "student_t"]
 
 BINARY_MODEL_NAMES = [
     "bernoulli",
-    "beta_binomial",
     "binomial",
 ]
 
-COUNTS_MODEL_NAMES = [
-    "poisson",
-    "gamma_poisson",
-]
+COUNTS_MODEL_NAMES = ["poisson"]
 SUPPORTED_BAYESIAN_MODEL_NAMES = (
     CONTINUOUS_MODEL_NAMES + BINARY_MODEL_NAMES + COUNTS_MODEL_NAMES
 )
@@ -75,13 +67,14 @@ class BayesianInferenceResults(InferenceResults):
         variation_posterior: Samples,
         effect_size_posterior: Samples,
         delta_hdi: Tuple[float, float],
-        delta_hdi_relative: Tuple[float, float],
+        delta_relative_hdi: Tuple[float, float],
         effect_size_hdi: Tuple[float, float],
         hdi_percentiles: Tuple[float, float],
         prob_greater_than_zero: float,
         model_name: str,
         data_type: Union[float, int],
         model_params: Dict[str, Any] = None,
+        model_hyperparams: Dict[str, Any] = None,
         *args,
         **kwargs,
     ):
@@ -92,12 +85,13 @@ class BayesianInferenceResults(InferenceResults):
         self.delta_relative_posterior = delta_relative_posterior
         self.effect_size_posterior = effect_size_posterior
         self.delta_hdi = delta_hdi
-        self.delta_hdi_relative = delta_hdi_relative
+        self.delta_relative_hdi = delta_relative_hdi
         self.effect_size_hdi = effect_size_hdi
         self.prob_greater_than_zero = prob_greater_than_zero
         self.model_name = model_name
         self.data_type = data_type
         self.model_params = model_params if model_params else {}
+        self.model_hyperparams = model_hyperparams if model_hyperparams else {}
         self.hdi_percentiles = hdi_percentiles
 
     @property
@@ -114,7 +108,7 @@ class BayesianInferenceResults(InferenceResults):
                 ),
                 ("delta_hdi", self.delta_hdi),
                 ("hdi_percentiles", self.hdi_percentiles),
-                ("relative_delta_hdi", self.delta_hdi_relative),
+                ("relative_delta_hdi", self.delta_relative_hdi),
                 ("effect_size_hdi", self.effect_size_hdi),
                 ("credible_mass", 1 - self.alpha),
             ]
@@ -139,8 +133,13 @@ class BayesianTestResultsTable(SpearmintTable):
             format_value(results.delta_hdi, precision=4),
         )
         self.add_row(
+            "Delta Relative",
+            format_value(100 * results.delta_relative, precision=2) + " %",
+        )
+        self.add_row(
             f"Delta-relative HDI",
-            format_value(results.delta_hdi_relative, precision=4) + " %",
+            format_value(100 * np.array(results.delta_relative_hdi), precision=2)
+            + " %",
         )
         self.add_row(
             "Effect Size",
@@ -155,12 +154,16 @@ class BayesianTestResultsTable(SpearmintTable):
             format_value(results.hdi_percentiles, precision=4),
         )
         self.add_row(
-            "alpha",
-            format_value(results.alpha, precision=2),
+            "Credible Mass",
+            format_value(1 - results.alpha, precision=2),
         )
         self.add_row(
             "Inference Method",
-            results.inference_method,
+            "Bayesian",
+        )
+        self.add_row(
+            "Model Name",
+            results.model_name,
         )
         self.add_row(
             f"p({results.variation.name} > {results.control.name})",
@@ -278,14 +281,15 @@ class _BayesianModel:
     mcmc_estimation_supported: bool
     advi_estimation_supported: bool
     analytic_estimation_supported: bool
+    hyperparams: Dict[str, Any]
 
 
 def _get_bayesian_inference_model(
     model_name: str,
-    control_observations: np.ndarray,
-    variation_observations: np.ndarray,
+    control_samples: Samples,
+    variation_samples: Samples,
     **model_params,
-) -> _BayesianModel:
+) -> Tuple[_BayesianModel, Dict[str, Any]]:
     # Defaults
     mcmc_estimation_supported = True  # MCMC supported by all models
     advi_estimation_supported = False
@@ -294,15 +298,17 @@ def _get_bayesian_inference_model(
     if model_name == "gaussian":
         from .models.continuous import build_gaussian_model as model_builder
 
-        advi_estimation_supported = True
+    if model_name == "student_t":
+        from .models.continuous import build_student_t_model as model_builder
 
     if model_name == "bernoulli":
         from .models.binary import build_bernoulli_model as model_builder
 
-        advi_estimation_supported = True
+    if model_name == "poisson":
+        from .models.counts import build_poisson_model as model_builder
 
-    pymc_model = model_builder(
-        control_observations, variation_observations, **model_params
+    pymc_model, hyperparams = model_builder(
+        control_samples, variation_samples, **model_params
     )
 
     return _BayesianModel(
@@ -311,6 +317,7 @@ def _get_bayesian_inference_model(
         mcmc_estimation_supported=mcmc_estimation_supported,
         advi_estimation_supported=advi_estimation_supported,
         analytic_estimation_supported=analytic_estimation_supported,
+        hyperparams=hyperparams,
     )
 
 
@@ -366,9 +373,10 @@ class BayesianInferenceProcedure(InferenceProcedure):
                     supported by `gaussian`, `beta-binomial`, and `gamma-poisson`
                     models.
             Default is 'mcmc'.
-        **model_params
+        *args, **kwargs
             Arguments specific for initializing each type of Bayesian model.
-            See bayesian inference README for details on specifications for each model.
+            See bayesian inference README for details on specifications for each
+            model.
         """
         super().__init__(*args, **kwargs)
         self.model_name = _get_model_name(self.inference_method)
@@ -377,8 +385,8 @@ class BayesianInferenceProcedure(InferenceProcedure):
         self.model_params = model_params if model_params else {}
         self.inference_results = None
 
-    def _process_samples(self, samples: Samples) -> np.ndarray:
-        return np.array(samples.data, dtype=self.data_type)
+    def _process_samples(self, samples: Samples) -> Samples:
+        return Samples(np.array(samples.data, dtype=self.data_type), name=samples.name)
 
     # @abstractmethod
     def _run_inference(
@@ -395,13 +403,13 @@ class BayesianInferenceProcedure(InferenceProcedure):
             the samples for the varitation condition
         """
 
-        control_observations = self._process_samples(control_samples)
-        variation_observations = self._process_samples(variation_samples)
+        control_samples = self._process_samples(control_samples)
+        variation_samples = self._process_samples(variation_samples)
 
         self._bayesian_model = _get_bayesian_inference_model(
             model_name=self.model_name,
-            control_observations=control_observations,
-            variation_observations=variation_observations,
+            control_samples=control_samples,
+            variation_samples=variation_samples,
             **self.model_params,
         )
 
@@ -434,6 +442,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
         self.delta_posterior = self.posterior_samples("delta")
         self.delta_relative_posterior = self.posterior_samples("delta_relative")
         self.effect_size_posterior = self.posterior_samples("effect_size")
+        self.model_hyperparams = self._bayesian_model.hyperparams
 
     def posterior_samples(self, parameter_name: str) -> Samples:
         """
@@ -473,7 +482,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             "delta": self.delta_posterior.mean,
             "delta_relative": self.delta_relative_posterior.mean,
             "delta_hdi": self.delta_posterior.hdi(1 - self.alpha),
-            "delta_hdi_relative": self.delta_relative_posterior.hdi(1 - self.alpha),
+            "delta_relative_hdi": self.delta_relative_posterior.hdi(1 - self.alpha),
             "effect_size": self.effect_size_posterior.mean,
             "effect_size_hdi": self.effect_size_posterior.hdi(1 - self.alpha),
             "hdi_percentiles": (self.alpha / 2, 1 - self.alpha / 2),
@@ -504,10 +513,11 @@ class BayesianInferenceProcedure(InferenceProcedure):
             metric_name="posterior_delta",
             data_type=self.data_type,
             model_params=self.model_params,
+            model_hyperparams=self.model_hyperparams,
             delta=test_stats["delta"],
             delta_relative=test_stats["delta_relative"],
             delta_hdi=test_stats["delta_hdi"],
-            delta_hdi_relative=test_stats["delta_hdi_relative"],
+            delta_relative_hdi=test_stats["delta_relative_hdi"],
             effect_size=test_stats["effect_size"],
             effect_size_hdi=test_stats["effect_size_hdi"],
             hdi_percentiles=test_stats["hdi_percentiles"],

@@ -5,7 +5,7 @@ from datetime import datetime
 
 from holoviews import Element
 
-from spearmint.config import logger
+
 from spearmint.typing import FilePath, List, Callable
 from spearmint.mixin import DataframeableMixin
 from spearmint.stats import Samples, SamplesComparisonTable, DEFAULT_ALPHA
@@ -306,6 +306,10 @@ class InferenceProcedure(ABC):
 def get_inference_procedure(
     inference_method: str, **inference_procedure_init_params
 ) -> InferenceProcedure:
+    from spearmint.inference.bayesian.bayesian_inference import (
+        SUPPORTED_BAYESIAN_MODEL_NAMES,
+    )
+
     _method = inference_method.lower().replace("-", "_").replace(" ", "_")
     if _method in ("means_delta"):
         from .frequentist.means_delta import MeansDelta as IP
@@ -319,15 +323,7 @@ def get_inference_procedure(
     elif _method in ("bootstrap"):
         from .frequentist.bootstrap_delta import BootstrapDelta as IP
 
-    elif _method in (
-        "gaussian",
-        "bernoulli",
-        "binomial",
-        "beta_binomial",
-        "gamma_poisson",
-        "student_t",
-        "exp_student_t",
-    ):
+    elif _method in SUPPORTED_BAYESIAN_MODEL_NAMES:
         from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP
     else:
         raise ValueError(f"Unknown inference method {inference_method}")

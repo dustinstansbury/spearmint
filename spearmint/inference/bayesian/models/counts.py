@@ -1,65 +1,76 @@
-"""
-Function that return Stan model code for modeling data with counts or rates-generated
-data.
-"""
+import pymc as pm
+import numpy as np
+
+from spearmint.stats import Samples
+from spearmint.typing import Tuple
 
 
-def gamma_poisson():
+def _get_gamma_prior_params(samples: Samples) -> Tuple[float, float]:
+    """Estimate the prior parameters for Beta distribution from samples"""
+    alpha = samples.mean**2 / samples.var
+    beta = samples.mean / samples.var
+
+    return alpha, beta
+
+
+def build_poisson_model(
+    control_samples: Samples, variation_samples: Samples
+) -> pm.Model:
     """
-    Return Stan model code for a Gamma-Poisson Bayesian model. The model takes
-    as inputs two sequences of count variables, with each entry representing the
-    total number of target events that occur over a standardized time interval.
-    Must provide hyperparameters `alpha_` and `beta_` as input data fields.
+    Compile a Gamma-Poisson Bayesian PyMC model for modeling counted events data.
+    The model consists of a Gamma prior over event rate, and a Poisson likelihood.
+    For the Gamma prior, we derive parameters separately for the control and
+    variation from their observations (i.e. no pooling).
 
-    Input Data
+    Parameters
     ----------
-    {
-        n_control : int             # the number of control samples
-        n_variation : int           # the number of variation samples
-        control : sequence[int]     # the control samples
-        variation : sequence[int]   # the variation samples
-        alpha_ : float              # hyperparameter
-        beta_  : float              # hyperparameter
+    control_observations: Samples, dtype=int
+        The control group observations
+    variation_observations: Samples, dtype=int
+        The variation group observations
+
+    Returns
+    -------
+    model : pm.Model
+        The compiled PyMC model built with the provided data
+    hyperparams : Dict
+        The prior parameters derived from the Samples
+
+    References
+    ----------
+    -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.Gamma.html
+    -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.Poisson.html
+    """
+
+    # Informed priors
+    alpha_control, beta_control = _get_gamma_prior_params(control_samples)
+    alpha_variation, beta_variation = _get_gamma_prior_params(variation_samples)
+
+    with pm.Model() as model:
+        # Priors
+        lambda_control = pm.Gamma(
+            "lambda_control", alpha=alpha_control, beta=beta_control
+        )
+        lambda_variation = pm.Gamma(
+            "lambda_variation", alpha=alpha_variation, beta=beta_variation
+        )
+
+        # Likelihoods
+        pm.Poisson("control", mu=lambda_control, observed=control_samples.data)
+        pm.Poisson("variation", mu=lambda_variation, observed=variation_samples.data)
+
+        # Inference parameters
+        pm.Deterministic("delta", lambda_variation - lambda_control)
+        effect_size = pm.Deterministic(
+            "effect_size", (lambda_variation / lambda_control) - 1.0
+        )
+        pm.Deterministic("delta_relative", effect_size - 1)
+
+    hyperparams = {
+        "alpha_control": alpha_control,
+        "alpha_variation": alpha_variation,
+        "beta_control": beta_control,
+        "beta_variation": beta_variation,
     }
 
-    """
-    return """
-data {
-    int<lower=0> n_control;
-    int control[n_control];
-
-    int<lower=0> n_variation;
-    int variation[n_variation];
-
-    real<lower=0> alpha_; // beta prior alpha hyperparameter
-    real<lower=0> beta_; // beta prior beta hyperparameter
-}
-
-parameters {
-    real<lower=0> lambda_control;
-    real<lower=0> lambda_variation;
-}
-
-transformed parameters {
-    real delta;
-    real delta_relative;
-    real effect_size;
-
-    delta = lambda_variation - lambda_control;
-    effect_size = lambda_variation / lambda_control;
-    delta_relative = effect_size - 1;
-
-}
-
-model {
-    // Gamma priors
-    lambda_control ~ gamma(alpha_, beta_);
-    lambda_variation ~ gamma(alpha_, beta_);
-
-    // Poisson likelihoods
-    control ~ poisson(lambda_control);
-    variation ~ poisson(lambda_variation);
-}
-
-generated quantities {}
-    """
+    return model, hyperparams
