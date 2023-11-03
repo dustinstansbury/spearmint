@@ -1,23 +1,7 @@
 import json
 from pandas import DataFrame
 
-from spearmint.utils import isnumeric
 from spearmint.typing import Iterable
-
-
-class InitReprMixin:
-    """
-    Objects whose __repr__ returns an intialization command
-    """
-
-    def __repr__(self) -> str:
-        class_name = self.__class__.__name__
-        class_len = len(class_name)
-        attr_str = [
-            "{}={!r}".format(attr, getattr(self, attr)) for attr in self.__ATTRS__
-        ]
-        attr_str = ",\n{}".format(" " * (1 + class_len)).join(attr_str)
-        return f"{class_name}({attr_str})"
 
 
 class JsonableMixin:
@@ -75,7 +59,7 @@ class DataframeableMixin:
                 return False
             return True
 
-        _dict = {k: v for k, v in self.to_dict().items() if is_valid_value(v)}
+        _dict = {k: [v] for k, v in self.to_dict().items() if is_valid_value(v)}
         return DataFrame(_dict)
 
         # for k, v in self.to_dict().items():
