@@ -3,12 +3,14 @@ from scipy.stats import norm
 
 from spearmint.typing import Tuple, FilePath
 from spearmint.stats import Samples, RateComparison
-from spearmint.inference.frequentist import FrequentistInferenceProcedure
-from spearmint.inference.frequentist.frequentist_results import FrequentistTestResults
+from .frequentist_inference import (
+    FrequentistInferenceProcedure,
+    FrequentistInferenceResults,
+)
 
 
 def visualize_rates_ratio_results(
-    results: FrequentistTestResults, outfile: FilePath = None
+    results: FrequentistInferenceResults, outfile: FilePath = None
 ):
     # Lazy import
     from spearmint import vis
@@ -203,11 +205,11 @@ class RatesRatio(FrequentistInferenceProcedure):
         )
 
     # @abstractmethod
-    def _make_results(self) -> FrequentistTestResults:
+    def _make_results(self) -> FrequentistInferenceResults:
         test_stats = self.test_stats
         accept_hypothesis = self.accept_hypothesis(test_stats["statistic_value"])
 
-        return FrequentistTestResults(
+        return FrequentistInferenceResults(
             control=self.comparison.d2,
             variation=self.comparison.d1,
             metric_name=self.metric_name,

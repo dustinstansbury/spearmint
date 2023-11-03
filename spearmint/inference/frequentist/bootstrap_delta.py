@@ -2,12 +2,14 @@ import numpy as np
 
 from spearmint.typing import FilePath, Callable
 from spearmint.stats import Samples, BootstrapStatisticComparison
-from spearmint.inference.frequentist import FrequentistInferenceProcedure
-from spearmint.inference.frequentist.frequentist_results import FrequentistTestResults
+from .frequentist_inference import (
+    FrequentistInferenceProcedure,
+    FrequentistInferenceResults,
+)
 
 
 def visualize_bootstrap_delta_results(
-    results: FrequentistTestResults, outfile: FilePath = None
+    results: FrequentistInferenceResults, outfile: FilePath = None
 ):
     # Lazy import
     from spearmint import vis
@@ -56,9 +58,6 @@ def visualize_bootstrap_delta_results(
         f"{test_statistic_title} Comparison"
     ).opts(legend_position="right", xlabel=test_statistic_label, ylabel="pdf")
 
-    # ci_plot = control_ci * variation_ci
-    # ci_plot = ci_plot.relabel("Mean Estimates").opts(legend_position="right")
-
     delta_dist = vis.plot_kde(
         samples=delta_samples.data,
         label="Delta Distribution",
@@ -66,16 +65,6 @@ def visualize_bootstrap_delta_results(
     )
 
     max_pdf_height = delta_dist.data["pdf"].max()
-
-    # if results.hypothesis == "larger":
-    #     left_bound = results.delta_confidence_interval[0]
-    #     right_bound = np.inf
-    # elif results.hypothesis == "smaller":
-    #     right_bound = results.delta_confidence_interval[1]
-    #     left_bound = np.inf
-    # else:
-    #     left_bound = results.delta_confidence_interval[0]
-    #     right_bound = results.delta_confidence_interval[1]
 
     mean_delta = results.aux["delta_bootstrap_samples"].mean
 
@@ -140,7 +129,9 @@ class BootstrapDelta(FrequentistInferenceProcedure):
 
     # @abstractmethod
     def _run_inference(
-        self, control_samples: Samples, variation_samples: Samples
+        self,
+        control_samples: Samples,
+        variation_samples: Samples,
     ) -> None:
         self.comparison = BootstrapStatisticComparison(
             samples_a=variation_samples,
@@ -172,7 +163,7 @@ class BootstrapDelta(FrequentistInferenceProcedure):
             raise ValueError("Unknown hypothesis: {!r}".format(self.hypothesis))
 
     # @abstractmethod
-    def _make_results(self) -> FrequentistTestResults:
+    def _make_results(self) -> FrequentistInferenceResults:
         test_stats = self.test_stats
         accept_hypothesis = self.accept_hypothesis(test_stats["statistic_value"])
 
@@ -182,7 +173,7 @@ class BootstrapDelta(FrequentistInferenceProcedure):
             "delta_bootstrap_samples": self.comparison.deltas_dist,
         }
 
-        return FrequentistTestResults(
+        return FrequentistInferenceResults(
             control=self.comparison.d2,
             variation=self.comparison.d1,
             metric_name=self.metric_name,
