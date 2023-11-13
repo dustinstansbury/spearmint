@@ -1,5 +1,8 @@
 import pytest
 from spearmint import Experiment, HypothesisTest
+from spearmint.inference.bayesian.bayesian_inference import (
+    UnsupportedParameterEstimationMethod,
+)
 from spearmint.utils import generate_fake_observations
 
 
@@ -13,21 +16,54 @@ def counts_data():
 def test_bayesian_poisson_ab_mcmc(counts_data):
     exp = Experiment(data=counts_data)
 
-    inference_procedure_init_params = dict(inference_method="mcmc")
     test = HypothesisTest(
         inference_method="poisson",
         metric="metric",
         control="A",
         variation="C",
-        inference_procedure_init_params=inference_procedure_init_params,
+        # parameter_estimation_method="mcmc"  # MCMC is default
     )
     test_results = exp.run_test(test)
 
     test_results.display()
-    test_results_df = test_results.to_dataframe()
 
+    assert test_results.accept_hypothesis
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
-    import ipdb
 
-    ipdb.set_trace()
+def test_bayesian_poisson_aa_mcmc(counts_data):
+    exp = Experiment(data=counts_data)
+
+    test = HypothesisTest(
+        inference_method="poisson",
+        metric="metric",
+        control="A",
+        variation="A",
+        # parameter_estimation_method="mcmc"  # MCMC is default
+    )
+    test_results = exp.run_test(test)
+
+    test_results.display()
+
+    assert not test_results.accept_hypothesis
+    assert (
+        not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+    )
+
+
+def test_poisson_advi(counts_data):
+    """
+    ADVI parameter estimation not supported for discrete PDFs like the
+    Poisson.
+    """
+    exp = Experiment(data=counts_data)
+
+    test = HypothesisTest(
+        inference_method="poisson",
+        metric="metric",
+        control="A",
+        variation="A",
+        parameter_estimation_method="advi",
+    )
+    with pytest.raises(UnsupportedParameterEstimationMethod):
+        exp.run_test(test)
