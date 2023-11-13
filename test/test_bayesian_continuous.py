@@ -13,37 +13,134 @@ def continuous_data():
 # @pytest.mark.mcmc_test
 def test_bayesian_gaussian_ab_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
-    inference_procedure_init_params = dict(inference_method="mcmc")
     test = HypothesisTest(
         inference_method="gaussian",
         metric="metric",
         control="A",
         variation="B",
-        inference_procedure_init_params=inference_procedure_init_params,
+        # parameter_estimation_method="mcmc",  # MCMC is default
     )
 
     test_results = exp.run_test(test)
     test_results.display()
-    test_results_df = test_results.to_dataframe()
 
-    # import ipdb
+    assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
-    # ipdb.set_trace()
 
-    # assert pytest.approx(test_results.prob_greater, rel=0.1, abs=0.01) == 1.0
+def test_bayesian_gaussian_aa_mcmc(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        inference_method="gaussian",
+        metric="metric",
+        control="A",
+        variation="A",
+        # parameter_estimation_method="mcmc",  # MCMC is default
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert (
+        not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+    )
+
+
+def test_bayesian_gaussian_ab_advi(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        inference_method="gaussian",
+        metric="metric",
+        control="A",
+        variation="B",
+        parameter_estimation_method="advi",  # use ADVI parameter estimation
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+
+
+def test_bayesian_gaussian_aa_advi(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        inference_method="gaussian",
+        metric="metric",
+        control="A",
+        variation="A",
+        parameter_estimation_method="advi",  # use ADVI parameter estimation
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert (
+        not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+    )
 
 
 def test_bayesian_student_t_ab_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
-    inference_procedure_init_params = dict(inference_method="mcmc")
     test = HypothesisTest(
         inference_method="student_t",
         metric="metric",
         control="A",
         variation="B",
-        inference_procedure_init_params=inference_procedure_init_params,
+        # parameter_estimation_method="mcmc",  # MCMC is default
     )
 
     test_results = exp.run_test(test)
     test_results.display()
-    test_results_df = test_results.to_dataframe()
+
+    assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+
+
+def test_bayesian_student_t_aa_mcmc(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        inference_method="student_t",
+        metric="metric",
+        control="A",
+        variation="A",  # parameter_estimation_method="mcmc",  # MCMC is default
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert (
+        not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+    )
+
+
+def test_bayesian_student_t_ab_advi(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        inference_method="student_t",
+        metric="metric",
+        control="A",
+        variation="B",
+        parameter_estimation_method="advi",  # use ADVI parameter estimation
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+
+
+def test_bayesian_student_t_aa_advi(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        inference_method="student_t",
+        metric="metric",
+        control="A",
+        variation="A",
+        parameter_estimation_method="advi",  # use ADVI parameter estimation
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert (
+        not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+    )
