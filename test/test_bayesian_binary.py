@@ -1,7 +1,7 @@
 import pytest
 from spearmint import Experiment, HypothesisTest
 from spearmint.inference.bayesian.bayesian_inference import (
-    UnsupportedParameterEstimationMethod,
+    UnsupportedParameterEstimationMethodException,
 )
 from spearmint.utils import generate_fake_observations
 
@@ -136,5 +136,5 @@ def test_binomial_advi(binary_data):
         parameter_estimation_method="advi",
     )
 
-    with pytest.raises(UnsupportedParameterEstimationMethod):
+    with pytest.raises(UnsupportedParameterEstimationMethodException):
         exp.run_test(test)

@@ -31,7 +31,7 @@ SUPPORTED_BAYESIAN_MODEL_NAMES = (
 SUPPORTED_PARAMETER_ESTIMATION_METHODS = ("mcmc", "advi")
 
 
-class UnsupportedParameterEstimationMethod(Exception):
+class UnsupportedParameterEstimationMethodException(Exception):
     pass
 
 
@@ -346,7 +346,7 @@ def _fit_model_mcmc(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.mcmc_estimation_supported:
         with model.pymc_model:
             return pm.sample(**inference_kwargs)
-    raise UnsupportedParameterEstimationMethod(
+    raise UnsupportedParameterEstimationMethodException(
         f"MCMC not supported for {model.model_name} model"
     )
 
@@ -358,7 +358,7 @@ def _fit_model_advi(model: _BayesianModel, **inference_kwargs) -> InferenceData:
 
             return mean_field.sample(N_MEAN_FIELD_SAMPLES)
 
-    raise UnsupportedParameterEstimationMethod(
+    raise UnsupportedParameterEstimationMethodException(
         f"ADVI parameter estimation not supported for {model.model_name} model"
     )
 
@@ -367,7 +367,7 @@ def _fit_model_analytic(model: _BayesianModel, **inference_kwargs) -> InferenceD
     if model.analytic_estimation_supported:
         raise NotImplemented("Analytic parameter estimation API still a WIP")
         return _fit_model_analytic(model)
-    raise UnsupportedParameterEstimationMethod(
+    raise UnsupportedParameterEstimationMethodException(
         f"Analytic parameter estimation not supported for {model.model_name} model"
     )
 
