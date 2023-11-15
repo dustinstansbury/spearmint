@@ -12,10 +12,15 @@ from spearmint.inference.inference_base import (
     InferenceProcedure,
     InferenceResultsMissingError,
 )
+from spearmint.inference.bayesian.models.analytic_base import (
+    BayesianAnalyticModel,
+)
 
 
-N_MEAN_FIELD_SAMPLES = 1000
+# TODO: Set this with config
+DEFAULT_POSTERIOR_SAMPLES = 1000
 
+# TODO: Enums for all these
 CONTINUOUS_MODEL_NAMES = ["gaussian", "student_t"]
 
 BINARY_MODEL_NAMES = [
@@ -28,7 +33,7 @@ SUPPORTED_BAYESIAN_MODEL_NAMES = (
     CONTINUOUS_MODEL_NAMES + BINARY_MODEL_NAMES + COUNTS_MODEL_NAMES
 )
 
-SUPPORTED_PARAMETER_ESTIMATION_METHODS = ("mcmc", "advi")
+SUPPORTED_PARAMETER_ESTIMATION_METHODS = ("mcmc", "advi", "analytic")
 
 
 class UnsupportedParameterEstimationMethodException(Exception):
@@ -285,56 +290,52 @@ class _BayesianModel:
     """Container for PyMC model and available fitting options"""
 
     model_name: str
-    pymc_model: pm.Model
+    model_object: Union[pm.Model, BayesianAnalyticModel]
     mcmc_estimation_supported: bool
     advi_estimation_supported: bool
     analytic_estimation_supported: bool
     hyperparams: Dict[str, Any]
 
 
-def _get_bayesian_inference_model(
+def _build_bayesian_inference_model(
     model_name: str,
     control_samples: Samples,
     variation_samples: Samples,
+    parameter_estimation_method: str,
     **model_params,
 ) -> Tuple[_BayesianModel, Dict[str, Any]]:
-    # Defaults
-    mcmc_estimation_supported = True  # MCMC supported by all models
+    mcmc_estimation_supported = True  # MCMC works for all models
     advi_estimation_supported = False  # ADVI not supported for all models
-    analytic_estimation_supported = False  # Currently no Analytic support
+    analytic_estimation_supported = False  # No Analytic solution for all model
 
-    if model_name == "gaussian":
-        from .models.continuous import build_gaussian_model as model_builder
+    model_type = "analytic" if parameter_estimation_method == "analytic" else "pymc"
 
-        advi_estimation_supported = True
+    if model_name in CONTINUOUS_MODEL_NAMES:
+        from .models import continuous
 
-    if model_name == "student_t":
-        from .models.continuous import build_student_t_model as model_builder
+        advi_estimation_supported = True  # ADVI suppored for all continuous models
+        analytic_estimation_supported = True if model_name == "gaussian" else False
+        model_builder = getattr(continuous, f"build_{model_name}_{model_type}_model")
 
-        advi_estimation_supported = True
+    if model_name in BINARY_MODEL_NAMES:
+        from .models import binary
 
-    if model_name == "bernoulli":
-        from .models.binary import build_bernoulli_model as model_builder
+        advi_estimation_supported = True if model_name == "bernoulli" else False
+        model_builder = getattr(binary, f"build_{model_name}_{model_type}_model")
 
-        advi_estimation_supported = True
+    if model_name in COUNTS_MODEL_NAMES:
+        from .models import counts
 
-    if model_name == "binomial":
-        from .models.binary import build_binomial_model as model_builder
+        advi_estimation_supported = False  # Discrete distributions not supported
+        model_builder = getattr(counts, f"build_{model_name}_{model_type}_model")
 
-        advi_estimation_supported = False
-
-    if model_name == "poisson":
-        from .models.counts import build_poisson_model as model_builder
-
-        advi_estimation_supported = False
-
-    pymc_model, hyperparams = model_builder(
+    model_object, hyperparams = model_builder(
         control_samples, variation_samples, **model_params
     )
 
     return _BayesianModel(
         model_name=model_name,
-        pymc_model=pymc_model,
+        model_object=model_object,
         mcmc_estimation_supported=mcmc_estimation_supported,
         advi_estimation_supported=advi_estimation_supported,
         analytic_estimation_supported=analytic_estimation_supported,
@@ -344,7 +345,7 @@ def _get_bayesian_inference_model(
 
 def _fit_model_mcmc(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.mcmc_estimation_supported:
-        with model.pymc_model:
+        with model.model_object:
             return pm.sample(**inference_kwargs)
     raise UnsupportedParameterEstimationMethodException(
         f"MCMC not supported for {model.model_name} model"
@@ -353,10 +354,10 @@ def _fit_model_mcmc(model: _BayesianModel, **inference_kwargs) -> InferenceData:
 
 def _fit_model_advi(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.advi_estimation_supported:
-        with model.pymc_model:
+        with model.model_object:
             mean_field = pm.fit(method="advi", **inference_kwargs)
 
-            return mean_field.sample(N_MEAN_FIELD_SAMPLES)
+            return mean_field.sample(DEFAULT_POSTERIOR_SAMPLES)
 
     raise UnsupportedParameterEstimationMethodException(
         f"ADVI parameter estimation not supported for {model.model_name} model"
@@ -365,8 +366,8 @@ def _fit_model_advi(model: _BayesianModel, **inference_kwargs) -> InferenceData:
 
 def _fit_model_analytic(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.analytic_estimation_supported:
-        raise NotImplemented("Analytic parameter estimation API still a WIP")
-        return _fit_model_analytic(model)
+        return model.model_object.sample(DEFAULT_POSTERIOR_SAMPLES)
+
     raise UnsupportedParameterEstimationMethodException(
         f"Analytic parameter estimation not supported for {model.model_name} model"
     )
@@ -440,41 +441,41 @@ class BayesianInferenceProcedure(InferenceProcedure):
         control_samples = self._process_samples(control_samples)
         variation_samples = self._process_samples(variation_samples)
 
-        self._bayesian_model = _get_bayesian_inference_model(
+        _bayesian_model = _build_bayesian_inference_model(
             model_name=self.model_name,
             control_samples=control_samples,
             variation_samples=variation_samples,
+            parameter_estimation_method=self.parameter_estimation_method,
             **self.model_params,
         )
 
         if self.parameter_estimation_method == "mcmc":
             self.inference_results = _fit_model_mcmc(
-                self._bayesian_model, **inference_kwargs
+                _bayesian_model, **inference_kwargs
             )
 
         elif self.parameter_estimation_method == "advi":
             self.inference_results = _fit_model_advi(
-                self._bayesian_model, **inference_kwargs
+                _bayesian_model, **inference_kwargs
             )
 
         elif self.parameter_estimation_method == "analytic":
             self.inference_results = _fit_model_analytic(
-                self._bayesian_model, **inference_kwargs
+                _bayesian_model, **inference_kwargs
             )
 
+        # Set attributes
+        comparison_param = _get_delta_param(self.model_name)
         self.control = control_samples
         self.variation = variation_samples
-
-        comparison_param = _get_delta_param(self.model_name)
         self.control_posterior = self.posterior_samples(f"{comparison_param}_control")
         self.variation_posterior = self.posterior_samples(
             f"{comparison_param}_variation"
         )
-
         self.delta_posterior = self.posterior_samples("delta")
         self.delta_relative_posterior = self.posterior_samples("delta_relative")
         self.effect_size_posterior = self.posterior_samples("effect_size")
-        self.model_hyperparams = self._bayesian_model.hyperparams
+        self.model_hyperparams = _bayesian_model.hyperparams
 
     def posterior_samples(self, parameter_name: str) -> Samples:
         """
