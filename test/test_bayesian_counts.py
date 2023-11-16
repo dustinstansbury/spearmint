@@ -13,6 +13,7 @@ def counts_data():
     )
 
 
+@pytest.mark.pymc_test
 def test_bayesian_poisson_ab_mcmc(counts_data):
     exp = Experiment(data=counts_data)
 
@@ -31,6 +32,7 @@ def test_bayesian_poisson_ab_mcmc(counts_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bayesian_poisson_aa_mcmc(counts_data):
     exp = Experiment(data=counts_data)
 
@@ -51,6 +53,7 @@ def test_bayesian_poisson_aa_mcmc(counts_data):
     )
 
 
+@pytest.mark.pymc_test
 def test_poisson_aa_advi(counts_data):
     """
     ADVI parameter estimation not supported for discrete PDFs like the

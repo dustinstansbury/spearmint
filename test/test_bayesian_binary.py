@@ -16,6 +16,7 @@ def binary_data():
     )
 
 
+@pytest.mark.pymc_test
 def test_bernoulli_mcmc_model_params(binary_data):
     exp = Experiment(data=binary_data)
 
@@ -32,6 +33,7 @@ def test_bernoulli_mcmc_model_params(binary_data):
     assert test_results.model_hyperparams["prior_beta"] == 1  # default
 
 
+@pytest.mark.pymc_test
 def test_bernoulli_ab_mcmc(binary_data):
     exp = Experiment(data=binary_data)
 
@@ -49,6 +51,7 @@ def test_bernoulli_ab_mcmc(binary_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bernoulli_aa_mcmc(binary_data):
     exp = Experiment(data=binary_data)
 
@@ -68,6 +71,7 @@ def test_bernoulli_aa_mcmc(binary_data):
     )
 
 
+@pytest.mark.pymc_test
 def test_bernoulli_ab_advi(binary_data):
     exp = Experiment(data=binary_data)
     test = HypothesisTest(
@@ -84,6 +88,7 @@ def test_bernoulli_ab_advi(binary_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bernoulli_aa_advi(binary_data):
     exp = Experiment(data=binary_data)
     test = HypothesisTest(
@@ -152,6 +157,7 @@ def test_bernoulli_ab_analytic(binary_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_binomial_mcmc_model_params(binary_data):
     exp = Experiment(data=binary_data)
 
@@ -169,6 +175,7 @@ def test_binomial_mcmc_model_params(binary_data):
     assert test_results.model_hyperparams["prior_beta"] == 1  # default
 
 
+@pytest.mark.pymc_test
 def test_binomial_ab_mcmc(binary_data):
     exp = Experiment(data=binary_data)
 
@@ -187,6 +194,7 @@ def test_binomial_ab_mcmc(binary_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_binomial_aa_mcmc(binary_data):
     exp = Experiment(data=binary_data)
 
@@ -207,6 +215,7 @@ def test_binomial_aa_mcmc(binary_data):
     )
 
 
+@pytest.mark.pymc_test
 def test_binomial_advi(binary_data):
     """
     ADVI parameter estimation not supported for discrete PDFs like the

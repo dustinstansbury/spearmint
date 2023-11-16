@@ -10,7 +10,7 @@ def continuous_data():
     )
 
 
-# @pytest.mark.mcmc_test
+@pytest.mark.pymc_test
 def test_bayesian_gaussian_ab_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -28,6 +28,7 @@ def test_bayesian_gaussian_ab_mcmc(continuous_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bayesian_gaussian_aa_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -47,6 +48,7 @@ def test_bayesian_gaussian_aa_mcmc(continuous_data):
     )
 
 
+@pytest.mark.pymc_test
 def test_bayesian_gaussian_ab_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -64,6 +66,7 @@ def test_bayesian_gaussian_ab_advi(continuous_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bayesian_gaussian_aa_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -119,6 +122,7 @@ def test_bayesian_gaussian_aa_analytic(continuous_data):
     )
 
 
+@pytest.mark.pymc_test
 def test_bayesian_student_t_ab_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -136,6 +140,7 @@ def test_bayesian_student_t_ab_mcmc(continuous_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bayesian_student_t_aa_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -154,6 +159,7 @@ def test_bayesian_student_t_aa_mcmc(continuous_data):
     )
 
 
+@pytest.mark.pymc_test
 def test_bayesian_student_t_ab_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
@@ -171,6 +177,7 @@ def test_bayesian_student_t_ab_advi(continuous_data):
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
 
+@pytest.mark.pymc_test
 def test_bayesian_student_t_aa_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
