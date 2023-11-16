@@ -51,7 +51,7 @@ def test_bayesian_poisson_aa_mcmc(counts_data):
     )
 
 
-def test_poisson_advi(counts_data):
+def test_poisson_aa_advi(counts_data):
     """
     ADVI parameter estimation not supported for discrete PDFs like the
     Poisson.
@@ -67,3 +67,47 @@ def test_poisson_advi(counts_data):
     )
     with pytest.raises(UnsupportedParameterEstimationMethodException):
         exp.run_test(test)
+
+
+def test_poisson_ab_analytic(counts_data):
+    """
+    ADVI parameter estimation not supported for discrete PDFs like the
+    Poisson.
+    """
+    exp = Experiment(data=counts_data)
+
+    test = HypothesisTest(
+        inference_method="poisson",
+        metric="metric",
+        control="A",
+        variation="B",
+        parameter_estimation_method="analytic",
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+    assert test_results.accept_hypothesis
+    assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+
+
+def test_poisson_aa_analytic(counts_data):
+    """
+    ADVI parameter estimation not supported for discrete PDFs like the
+    Poisson.
+    """
+    exp = Experiment(data=counts_data)
+
+    test = HypothesisTest(
+        inference_method="poisson",
+        metric="metric",
+        control="A",
+        variation="A",
+        parameter_estimation_method="analytic",
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+    assert not test_results.accept_hypothesis
+    assert (
+        not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+    )
