@@ -321,6 +321,7 @@ def _build_bayesian_inference_model(
         from .models import binary
 
         advi_estimation_supported = True if model_name == "bernoulli" else False
+        analytic_estimation_supported = True
         model_builder = getattr(binary, f"build_{model_name}_{model_type}_model")
 
     if model_name in COUNTS_MODEL_NAMES:

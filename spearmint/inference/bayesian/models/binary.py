@@ -1,13 +1,15 @@
 import pymc as pm
 
+from scipy import stats
 
-from spearmint.typing import Tuple
+from spearmint.typing import Tuple, Dict
 from spearmint.stats import Samples
+from .analytic_base import BayesianAnalyticModel
 
 
 def _get_beta_prior_params(
     samples: Samples,
-) -> Tuple[float, float, float, float, float]:
+) -> Tuple[float, float, float]:
     """Estimate the prior parameters for Beta distribution from samples"""
     mean = samples.mean
     var = samples.var
@@ -20,7 +22,109 @@ def _get_beta_prior_params(
     return effective_sample_size, alpha, beta
 
 
-def build_bernoulli_model(
+class BinomialAnalyticModel(BayesianAnalyticModel):
+    """
+    Implement analytic posterior updates for Beta-Binomial model. Namely,
+    a Beta prior and Binomial likelihood result in a Beta posterior over
+    proportionality parameters, which can be calculated from the prior and
+    descriptive statistics of the observations.
+
+    Notes
+    -----
+    We use the same model for Bernoulli and Binomial Likelihoods, as their
+    posterirs updates are calculated in the same way.
+
+    References
+    ----------
+    -
+    """
+
+    def __init__(
+        self, prior_alpha: float = 1, prior_beta: float = 1.0, *args, **kwargs
+    ):
+        """
+        Parameters
+        ----------
+        prior_alpha : float, optional
+            The shape parameter for the Beta prior distribution
+        prior_beta : float, optional
+            The shape parametrer for the Beta prior distribution
+        """
+        super().__init__(delta_param="p", *args, **kwargs)
+        self.prior_alpha = prior_alpha
+        self.prior_beta = prior_beta
+
+    def calculate_posteriors(
+        self, control_samples: Samples, variation_samples: Samples
+    ):
+        """
+        Update the posterior distributions for the control and variation in
+        light of Samples
+
+        Parameters
+        ----------
+        control_samples : Samples
+            Observations for the control group
+        variation_samples : Samples
+            Observations for the variation group
+        """
+
+        # Update rules
+        def _posterior_alpha(prior_alpha, samples):
+            n_success = samples.sum
+            return prior_alpha + n_success
+
+        def _posterior_beta(prior_beta, samples):
+            n = samples.nobs
+            n_fail = n - samples.sum
+
+            return prior_beta + n_fail
+
+        control_posterior_alpha = _posterior_alpha(self.prior_alpha, control_samples)
+        control_posterior_beta = _posterior_beta(self.prior_beta, control_samples)
+
+        variation_posterior_alpha = _posterior_alpha(
+            self.prior_alpha, variation_samples
+        )
+        variation_posterior_beta = _posterior_beta(self.prior_beta, variation_samples)
+
+        self._control_posterior = stats.beta(
+            control_posterior_alpha, control_posterior_beta
+        )
+
+        self._variation_posterior = stats.beta(
+            variation_posterior_alpha, variation_posterior_beta
+        )
+
+
+def build_binomial_analytic_model(
+    control_samples: Samples,
+    variation_samples: Samples,
+    prior_alpha: float = 1.0,
+    prior_beta: float = 1.0,
+) -> Tuple[BinomialAnalyticModel, Dict[str, float]]:
+    model = BinomialAnalyticModel(prior_alpha=prior_alpha, prior_beta=prior_beta)
+    model.calculate_posteriors(control_samples, variation_samples)
+
+    hyperparams = {"prior_alpha": prior_alpha, "prior_beta": prior_beta}
+    return model, hyperparams
+
+
+def build_bernoulli_analytic_model(
+    control_samples: Samples,
+    variation_samples: Samples,
+    prior_alpha: float = 1.0,
+    prior_beta: float = 1.0,
+) -> Tuple[BinomialAnalyticModel, Dict[str, float]]:
+    return build_binomial_analytic_model(
+        control_samples=control_samples,
+        variation_samples=variation_samples,
+        prior_alpha=prior_alpha,
+        prior_beta=prior_beta,
+    )
+
+
+def build_bernoulli_pymc_model(
     control_samples: Samples, variation_samples: Samples
 ) -> pm.Model:
     """
@@ -93,7 +197,7 @@ def build_bernoulli_model(
     return model, hyperparams
 
 
-def build_binomial_model(
+def build_binomial_pymc_model(
     control_samples: Samples, variation_samples: Samples
 ) -> pm.Model:
     """

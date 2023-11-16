@@ -13,8 +13,14 @@ class BayesianAnalyticModel(ABC):
     """
 
     def __init__(
-        self, control_name: str = None, variation_name: str = None, *args, **kwargs
+        self,
+        delta_param: str,
+        control_name: str = None,
+        variation_name: str = None,
+        *args,
+        **kwargs,
     ):
+        self.delta_param = delta_param
         self.control_name = control_name
         self.variation_name = variation_name
         self._control_posterior = None
@@ -42,7 +48,8 @@ class BayesianAnalyticModel(ABC):
         inference_data : InferenceData
             An Arviz InferenceData structure with a `.posterior` attribute.
         """
-        # Note: we're sampling *means* from the posterior
+
+        # Sample delta parameters from the posterior
         control_posterior_samples = self.control_posterior.rvs(size=n_samples)
         variation_posterior_samples = self.variation_posterior.rvs(size=n_samples)
 
@@ -57,8 +64,8 @@ class BayesianAnalyticModel(ABC):
         )
 
         data_dict = {
-            "mu_control": control_posterior_samples,
-            "mu_variation": variation_posterior_samples,
+            f"{self.delta_param}_control": control_posterior_samples,
+            f"{self.delta_param}_variation": variation_posterior_samples,
             "delta": delta_posterior_samples,
             "delta_relative": delta_relative_sampels,
             "effect_size": effect_size_posterior_samples,
