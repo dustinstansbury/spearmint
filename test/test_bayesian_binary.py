@@ -9,7 +9,10 @@ from spearmint.utils import generate_fake_observations
 @pytest.fixture()
 def binary_data():
     return generate_fake_observations(
-        distribution="bernoulli", n_treatments=3, n_observations=3 * 100
+        distribution="bernoulli",
+        n_treatments=3,
+        n_observations=3 * 100,
+        random_seed=123,
     )
 
 

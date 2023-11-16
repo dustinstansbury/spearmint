@@ -1384,7 +1384,7 @@ class BootstrapStatisticComparison(MeanComparison):
 
         # Need to run the bootstrap in order to obtain the power
         if not hasattr(self, "null_dist"):
-            _ = self.bootstrap_test
+            _ = self.bootstrap_test_stats
 
         critical_value = self.null_dist.percentiles(100 * (1 - self.alpha))
         return self.deltas_dist.prob_greater_than(critical_value)
