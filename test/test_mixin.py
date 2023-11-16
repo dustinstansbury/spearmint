@@ -18,7 +18,7 @@ def test_jsonable():
 def test_dataframeable():
     class ValidDataFrameable(mixin.DataframeableMixin):
         def to_dict(self):
-            return {"abra": ["cadabra", "calamazam"]}
+            return {"abra": ("cadabra", "calamazam"), "spearmint": "refreshing"}
 
     class InvalidDataframeable(mixin.DataframeableMixin):
         pass
@@ -28,8 +28,8 @@ def test_dataframeable():
 
     vdf = ValidDataFrameable()
     vdf_dict = vdf.to_dict()
-    assert vdf_dict == {"abra": ["cadabra", "calamazam"]}
+
+    assert vdf_dict == {"abra": ("cadabra", "calamazam"), "spearmint": "refreshing"}
     df = vdf.to_dataframe()
-    assert df.columns == ["abra"]
-    assert df.iloc[0].values == "cadabra"
-    assert df.iloc[1].values == "calamazam"
+    assert df.columns.tolist() == ["abra", "spearmint"]
+    assert df.iloc[0].tolist() == [("cadabra", "calamazam"), "refreshing"]
