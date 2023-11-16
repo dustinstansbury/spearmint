@@ -218,15 +218,16 @@ def test_mean_comparison(continuous_test_samples):
     assert means_comparison.effect_size == 0
     # overlapping distributions, power should be similar to false positive rate
     assert np.isclose(means_comparison.power, means_comparison.alpha, atol=0.001)
-    ttest = means_comparison.ttest
-    assert ttest["statistic_name"] == "t"
-    assert ttest["statistic_value"] == 0
-    assert ttest["p_value"] == 0.5
-    assert ttest["alpha"] == stats.DEFAULT_ALPHA
-    assert np.isclose(ttest["power"], ttest["alpha"], atol=0.001)
+    t_test_stats = means_comparison.t_test_stats
+    assert t_test_stats["statistic_name"] == "t"
+    assert t_test_stats["statistic_value"] == 0
+    assert t_test_stats["p_value"] == 0.5
+    assert t_test_stats["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(t_test_stats["power"], t_test_stats["alpha"], atol=0.001)
 
     assert (
-        ttest["df"] == (continuous_test_samples.nobs + continuous_test_samples.nobs) - 2
+        t_test_stats["degrees_freedom"]
+        == (continuous_test_samples.nobs + continuous_test_samples.nobs) - 2
     )
 
 
@@ -246,12 +247,12 @@ def test_proportion_comparison(binary_test_samples):
         proportion_comparison.power, proportion_comparison.alpha, atol=0.001
     )
 
-    ztest = proportion_comparison.ztest
-    assert ztest["statistic_name"] == "z"
-    assert ztest["statistic_value"] == 0
-    assert ztest["p_value"] == 0.5
-    assert ztest["alpha"] == stats.DEFAULT_ALPHA
-    assert np.isclose(ztest["power"], ztest["alpha"], atol=0.001)
+    z_test_stats = proportion_comparison.z_test_stats
+    assert z_test_stats["statistic_name"] == "z"
+    assert z_test_stats["statistic_value"] == 0
+    assert z_test_stats["p_value"] == 0.5
+    assert z_test_stats["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(z_test_stats["power"], z_test_stats["alpha"], atol=0.001)
 
 
 def test_rates_comparison(count_test_samples):
@@ -267,12 +268,12 @@ def test_rates_comparison(count_test_samples):
     # overlapping distributions, power should be similar to false positive rate
     assert np.isclose(rate_comparison.power, rate_comparison.alpha, atol=0.001)
 
-    rates_test = rate_comparison.rates_test
-    assert rates_test["statistic_name"] == "W"
-    assert rates_test["statistic_value"] == 0
-    assert rates_test["p_value"] == 0.5
-    assert rates_test["alpha"] == stats.DEFAULT_ALPHA
-    assert np.isclose(rates_test["power"], rates_test["alpha"], atol=0.001)
+    rates_test_stats = rate_comparison.rates_test_stats
+    assert rates_test_stats["statistic_name"] == "W"
+    assert rates_test_stats["statistic_value"] == 0
+    assert rates_test_stats["p_value"] == 0.5
+    assert rates_test_stats["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(rates_test_stats["power"], rates_test_stats["alpha"], atol=0.001)
 
 
 def test_bootstrap_comparison(continuous_test_samples):
@@ -293,10 +294,12 @@ def test_bootstrap_comparison(continuous_test_samples):
     # overlapping distributions, power should be similar to false positive rate
     assert np.isclose(bs_comparison.power, bs_comparison.alpha, atol=0.05)
 
-    bootstrap_test = bs_comparison.bootstrap_test
-    assert bootstrap_test["statistic_function_name"] == "mean"
-    assert bootstrap_test["statistic_name"] == "bootstrap_delta"
-    assert np.isclose(bootstrap_test["statistic_value"], 0, atol=0.001)
-    assert np.isclose(bootstrap_test["p_value"], 0.5, atol=0.05)
-    assert bootstrap_test["alpha"] == stats.DEFAULT_ALPHA
-    assert np.isclose(bootstrap_test["power"], bootstrap_test["alpha"], atol=0.01)
+    bootstrap_test_stats = bs_comparison.bootstrap_test_stats
+    assert bootstrap_test_stats["statistic_function_name"] == "mean"
+    assert bootstrap_test_stats["statistic_name"] == "bootstrap_mean"
+    assert np.isclose(bootstrap_test_stats["statistic_value"], 0, atol=0.001)
+    assert np.isclose(bootstrap_test_stats["p_value"], 0.5, atol=0.05)
+    assert bootstrap_test_stats["alpha"] == stats.DEFAULT_ALPHA
+    assert np.isclose(
+        bootstrap_test_stats["power"], bootstrap_test_stats["alpha"], atol=0.01
+    )
