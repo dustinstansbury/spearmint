@@ -326,6 +326,7 @@ def _build_bayesian_inference_model(
         from .models import counts
 
         advi_estimation_supported = False  # Discrete distributions not supported
+        analytic_estimation_supported = True
         model_builder = getattr(counts, f"build_{model_name}_{model_type}_model")
 
     model_object, hyperparams = model_builder(
