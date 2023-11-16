@@ -14,7 +14,7 @@ class ExtendedInferenceResults(InferenceResults):
             hypothesis="larger",
             alpha=alpha,
             accept_hypothesis=False,
-            inference_method="test_model",
+            inference_method="test_inference",
             warnings=["a warning"],
             *args,
             **kwargs
@@ -65,7 +65,7 @@ def validate_results(results, alpha: float = 0.05):
     assert results.dict["alpha"] == alpha
     assert results.dict["hypothesis"] == "larger"
     assert results.dict["accept_hypothesis"] == False
-    assert results.dict["model_name"] == "test_model"
+    assert results.dict["inference_method"] == "test_inference"
     assert results.dict["warnings"] == "a warning"
     assert results.dict["specific_property"] == "blah"
 
