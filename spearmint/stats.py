@@ -609,6 +609,10 @@ class Samples(DescrStatsW):
             self._summary_table = SamplesSummaryTable(self)
         self._summary_table.print()
 
+    @property
+    def max(self) -> float:
+        return np.max(self.data)
+
     def permute(self) -> np.ndarray:
         """Shuffle the samples"""
         return np.random.choice(self.data, int(self.nobs))

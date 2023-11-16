@@ -11,10 +11,10 @@ from .analytic_base import BayesianAnalyticModel
 
 class GaussianAnalyticModel(BayesianAnalyticModel):
     """
-    Implement analytic posterior updates for hierarchical Gaussian model. Namely,
-    a Gaussian prior and likelihood result in a Gaussian posterior over mean
-    parameters, which can be calculated from the prior and descriptive statistics
-    of the observations.
+    Implement analytic posterior updates for hierarchical Gaussian model. A
+    Gaussian prior and likelihood result in a Gaussian posterior over mean
+    parameters, which can be calculated efficiently from the prior and
+    descriptive statistics of the observations.
 
     References
     ----------
@@ -36,7 +36,7 @@ class GaussianAnalyticModel(BayesianAnalyticModel):
 
     def calculate_posteriors(
         self, control_samples: Samples, variation_samples: Samples
-    ):
+    ) -> None:
         """
         Update the posterior distributions for the control and variation in
         light of Samples

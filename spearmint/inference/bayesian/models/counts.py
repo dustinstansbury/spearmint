@@ -44,7 +44,7 @@ class PoissonAnalyticModel(BayesianAnalyticModel):
 
     def calculate_posteriors(
         self, control_samples: Samples, variation_samples: Samples
-    ):
+    ) -> None:
         """
         Update the posterior distributions for the control and variation in
         light of Samples

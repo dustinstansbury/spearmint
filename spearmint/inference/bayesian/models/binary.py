@@ -7,27 +7,12 @@ from spearmint.stats import Samples
 from .analytic_base import BayesianAnalyticModel
 
 
-def _get_beta_prior_params(
-    samples: Samples,
-) -> Tuple[float, float, float]:
-    """Estimate the prior parameters for Beta distribution from samples"""
-    mean = samples.mean
-    var = samples.var
-    nobs = samples.nobs
-
-    effective_sample_size = nobs * mean * (1 - mean) / var - 1
-    alpha = mean * effective_sample_size
-    beta = (1 - mean) * effective_sample_size
-
-    return effective_sample_size, alpha, beta
-
-
 class BinomialAnalyticModel(BayesianAnalyticModel):
     """
-    Implement analytic posterior updates for Beta-Binomial model. Namely,
-    a Beta prior and Binomial likelihood result in a Beta posterior over
-    proportionality parameters, which can be calculated from the prior and
-    descriptive statistics of the observations.
+    Implement analytic posterior updates for Beta-Binomial model. A Beta prior
+    and Binomial likelihood result in a Beta posterior over proportionality
+    parameters, which can be calculated efficiently from the prior and descriptive
+    statistics of the observations.
 
     Notes
     -----
@@ -56,7 +41,7 @@ class BinomialAnalyticModel(BayesianAnalyticModel):
 
     def calculate_posteriors(
         self, control_samples: Samples, variation_samples: Samples
-    ):
+    ) -> None:
         """
         Update the posterior distributions for the control and variation in
         light of Samples
@@ -126,7 +111,10 @@ def build_bernoulli_analytic_model(
 
 
 def build_bernoulli_pymc_model(
-    control_samples: Samples, variation_samples: Samples
+    control_samples: Samples,
+    variation_samples: Samples,
+    prior_alpha: float = 1.0,
+    prior_beta: float = 1.0,
 ) -> pm.Model:
     """
     Compiles a Beta-Bernoulli Bayesian PyMC model for modeling binary data. The
@@ -160,25 +148,12 @@ def build_bernoulli_pymc_model(
     -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.Bernoulli.html
     """
 
-    # Empirically-informed priors
-    kappa_control, alpha_control, beta_control = _get_beta_prior_params(control_samples)
-    kappa_variation, alpha_variation, beta_variation = _get_beta_prior_params(
-        variation_samples
-    )
-
-    hyperparams = {
-        "kappa_control": kappa_control,
-        "alpha_control": alpha_control,
-        "beta_control": beta_control,
-        "kappa_variation": kappa_variation,
-        "alpha_variation": alpha_variation,
-        "beta_variation": beta_variation,
-    }
+    hyperparams = {"prior_alpha": prior_alpha, "prior_beta": prior_beta}
 
     with pm.Model() as model:
         # Priors
-        p_control = pm.Beta("p_control", alpha=alpha_control, beta=beta_control)
-        p_variation = pm.Beta("p_variation", alpha=alpha_variation, beta=beta_variation)
+        p_control = pm.Beta("p_control", alpha=prior_alpha, beta=prior_beta)
+        p_variation = pm.Beta("p_variation", alpha=prior_alpha, beta=prior_beta)
 
         # Likelihoods
         pm.Bernoulli("control", p=p_control, observed=control_samples.data)
@@ -199,7 +174,11 @@ def build_bernoulli_pymc_model(
 
 
 def build_binomial_pymc_model(
-    control_samples: Samples, variation_samples: Samples
+    control_samples: Samples,
+    variation_samples: Samples,
+    prior_alpha: float = 1.0,
+    prior_beta: float = 1.0,
+    possible_outcomes: float = None,
 ) -> pm.Model:
     """
     Compiles a Beta-Binomial Bayesian PyMC model for modeling binary data. The
@@ -213,6 +192,13 @@ def build_binomial_pymc_model(
         The control group observations
     variation_observations: Samples, dtype=int
         The variation group observations
+    prior_alpha: float
+        The location parameter for the Beta prior distribution over proportions
+    prior_beta: float
+        The shape parameter for the Beta prior distribution over proportions
+    possible_outcomes: int
+        The maximum number of possible outcomes for each trial. If None provided,
+        we estimate it from the data.
 
     Returns
     -------
@@ -233,42 +219,33 @@ def build_binomial_pymc_model(
     -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.Binomial.html
     """
 
-    # Empirically-informed priors
-    n_control = control_samples.nobs
-    kappa_control, alpha_control, beta_control = _get_beta_prior_params(
-        control_samples,
+    possible_outcomes = (
+        max((control_samples.max, variation_samples.max))
+        if possible_outcomes is None
+        else possible_outcomes
     )
-
-    n_variation = variation_samples.nobs
-    kappa_variation, alpha_variation, beta_variation = _get_beta_prior_params(
-        variation_samples,
-    )
-
     hyperparams = {
-        "kappa_control": kappa_control,
-        "alpha_control": alpha_control,
-        "beta_control": beta_control,
-        "kappa_variation": kappa_variation,
-        "alpha_variation": alpha_variation,
-        "beta_variation": beta_variation,
+        "prior_alpha": prior_alpha,
+        "prior_beta": prior_beta,
+        "possible_outcomes": possible_outcomes,
     }
 
     with pm.Model() as model:
         # Priors
-        p_control = pm.Beta("p_control", alpha=alpha_control, beta=beta_control)
-        p_variation = pm.Beta("p_variation", alpha=alpha_variation, beta=beta_variation)
+        p_control = pm.Beta("p_control", alpha=prior_alpha, beta=prior_beta)
+        p_variation = pm.Beta("p_variation", alpha=prior_alpha, beta=prior_beta)
 
         # Likelihoods
         pm.Binomial(
             "control",
             p=p_control,
-            n=n_control,
+            n=possible_outcomes,
             observed=control_samples.data,
         )
         pm.Binomial(
             "variation",
             p=p_variation,
-            n=n_variation,
+            n=possible_outcomes,
             observed=variation_samples.data,
         )
 
