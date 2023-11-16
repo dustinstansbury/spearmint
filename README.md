@@ -2,17 +2,18 @@
 
 ![MIT License](https://img.shields.io/github/license/dustinstansbury/spearmint)
 <!-- [![dustinstansbury](https://circleci.com/gh/dustinstansbury/spearmint.svg?style=shield)](https://circleci.com/gh/dustinstansbury/spearmint) -->
-<!-- ![Coverage](https://codecov.io/gh/dustinstansbury/spearmint/branch/master/graph/badge.svg) -->
+<!-- ![Coverage](https://codecov.io/gh/dustinstansbury/spearmint/branch/main/graph/badge.svg) -->
 
 # ⚠️ This fork is a WIP
  The goals of this fork are to...
 - [X] update to newer version of python (>=3.10)
 - [X] update to 100% Python
   - [X] convert all Stan MCMC models to PyMC5
-  - [ ] use analytic solutions to Bayesian inference where possible (e.g. conjugate prior models)
+  - [X] use analytic solutions to Bayesian inference where possible (e.g. conjugate prior models)
 - [X] improve reporting
   - [X] better terminal output (e.g. via rich)
   - [X] modern interactive plotting
+- [ ] Make API more intuitive
 ## Features
 - Offers a simple and intuitive, yet powerful API for running, visualizing, and interpreting statistically-rigorous hypothesis tests with none of the hastle of jumping between various statistical or visualization packages.
 - Supports most common variable types used in AB Tests inlcuding:
