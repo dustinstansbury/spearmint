@@ -228,8 +228,8 @@ class HypothesisTest:
 
         Returns
         -------
-        results : subclass of `TestResultsBase`
-            The container class holding the summary of the experiment
+        results : InferenceResults
+            The object class holding the summary of the experiment
 
         """
 

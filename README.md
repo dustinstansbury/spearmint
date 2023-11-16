@@ -106,13 +106,13 @@ The three key components of running an AB test are:
 
 - **The `Experiment`**, which references the observations recorded during experiment (described above) and any optional metadata associated with the experiment.
 - **The `HypothesisTest`**, which defines the hypothesis and statistical inference method applied to the experiment data.
-- **The `HypothesisTestResults`**, which is the statistical artifact that results from running a `HypothesisTest` against an `Experiment`'s observations. The `HypothesisTestResults` are used to summarize, visualize, and interpret the inference results and make decisions based on these results.
+- **The `InferenceResults`**, which is the statistical artifact that results from running a `HypothesisTest` against an `Experiment`'s observations. The `InferenceResults` are used to summarize, visualize, and interpret the inference results and make decisions based on these results.
 
 Thus running an hypothesiss test in spearmint follows the basic 123 pattern:
 
 1. Initialize your `Experiment` with observations and (optionally) any associated metadata.
 2. Define your `HypothesisTest`. This requires defining the `hypothesis` and a relevant `inference_method`, which will depend on the support of your observations.
-3. Run the test against your experiment and interpret the resulting `HypothesisTestResults`
+3. Run the test against your experiment and interpret the resulting `InferenceResults`
 
 We now demonstrate how to run and analyze a hypothesis test on the artificial observations data generated above. Since this simulated experiment focuses on a binary `metric` we'll want our `HypothesisTest` to use an `inference_method` that supports binary variables. The `"proportions_delta"` inference method, which tests for a significant difference in average probability between two different samples of probabilities is a valid test for our needs. Here our probabilities equal either `0` or `1`, but the sample averages will likely be equal to some intermediate value. This is analogous to AB tests that aim to compare conversion rates between a control and a variation group.
 
@@ -140,7 +140,7 @@ ab_test = HypothesisTest(
     hypothesis='larger'
 )
 
-# 3. Run and interpret the `HypothesisTestResults`
+# 3. Run and interpret the `InferenceResults`
 # Here, we run our HypothesisTest with an assumed
 # Type I error rate of alpha=0.05
 ab_test_results = exp.run_test(ab_test, alpha=.05)

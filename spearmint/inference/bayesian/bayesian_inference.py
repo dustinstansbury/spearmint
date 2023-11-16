@@ -126,11 +126,11 @@ class BayesianInferenceResults(InferenceResults):
         )
 
     def _render_stats_table(self):
-        self._stats_table = BayesianTestResultsTable(self)
+        self._stats_table = BayesianInferenceResultsTable(self)
         return self._stats_table
 
 
-class BayesianTestResultsTable(SpearmintTable):
+class BayesianInferenceResultsTable(SpearmintTable):
     def __init__(self, results: BayesianInferenceResults):
         super().__init__(title="Bayesian Delta Results", show_header=False)
 
