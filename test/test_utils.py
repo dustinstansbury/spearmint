@@ -20,6 +20,8 @@ def test_rmdir_mkdir(testdir):
 def test_process_warnings():
     assert utils.process_warnings("a warning") == "a warning"
     assert utils.process_warnings(["a", "warning"]) == "a; warning"
+    assert utils.process_warnings([["a"], "warning"]) == "a; warning"
+    assert utils.process_warnings([["a"], ["warning"]]) == "a; warning"
 
 
 def test_coerce_value():

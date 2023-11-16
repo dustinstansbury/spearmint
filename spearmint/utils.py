@@ -50,10 +50,18 @@ def rmdir(dirname: Union[str, Path]) -> None:
 def process_warnings(warnings: Union[str, List[str]]) -> str:
     """Convert sequence of warnings into a string"""
 
+    def _flatten(_warnings):  # noqa
+        for w in _warnings:
+            if isinstance(w, Iterable) and not isinstance(w, str):
+                for subw in _flatten(w):
+                    yield subw
+            else:
+                yield w
+
     if len(warnings) > 0:
         if isinstance(warnings, list):
-            flattened_warnings = [item for lst in warnings for item in lst]
-            warnings = "\n".join(flattened_warnings)
+            flattened_warnings = _flatten(warnings)
+            warnings = "; ".join(flattened_warnings)
         return warnings
 
 
