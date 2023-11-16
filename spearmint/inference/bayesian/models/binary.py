@@ -36,7 +36,7 @@ class BinomialAnalyticModel(BayesianAnalyticModel):
 
     References
     ----------
-    -
+    - https://www.cs.ubc.ca/~murphyk/Teaching/CS340-Fall06/lectures/bernoulli-slides.pdf
     """
 
     def __init__(
@@ -116,6 +116,7 @@ def build_bernoulli_analytic_model(
     prior_alpha: float = 1.0,
     prior_beta: float = 1.0,
 ) -> Tuple[BinomialAnalyticModel, Dict[str, float]]:
+    """Note: we use the same model for Binomial/Bernoulli, as they are equivalent"""
     return build_binomial_analytic_model(
         control_samples=control_samples,
         variation_samples=variation_samples,
