@@ -41,8 +41,9 @@ vis_backend=matplotlib
 figure_width_pixels=800
 figure_height_pixels=400
 
-[pymc]:
+[bayesian_inference]:
 default_mcmc_sampler=nuts
+n_posterior_samples=1000
 """
 
 TEMPLATE_BEGIN_PATTERN = (
@@ -181,6 +182,9 @@ DEFAULT_ALPHA = get("hypothesis_test", "default_alpha")
 DEFAULT_TEST_DIRECTION = get("hypothesis_test", "default_test_direction")
 MIN_OBS_FOR_Z_TEST = get("hypothesis_test", "min_obs_for_z_test")
 # DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "bayesian_inference_method")
+
+# Configure Bayesian Inference
+N_POSTERIOR_SAMPLES = get("bayesian_inference", "n_posterior_samples")
 
 
 # Configure Visualization

@@ -5,6 +5,7 @@ from arviz import InferenceData
 from dataclasses import dataclass
 
 from spearmint.typing import Union, Dict, Any, Tuple, FilePath
+from spearmint.config import N_POSTERIOR_SAMPLES
 from spearmint.table import SpearmintTable
 from spearmint.stats import Samples
 from spearmint.utils import format_value, process_warnings
@@ -16,9 +17,6 @@ from spearmint.inference.bayesian.models.analytic_base import (
     BayesianAnalyticModel,
 )
 
-
-# TODO: Set this with config
-DEFAULT_POSTERIOR_SAMPLES = 1000
 
 # TODO: Enums for all these
 CONTINUOUS_MODEL_NAMES = ["gaussian", "student_t"]
@@ -358,7 +356,7 @@ def _fit_model_advi(model: _BayesianModel, **inference_kwargs) -> InferenceData:
         with model.model_object:
             mean_field = pm.fit(method="advi", **inference_kwargs)
 
-            return mean_field.sample(DEFAULT_POSTERIOR_SAMPLES)
+            return mean_field.sample(N_POSTERIOR_SAMPLES)
 
     raise UnsupportedParameterEstimationMethodException(
         f"ADVI parameter estimation not supported for {model.model_name} model"
@@ -367,7 +365,7 @@ def _fit_model_advi(model: _BayesianModel, **inference_kwargs) -> InferenceData:
 
 def _fit_model_analytic(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.analytic_estimation_supported:
-        return model.model_object.sample(DEFAULT_POSTERIOR_SAMPLES)
+        return model.model_object.sample(N_POSTERIOR_SAMPLES)
 
     raise UnsupportedParameterEstimationMethodException(
         f"Analytic parameter estimation not supported for {model.model_name} model"
