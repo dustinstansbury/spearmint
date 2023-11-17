@@ -130,7 +130,7 @@ class Experiment:
 
         Returns
         -------
-        test_results: an instance of a HypothesisTestResults or sublass
+        test_results: an instance of a InferenceResults or sublass
             The results of the statistical test.
         """
 
@@ -235,4 +235,5 @@ class Experiment:
             test_group_results.visualize()
 
         test_group_results.run_at = datetime.now()
+
         return test_group_results

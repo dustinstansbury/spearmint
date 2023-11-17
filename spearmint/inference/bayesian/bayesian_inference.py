@@ -17,6 +17,8 @@ from spearmint.inference.bayesian.models.analytic_base import (
     BayesianAnalyticModel,
 )
 
+from spearmint.inference.inference_base import InferenceResults, OrderedDict
+
 
 # TODO: Enums for all these
 CONTINUOUS_MODEL_NAMES = ["gaussian", "student_t"]
@@ -59,9 +61,6 @@ def _get_delta_param(model_name):
         return "p"
     elif model_name in COUNTS_MODEL_NAMES:
         return "lambda"
-
-
-from spearmint.inference.inference_base import InferenceResults, OrderedDict
 
 
 class BayesianInferenceResults(InferenceResults):
@@ -197,7 +196,7 @@ class BayesianInferenceResultsTable(SpearmintTable):
 
 def visualize_bayesian_delta_results(
     results: BayesianInferenceResults, outfile: FilePath = None
-):
+):  # pragma: no cover
     # Lazy import
     from spearmint import vis
     import holoviews as hv

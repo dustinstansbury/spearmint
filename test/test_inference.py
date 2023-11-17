@@ -1,7 +1,16 @@
+import pytest
 from collections import OrderedDict
 
+from spearmint.stats import Samples
+from spearmint.utils import generate_fake_observations
 from spearmint.inference import InferenceResults, InferenceProcedure
 from spearmint.typing import DataFrame
+
+
+@pytest.fixture()
+def test_samples():
+    observations = generate_fake_observations(distribution="bernoulli")["metric"].values
+    return Samples(observations=observations, name="test")
 
 
 class ExtendedInferenceResults(InferenceResults):

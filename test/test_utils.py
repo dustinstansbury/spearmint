@@ -2,6 +2,15 @@ import pytest
 import numpy as np
 import os
 from spearmint import utils
+import tempfile
+import shutil
+
+
+@pytest.fixture()
+def testdir():
+    tmpdir = tempfile.mkdtemp()
+    yield tmpdir
+    shutil.rmtree(tmpdir)
 
 
 def test_rmdir_mkdir(testdir):

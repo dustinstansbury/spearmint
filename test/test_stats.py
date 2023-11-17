@@ -1,12 +1,19 @@
 import pytest
 import numpy as np
 from spearmint import stats
+from spearmint.utils import generate_fake_observations
 
 
 TEST_SAMPLES_NAME = "TestSamples"
 TEST_CONTINUOUS_SAMPLE_VARIANCE = 1.0
 TEST_BINARY_SAMPLE_VARIANCE = 0.5**2
 TEST_COUNT_SAMPLE_RATE = 10
+
+
+@pytest.fixture()
+def test_samples():
+    observations = generate_fake_observations(distribution="bernoulli")["metric"].values
+    return stats.Samples(observations=observations, name="test")
 
 
 @pytest.fixture

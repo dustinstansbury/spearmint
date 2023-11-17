@@ -105,7 +105,9 @@ class InferenceResults(DataframeableMixin):
         except Exception as e:
             raise InferenceResultsDisplayError(e)
 
-    def visualize(self, outfile: FilePath = None, *args, **kwargs) -> Element:
+    def visualize(
+        self, outfile: FilePath = None, *args, **kwargs
+    ) -> Element:  # pragma: no cover
         """Visualize the inference procedure results
 
         Parameters

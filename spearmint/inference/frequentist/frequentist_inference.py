@@ -168,7 +168,7 @@ class FrequentistInferenceResultsTable(SpearmintTable):
         if results.correction_method is not None:
             self.add_row(
                 "MC Correction",
-                results.correction_method,
+                results.correction_method.__name__,
             )
         if results.warnings:
             self.add_row(

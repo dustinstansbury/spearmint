@@ -305,8 +305,8 @@ class GroupInferenceResults:
         self.corrected_results = corrected_results
         self.correction = correction
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(ntests={self.ntests}, correction_method='{self.correction.method}')"
+    # def __repr__(self) -> str:
+    #     return f"{self.__class__.__name__}(ntests={self.ntests}, correction_method='{self.correction.mc_correction_method}')"
 
     def display(self) -> None:
         for ii, res in enumerate(self.corrected_results):

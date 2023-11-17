@@ -37,6 +37,8 @@ def test_hypothesis_test_group(test_data):
     )
     test_group_results = exp.run_test_group(test_group)
 
+    test_group_results.display()
+
     assert (
         test_group_results.corrected_results[0].correction_method.__name__
         == "bonferroni_correction"

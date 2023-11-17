@@ -1,5 +1,13 @@
 import pytest
+from spearmint.utils import generate_fake_observations
 from spearmint.dataset import search_config, Dataset, DataFrame, DatasetException
+
+
+@pytest.fixture()
+def test_observations():
+    from spearmint.utils import generate_fake_observations
+
+    return generate_fake_observations(distribution="bernoulli")
 
 
 def test_search_config():
