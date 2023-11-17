@@ -33,6 +33,12 @@ SUPPORTED_BAYESIAN_MODEL_NAMES = (
     CONTINUOUS_MODEL_NAMES + BINARY_MODEL_NAMES + COUNTS_MODEL_NAMES
 )
 
+DEFAULT_VARIABLE_TYPE_MODELS = {
+    "continuous": "gaussian",
+    "binary": "binomial",
+    "counts": "poisson",
+}
+
 SUPPORTED_PARAMETER_ESTIMATION_METHODS = ("mcmc", "advi", "analytic")
 
 
@@ -40,7 +46,10 @@ class UnsupportedParameterEstimationMethodException(Exception):
     pass
 
 
-def _get_model_name(model_name: str) -> str:
+def _get_model_name(model_name: str, variable_type: str) -> str:
+    if model_name is None:
+        return DEFAULT_VARIABLE_TYPE_MODELS[variable_type]
+
     clean_model_name = model_name.replace("-", "_").replace(" ", "_")
     if clean_model_name not in SUPPORTED_BAYESIAN_MODEL_NAMES:
         raise ValueError(f"Unsupported model: {clean_model_name}")
@@ -381,6 +390,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
     def __init__(
         self,
         parameter_estimation_method: str = "mcmc",
+        model_name: str = None,
         model_params: dict = None,
         *args,
         **kwargs,
@@ -413,7 +423,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             model.
         """
         super().__init__(*args, **kwargs)
-        self.model_name = _get_model_name(self.inference_method)
+        self.model_name = _get_model_name(model_name, self.variable_type)
         self.data_type = _get_model_datatype(self.model_name)
         assert parameter_estimation_method in SUPPORTED_PARAMETER_ESTIMATION_METHODS
         self.parameter_estimation_method = parameter_estimation_method

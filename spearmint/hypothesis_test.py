@@ -1,5 +1,5 @@
 from spearmint.typing import List, DataFrame, Union, Callable, Iterable, FilePath
-from spearmint.utils import ensure_dataframe
+from spearmint.utils import ensure_dataframe, infer_variable_type
 from spearmint.config import DEFAULT_ALPHA
 from spearmint.stats import (
     MultipleComparisonCorrection,
@@ -69,7 +69,7 @@ class CustomMetric:
 
     Parameters
     ----------
-    f: function
+    metric_function: Callable
         the function that defines an operation performed on each row of the
         dataframe, resulting in a derived value.
     """
@@ -85,16 +85,21 @@ class HypothesisTest:
     """
     Executes directives for running inference a procudure to compare the central
     tendencies of two groups of random samples.
+
+    Parameters
+    ----------
+
     """
 
     def __init__(
         self,
-        inference_method: str,
+        inference_method: str = "frequentist",
         metric: Union[str, CustomMetric] = None,
         control: str = None,
         variation: str = None,
+        hypothesis: str = "larger",
         segmentation: Union[str, List[str]] = None,
-        # date=None,
+        variable_type: str = None,
         **inference_procedure_init_params,
     ):
         """
@@ -128,6 +133,10 @@ class HypothesisTest:
             Defines a list of logical filter operations that follows the conventions
             used by Panda's dataframe query api and segments the treatments into subgroups.
             If a list provided, all operations are combined using logical AND
+        variable_type : optional str, None
+            One of 'continuous', 'binary', 'counts'. Explicitly declares the variable
+            type. If None provided, we infer the variable type from the values
+            of `metric`.
         **inference_procedure_init_params : dict
             Any additional parameters used to initialize the inference procedure
 
@@ -135,26 +144,29 @@ class HypothesisTest:
         self.metric = metric
         self.control = control
         self.variation = variation
-        self.inference_method = inference_method
+        self.inference_method = (
+            inference_method.lower().replace("-", "_").replace(" ", "_")
+        )
+        self.variable_type = variable_type
+        self.hypothesis = hypothesis
 
         # TODO: add back in segmentation to InferenceProcedure
         if isinstance(segmentation, list):
             segmentation = " & ".join(segmentation)
         self.segmentation = segmentation
 
-        # if date is None:
-        #     self.date = datetime.now().date()
-
         if isinstance(self.metric, CustomMetric):
             self.metric_column = self.metric.metric_function.__name__
         else:
             self.metric_column = metric
 
-        self.inference_procedure = get_inference_procedure(
-            inference_method=self.inference_method,
-            metric_name=self.metric_column,
-            **inference_procedure_init_params,
-        )
+        self.inference_procedure_init_params = inference_procedure_init_params
+
+        # self.inference_procedure = get_inference_procedure(
+        #     inference_method=self.inference_method,
+        #     metric_name=self.metric_column,
+        #     **inference_procedure_init_params,
+        # )
 
     def _add_custom_metric_column(self, _data):
         data = _data.copy()
@@ -205,7 +217,6 @@ class HypothesisTest:
         control_samples: Samples,
         variation_samples: Samples,
         alpha: float = DEFAULT_ALPHA,
-        # **inference_kwargs,
     ) -> InferenceResults:
         """
         Run the statistical test inference procedure comparing two groups of
@@ -232,6 +243,19 @@ class HypothesisTest:
             The object class holding the summary of the experiment
 
         """
+        self.variable_type = (
+            self.variable_type
+            if self.variable_type is not None
+            else infer_variable_type(control_samples.data)
+        )
+
+        self.inference_procedure = get_inference_procedure(
+            variable_type=self.variable_type,
+            inference_method=self.inference_method,
+            metric_name=self.metric_column,
+            hypothesis=self.hypothesis,
+            **self.inference_procedure_init_params,
+        )
 
         # Update alphas
         self.alpha = alpha
@@ -240,7 +264,6 @@ class HypothesisTest:
         results = self.inference_procedure.run(
             control_samples,
             variation_samples,
-            # **inference_kwargs,
         )
 
         results.metric_name = self.metric_column
@@ -259,7 +282,7 @@ class HypothesisTest:
                 setattr(copy, k, v)
 
         copy.inference_procedure = get_inference_procedure(
-            copy.inference_method, **inference_kwargs
+            copy.variable_type, copy.inference_method, **inference_kwargs
         )
         return copy
 

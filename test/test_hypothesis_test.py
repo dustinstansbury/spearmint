@@ -12,24 +12,80 @@ def test_data():
     )
 
 
-def test_hypothesis_test_group(test_data):
+def test_hypothesis_test(test_data):
     exp = Experiment(data=test_data)
-
-    # run 'A/A' test (should never reject null)
-    test_aa = HypothesisTest(
-        metric="metric",
-        control="A",
-        variation="A",
-        hypothesis="larger",
-        inference_method="means_delta",
-    )
-    # run A/B test
-    test_ab = HypothesisTest(
+    default_test = HypothesisTest(
         metric="metric",
         control="A",
         variation="B",
-        hypothesis="larger",
-        inference_method="means_delta",
+    )
+    # Defaults
+    assert default_test.inference_method == "frequentist"  # inference method
+    assert default_test.variable_type is None  # variable type not inferred
+    assert default_test.hypothesis == "larger"
+
+    # Infer datatype from `metric`
+    exp.run_test(default_test)
+
+    assert (
+        default_test.variable_type == "continuous"
+    )  # datatype inferred during `run_test``
+
+    # Copying
+    copy_test = default_test.copy(
+        variation="C", inference_method="bootstrap", variable_type="binary"
+    )
+    assert copy_test.variation == "C"
+    assert copy_test.inference_method == "bootstrap"
+    assert copy_test.variable_type == "binary"
+
+    custom_test = HypothesisTest(
+        metric="metric",
+        control="A",
+        variation="B",
+        variable_type="counts",
+        inference_method="frequentist",
+    )
+
+    assert custom_test.inference_method == "frequentist"
+    assert custom_test.variable_type == "counts"  # explicit variable type
+
+    exp.run_test(custom_test)
+
+    assert (
+        custom_test.variable_type == "counts"
+    )  # explicit variable type doesn't change
+
+    with pytest.raises(ValueError):
+        invalid_inference_method_test = HypothesisTest(
+            metric="metric",
+            control="A",
+            variation="B",
+            inference_method="invalid_inference_method",
+        )
+        exp.run_test(invalid_inference_method_test)
+
+    with pytest.raises(ValueError):
+        invalid_variable_type_test = HypothesisTest(
+            metric="metric",
+            control="A",
+            variation="B",
+            inference_method="frequentist",
+            variable_type="invalid_variable_type",
+        )
+        exp.run_test(invalid_variable_type_test)
+
+
+def test_hypothesis_test_group(test_data):
+    exp = Experiment(data=test_data)
+
+    # run 'A/A' test (should not reject null)
+    test_aa = HypothesisTest(
+        metric="metric", control="A", variation="A", hypothesis="larger"
+    )
+    # run A/B test
+    test_ab = HypothesisTest(
+        metric="metric", control="A", variation="B", hypothesis="larger"
     )
     correction_method = "b"  # shorthand for Bonferonni
     test_group = HypothesisTestGroup(
@@ -64,13 +120,12 @@ def test_custom_metric(test_data):
         metric=CustomMetric(custom_metric),
         control="A",
         variation="B",
-        hypothesis="larger",
-        inference_method="means_delta",
     )
     results_ab = exp.run_test(test_ab)
-    results_ab.to_dataframe()
+    assert test_ab.metric_column == "custom_metric"
 
     results_ab.display()
 
+    assert results_ab.accept_hypothesis
     assert results_ab.test_statistic_name == "z"
     assert results_ab.accept_hypothesis

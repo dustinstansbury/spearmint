@@ -225,7 +225,8 @@ class InferenceResults(DataframeableMixin):
 
 class InferenceProcedure(ABC):
     """
-    Base class for all inference procedures. Must implement the following methods:
+    Base class for all inference procedures. Must implement the following
+    private abstracmethods:
 
         -   `_run_inference()` : runs the inference procedure, updating any internal
             state needed for displaying and/or visualizing results
@@ -235,18 +236,44 @@ class InferenceProcedure(ABC):
 
     def __init__(
         self,
-        inference_method: str,
+        variable_type: str = "continuous",
+        inference_method: str = "frequentist",
         metric_name: str = None,
         hypothesis: str = "larger",
         alpha: float = DEFAULT_ALPHA,
         **inference_procedure_init_params,
     ):
+        """_summary_
+
+        Parameters
+        ----------
+        variable_type : str, optional
+            The variable type we run inference on. One of "continuous", "binary",
+            or "counts"; by default "continuous".
+        inference_method : str, optional
+            The inference method to use. One of "frequentist", "bootstrap",
+            or "bayesian"; by default "frequentist"
+        metric_name : str, optional
+            The name of the metric for reporting, by default None
+        hypothesis : str, optional
+            The directionality of the hypothesis, namely whether the variation
+            is "larger", "smaller", or "unequal" compared to the control;
+            default "larger"
+        alpha : float, optional
+            The acceptable Type I error for the inference procedure. By default
+            takes the value of `hypothesis_test.default_alpha` in the system
+            `spearmint.cfg` file.
+        **inference_procedure_init_params
+            Any additional parameters used to customize a specific inference
+            procedure on init.
+        """
+        self.variable_type = variable_type
         self.inference_method = inference_method
         self.metric_name = metric_name
         self.hypothesis = hypothesis
         self.alpha = alpha
 
-        # These are updated after runnint the inference procedure
+        # Updated after running the inference procedure
         self._results = None
 
     @abstractmethod
@@ -268,7 +295,7 @@ class InferenceProcedure(ABC):
         variation_samples: Samples,
     ) -> InferenceResults:
         """
-        Run inference procedure on control / variation samples, and report results
+        Run the current inference procedure on control / variation samples.
 
         Parameters
         ----------
@@ -283,7 +310,6 @@ class InferenceProcedure(ABC):
         -------
         results : InferenceResults
             The results of running the inference procedure
-
         """
         self._run_inference(control_samples, variation_samples)
         self._results = self._make_results()
@@ -306,27 +332,34 @@ class InferenceProcedure(ABC):
 
 
 def get_inference_procedure(
-    inference_method: str, **inference_procedure_init_params
+    variable_type: str, inference_method: str, **inference_procedure_init_params
 ) -> InferenceProcedure:
     from spearmint.inference.bayesian.bayesian_inference import (
         SUPPORTED_BAYESIAN_MODEL_NAMES,
     )
 
-    _method = inference_method.lower().replace("-", "_").replace(" ", "_")
-    if _method in ("means_delta"):
-        from .frequentist.means_delta import MeansDelta as IP
+    if inference_method == "frequentist":
+        if variable_type == "continuous":
+            from .frequentist.means_delta import MeansDelta as IP
 
-    elif _method in ("proportions_delta"):
-        from .frequentist.proportions_delta import ProportionsDelta as IP
+        elif variable_type == "binary":
+            from .frequentist.proportions_delta import ProportionsDelta as IP
 
-    elif _method in ("rates_ratio"):
-        from .frequentist.rates_ratio import RatesRatio as IP
+        elif variable_type == "counts":
+            from .frequentist.rates_ratio import RatesRatio as IP
+        else:
+            raise ValueError("Unknown variable type")
 
-    elif _method in ("bootstrap"):
+    elif inference_method == "bootstrap":
         from .frequentist.bootstrap_delta import BootstrapDelta as IP
 
-    elif _method in SUPPORTED_BAYESIAN_MODEL_NAMES:
+    elif inference_method in SUPPORTED_BAYESIAN_MODEL_NAMES:
         from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP
     else:
         raise ValueError(f"Unknown inference method {inference_method}")
-    return IP(inference_method=inference_method, **inference_procedure_init_params)
+
+    return IP(
+        variable_type=variable_type,
+        inference_method=inference_method,
+        **inference_procedure_init_params,
+    )
