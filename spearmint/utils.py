@@ -163,6 +163,28 @@ def ensure_dataframe(data: Any, data_attr: str = "data") -> DataFrame:
     return data
 
 
+def infer_variable_type(values: np.ndarray) -> str:
+    """Infer the type of variable distribution from `values`
+
+    Parameters
+    ----------
+    values : np.ndarray
+        An array of observations
+
+    Returns
+    -------
+    str
+        The type of variable. Either 'binary', 'counts', or 'continuous'
+    """
+    if values.dtype == bool:
+        return "binary"
+    if len(set(values)) == 2 and values.min() == 0 and values.max() == 1:
+        return "binary"
+    if sum(values.astype(int) - values) == 0:
+        return "counts"
+    return "continuous"
+
+
 def set_matplotlib_backend() -> str:
     """
     Set supported matplotlb backend depending on the current platform.

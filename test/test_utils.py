@@ -67,6 +67,15 @@ def test_ensure_dataframe():
     assert utils.ensure_dataframe(DataObj(), "data").equals(test_data)
 
 
+def test_infer_variable_type():
+    assert utils.infer_variable_type(np.array([True, False])) == "binary"
+    assert utils.infer_variable_type(np.array([1, 0, 1])) == "binary"
+    assert utils.infer_variable_type(np.array([1.0, 0.0, 1.0])) == "binary"
+    assert utils.infer_variable_type(np.array([1, 2, 3])) == "counts"
+    assert utils.infer_variable_type(np.array([1.0, 2.0, 3.0])) == "counts"
+    assert utils.infer_variable_type(np.array([1.0, 2.1, 3.0])) == "continuous"
+
+
 def test_set_matplotlib_backend():
     assert utils.set_matplotlib_backend() in ("pdf", "agg")
 
