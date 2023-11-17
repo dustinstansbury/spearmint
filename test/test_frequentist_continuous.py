@@ -20,7 +20,8 @@ def test_means_delta_experiment_t(means_data):
         control="A",
         variation="A",
         hypothesis="unequal",
-        inference_method="means_delta",
+        inference_method="frequentist",
+        variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
     assert results_ab.test_statistic_name == "t"
@@ -34,7 +35,8 @@ def test_means_delta_experiment_unequal_ab(means_data):
         control="A",
         variation="F",
         hypothesis="unequal",
-        inference_method="means_delta",
+        inference_method="frequentist",
+        variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
     assert results_ab.test_statistic_name == "z"
@@ -49,7 +51,8 @@ def test_means_delta_experiment_larger_ab(means_data):
         control="A",
         variation="F",
         hypothesis="larger",
-        inference_method="means_delta",
+        inference_method="frequentist",
+        variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
     assert results_ab.test_statistic_name == "z"
@@ -64,7 +67,8 @@ def test_means_delta_experiment_smaller_ab(means_data):
         control="A",
         variation="F",
         hypothesis="smaller",
-        inference_method="means_delta",
+        inference_method="frequentist",
+        variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
     assert results_ab.test_statistic_name == "z"
@@ -79,7 +83,8 @@ def test_means_delta_experiment_aa(means_data):
         control="A",
         variation="A",
         hypothesis="larger",
-        inference_method="means_delta",
+        inference_method="frequentist",
+        variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
     assert results_ab.test_statistic_name == "z"
