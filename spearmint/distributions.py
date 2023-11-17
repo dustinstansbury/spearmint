@@ -74,7 +74,7 @@ class Pdf(ProbabilityDistribution):
     def density(self, values: np.ndarray) -> np.ndarray:
         return self.dist.pdf(values)
 
-    def plot(self, **plot_opts) -> Curve:
+    def plot(self, **plot_opts) -> Curve:  # pragma: no cover
         plot_data = self.get_series()
         plot_opts.update(FIGURE_PARAMS)
         return hv.Curve(
@@ -93,7 +93,7 @@ class Pmf(ProbabilityDistribution):
     def density(self, values: np.ndarray) -> np.ndarray:
         return self.dist.pmf(values)
 
-    def plot(self, **plot_opts) -> Bars:
+    def plot(self, **plot_opts) -> Bars:  # pragma: no cover
         values, pmf = self.get_series()
         plot_data = zip(values, pmf)
         plot_opts.update(FIGURE_PARAMS)
@@ -101,11 +101,6 @@ class Pmf(ProbabilityDistribution):
         return hv.Curve(
             data=plot_data, label=self.label, kdims="value", vdims="pdf"
         ).opts(color=self.color, **plot_opts)
-
-        # TODO: fix Bars axes representation in favor of Curve
-        # return hv.Bars(
-        #     data=bar_data, label=self.label, kdims="value", vdims="pmf"
-        # ).opts(color=self.color, **plot_opts)
 
 
 class ProbabilityDistributionGroup:
@@ -116,7 +111,7 @@ class ProbabilityDistributionGroup:
     def __init__(self, pdfs: List[Union[Pdf, Pmf]]):
         self.pdfs = pdfs
 
-    def plot(self, **plot_opts) -> Overlay:
+    def plot(self, **plot_opts) -> Overlay:  # pragma: no cover
         plot_opts.update(FIGURE_PARAMS)
         overlay = self.pdfs[0].plot(**plot_opts)
         for pdf in self.pdfs[1:]:
@@ -126,7 +121,7 @@ class ProbabilityDistributionGroup:
 
 class Gaussian(Pdf):
     """
-    A Gaussian PDF
+    A Gaussian probability density function
     """
 
     def __init__(
@@ -170,7 +165,7 @@ class Binomial(Pmf):
     def __init__(
         self, n: int = 20, p: float = 0.5, label: str = "Binomial", *args, **kwargs
     ):
-        super(Binomial, self).__init__(label=label, *args, **kwargs)
+        super().__init__(label=label, *args, **kwargs)
         self.n = n
         self.p = p
         self.dist = stats.binom(n, p)

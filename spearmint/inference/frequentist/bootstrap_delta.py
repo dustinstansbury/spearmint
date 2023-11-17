@@ -10,7 +10,7 @@ from .frequentist_inference import (
 
 def visualize_bootstrap_delta_results(
     results: FrequentistInferenceResults, outfile: FilePath = None
-):
+):  # pragma: no cover
     # Lazy import
     from spearmint import vis
     import holoviews as hv
