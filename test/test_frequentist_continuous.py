@@ -5,15 +5,15 @@ from spearmint.utils import generate_fake_observations
 
 
 @pytest.fixture()
-def means_data():
+def continuous_data():
     return generate_fake_observations(
         distribution="gaussian", n_treatments=6, n_observations=6 * 50, random_seed=123
     )
 
 
-def test_means_delta_experiment_t(means_data):
+def test_means_delta_experiment_t(continuous_data):
     """Small sample sizes defautl to t-tests"""
-    exp = Experiment(means_data.sample(29))
+    exp = Experiment(continuous_data.sample(29))
 
     test_ab = HypothesisTest(
         metric="metric",
@@ -27,8 +27,8 @@ def test_means_delta_experiment_t(means_data):
     assert results_ab.test_statistic_name == "t"
 
 
-def test_means_delta_experiment_unequal_ab(means_data):
-    exp = Experiment(means_data)
+def test_means_delta_experiment_unequal_ab(continuous_data):
+    exp = Experiment(continuous_data)
 
     test_ab = HypothesisTest(
         metric="metric",
@@ -43,8 +43,8 @@ def test_means_delta_experiment_unequal_ab(means_data):
     assert results_ab.accept_hypothesis
 
 
-def test_means_delta_experiment_larger_ab(means_data):
-    exp = Experiment(means_data)
+def test_means_delta_experiment_larger_ab(continuous_data):
+    exp = Experiment(continuous_data)
 
     test_ab = HypothesisTest(
         metric="metric",
@@ -59,8 +59,8 @@ def test_means_delta_experiment_larger_ab(means_data):
     assert results_ab.accept_hypothesis
 
 
-def test_means_delta_experiment_smaller_ab(means_data):
-    exp = Experiment(means_data)
+def test_means_delta_experiment_smaller_ab(continuous_data):
+    exp = Experiment(continuous_data)
 
     test_ab = HypothesisTest(
         metric="metric",
@@ -75,8 +75,8 @@ def test_means_delta_experiment_smaller_ab(means_data):
     assert not results_ab.accept_hypothesis
 
 
-def test_means_delta_experiment_aa(means_data):
-    exp = Experiment(means_data)
+def test_means_delta_experiment_aa(continuous_data):
+    exp = Experiment(continuous_data)
 
     test_ab = HypothesisTest(
         metric="metric",
@@ -89,3 +89,14 @@ def test_means_delta_experiment_aa(means_data):
     results_ab = exp.run_test(test_ab)
     assert results_ab.test_statistic_name == "z"
     assert not results_ab.accept_hypothesis
+
+
+def test_means_delta_default(continuous_data):
+    exp = Experiment(continuous_data)
+
+    test_ab = HypothesisTest(metric="metric", control="A", variation="B")
+    results_ab = exp.run_test(test_ab)
+    assert results_ab.accept_hypothesis
+    assert test_ab.inference_method == "frequentist"
+    assert test_ab.variable_type == "continuous"
+    assert results_ab.accept_hypothesis
