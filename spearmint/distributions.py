@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+
+
 import numpy as np
 
 from scipy import stats
@@ -10,10 +13,11 @@ from spearmint.config import FIGURE_PARAMS, COLORS
 from spearmint.typing import Union, List, Tuple
 
 N_GRID_POINTS = 100
+PDF_ZERO = 1e-5
 DEFAULT_DISTRIBUTION_COLOR = COLORS.blue
 
 
-class ProbabilityDistribution:
+class ProbabilityDistribution(ABC):
     """Base class for plottable probability distributions"""
 
     def __init__(self, label: str = "", color: str = DEFAULT_DISTRIBUTION_COLOR):
@@ -30,7 +34,7 @@ class ProbabilityDistribution:
         Tuple[np.ndarray, np.ndarray]
             _description_
         """
-        values = self.values_grid().ravel()
+        values = self.values_grid.ravel()
         probs = self.density(values)
         return values, probs
 
@@ -50,17 +54,24 @@ class ProbabilityDistribution:
     def ppf(self, values: np.ndarray) -> np.ndarray:
         return self.dist.ppf(values)
 
+    @abstractmethod
+    def _get_values_grid(self) -> np.ndarray:
+        """Private abstractmethod to get default values grid"""
+        pass
+
+    @property
     def values_grid(self) -> np.ndarray:
         """
         Return the default domain values for plotting
         """
-        raise NotImplementedError("Implement Me")
+        return self._get_values_grid()
 
+    @abstractmethod
     def density(self, values: np.ndarray) -> np.ndarray:
         """
-        Evaluate the PDF/PMF at the provided values
+        Public abstract method to evaluate the PDF/PMF at the provided values.
         """
-        raise NotImplementedError("Implement Me")
+        pass
 
 
 class Pdf(ProbabilityDistribution):
@@ -137,9 +148,9 @@ class Gaussian(Pdf):
         self.std = std
         self.dist = stats.norm(loc=mean, scale=std)
 
-    def values_grid(self) -> np.ndarray:
-        _min = self.ppf(1e-5)
-        _max = self.ppf(1 - 1e-5)
+    def _get_values_grid(self) -> np.ndarray:
+        _min = self.ppf(PDF_ZERO)
+        _max = self.ppf(1 - PDF_ZERO)
         return np.linspace(_min, _max, N_GRID_POINTS + 1)
 
 
@@ -153,7 +164,7 @@ class Bernoulli(Pmf):
         self.p = p
         self.dist = stats.bernoulli(p)
 
-    def values_grid(self) -> np.ndarray:
+    def _get_values_grid(self) -> np.ndarray:
         return np.linspace(0.0, 1.0, 2)
 
 
@@ -170,9 +181,9 @@ class Binomial(Pmf):
         self.p = p
         self.dist = stats.binom(n, p)
 
-    def values_grid(self):
-        _min = self.ppf(1e-4)
-        _max = self.ppf(1 - 1e-4)
+    def _get_values_grid(self):
+        _min = self.ppf(PDF_ZERO)
+        _max = self.ppf(1 - PDF_ZERO)
         resolution = int(_max - _min) + 1
 
         if resolution > 25:
@@ -191,10 +202,10 @@ class Poisson(Pmf):
         self.mu = mu
         self.dist = stats.poisson(mu)
 
-    def values_grid(self):
-        _min = self.ppf(1e-5)
-        _max = self.ppf(1 - 1e-5)
-        return np.arange(_min, _max)
+    def _get_values_grid(self):
+        _min = self.ppf(PDF_ZERO)
+        _max = self.ppf(1 - PDF_ZERO)
+        return np.arange(_min, _max + 1)
 
 
 class Kde(Pdf):
@@ -204,14 +215,17 @@ class Kde(Pdf):
 
     def __init__(self, samples: np.ndarray, label: str = "KDE", *args, **kwargs):
         super().__init__(label=label, *args, **kwargs)
-        self.kde = stats.gaussian_kde(samples)
-        low = min(samples)
-        high = max(samples)
-        self._values_grid = np.linspace(low, high, N_GRID_POINTS + 1)
+        self.dist = stats.gaussian_kde(samples)
+        self.low = min(samples)
+        self.high = max(samples)
+
+    def _get_values_grid(self):
+        return np.linspace(self.low, self.high, N_GRID_POINTS + 1)
 
     def density(self, values: np.ndarray) -> np.ndarray:
         """Note, we overload Pdf.density here"""
-        return self.kde.evaluate(values)
+        return self.dist.evaluate(values)
 
-    def values_grid(self):
-        return self._values_grid
+    def sample(self, sample_size: int):
+        """Note: we sample 1D arrays"""
+        return self.dist.resample(size=sample_size).flatten()
