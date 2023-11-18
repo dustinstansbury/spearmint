@@ -87,9 +87,7 @@ def test_inference_results(test_samples):
     # Check datarame export support
     results_df = results.to_dataframe()
     assert isinstance(results_df, DataFrame)
-    # ExtendedInferenceResults has additional `specific_property` field in its
-    # `_specific_property` dictionary
-    assert len(results_df.columns) == len(results._base_properties) + 1
+    assert len(results_df.columns) == len(results._base_properties)
 
 
 def test_inference_procedure(test_samples):
