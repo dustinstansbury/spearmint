@@ -185,6 +185,10 @@ Test Results:
 ab_test_results.visualize()
 ```
 
+Test here
+<script src="https://gist.github.com/dustinstansbury/431db64b9a5080c9fe9baf25be00fb7b.js"></script>
+
+
 ![proportions_delta_inference_example](./images/proportions_delta_example.png "proportions_delta Inference Example")
 
 We see that the Hypothesis test declares that the variation `'C is larger'` (than the control `"A"`) showing a 43% relative increase in conversion rate, and a moderate effect size of 0.38. This results in a p-value of 0.028, which is lower than the prescribed $\alpha=0.05$.
