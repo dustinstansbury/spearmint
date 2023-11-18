@@ -186,7 +186,7 @@ ab_test_results.visualize()
 ```
 
 Test here
-<iframe src="./images/test.html"
+<iframe src="file://./images/test.html"
     sandbox="allow-same-origin allow-scripts"
     width="100%"
     height="500"
