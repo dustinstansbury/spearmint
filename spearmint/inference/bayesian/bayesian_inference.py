@@ -1,7 +1,7 @@
 import numpy as np
 import pymc as pm
-from arviz import InferenceData
 
+from arviz import InferenceData
 from dataclasses import dataclass
 
 from spearmint.typing import Union, Dict, Any, Tuple, FilePath
@@ -12,12 +12,12 @@ from spearmint.utils import format_value, process_warnings
 from spearmint.inference.inference_base import (
     InferenceProcedure,
     InferenceResultsMissingError,
+    InferenceResults,
+    OrderedDict,
 )
 from spearmint.inference.bayesian.models.analytic_base import (
     BayesianAnalyticModel,
 )
-
-from spearmint.inference.inference_base import InferenceResults, OrderedDict
 
 
 # TODO: Enums for all these
@@ -90,6 +90,7 @@ class BayesianInferenceResults(InferenceResults):
         effect_size_hdi: Tuple[float, float],
         hdi_percentiles: Tuple[float, float],
         prob_greater_than_zero: float,
+        parameter_estimation_method: str,
         model_name: str,
         data_type: Union[float, int],
         model_params: Dict[str, Any] = None,
@@ -107,6 +108,7 @@ class BayesianInferenceResults(InferenceResults):
         self.delta_relative_hdi = delta_relative_hdi
         self.effect_size_hdi = effect_size_hdi
         self.prob_greater_than_zero = prob_greater_than_zero
+        self.parameter_estimation_method = parameter_estimation_method
         self.model_name = model_name
         self.data_type = data_type
         self.model_params = model_params if model_params else {}
@@ -183,6 +185,10 @@ class BayesianInferenceResultsTable(SpearmintTable):
         self.add_row(
             "Model Name",
             results.model_name,
+        )
+        self.add_row(
+            "Estimation Method",
+            results.parameter_estimation_method,
         )
         self.add_row(
             f"p({results.variation.name} > {results.control.name})",
@@ -548,6 +554,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             delta_posterior=self.delta_posterior,
             delta_relative_posterior=self.delta_relative_posterior,
             effect_size_posterior=self.effect_size_posterior,
+            parameter_estimation_method=self.parameter_estimation_method,
             model_name=self.model_name,
             alpha=self.alpha,
             hypothesis=self.hypothesis,
