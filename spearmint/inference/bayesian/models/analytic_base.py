@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import arviz as az
 import numpy as np
 
-from spearmint.typing import Dict
 from spearmint.stats import Samples
 
 
@@ -56,9 +55,9 @@ class BayesianAnalyticModel(ABC):
         delta_posterior_samples = (
             variation_posterior_samples - control_posterior_samples
         )
-        delta_relative_sampels = (
-            variation_posterior_samples / control_posterior_samples - 1
-        )
+        delta_relative_samples = (
+            variation_posterior_samples - control_posterior_samples
+        ) / np.abs(np.mean(control_posterior_samples))
         effect_size_posterior_samples = delta_posterior_samples / np.sqrt(
             np.var(control_posterior_samples) + np.var(variation_posterior_samples)
         )
@@ -67,7 +66,7 @@ class BayesianAnalyticModel(ABC):
             f"{self.delta_param}_control": control_posterior_samples,
             f"{self.delta_param}_variation": variation_posterior_samples,
             "delta": delta_posterior_samples,
-            "delta_relative": delta_relative_sampels,
+            "delta_relative": delta_relative_samples,
             "effect_size": effect_size_posterior_samples,
         }
 

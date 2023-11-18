@@ -90,7 +90,7 @@ def build_gaussian_analytic_model(
     control_samples: Samples,
     variation_samples: Samples,
     prior_mean: float = 0.0,
-    prior_var: float = 1.0,
+    prior_var: float = 10.0,
 ) -> Tuple[GaussianAnalyticModel, Dict[str, float]]:
     model = GaussianAnalyticModel(prior_mean=prior_mean, prior_var=prior_var)
     model.calculate_posteriors(control_samples, variation_samples)
@@ -102,6 +102,10 @@ def build_gaussian_analytic_model(
 def build_gaussian_pymc_model(
     control_samples: Samples,
     variation_samples: Samples,
+    prior_mean_mu: float = 0.0,
+    prior_var_mu: float = 5.0,
+    prior_mean_sigma: float = 1.0,
+    prior_var_sigma: float = 5.0,
 ) -> Tuple[pm.Model, Dict[str, float]]:
     """
     Compiles a Hierarchical Gaussian Bayesian PyMC model for modeling binary data.
@@ -130,23 +134,23 @@ def build_gaussian_pymc_model(
     -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.TruncatedNormal.html
     """
 
-    # Empirically-informed priors hyperparams
-    control_mean = control_samples.mean
-    control_std = control_samples.std
-
-    variation_mean = variation_samples.mean
-    variation_std = variation_samples.std
-
     with pm.Model() as model:
+        hyperparams = {
+            "prior_mean_mu": prior_mean_mu,
+            "prior_var_mu": prior_var_mu,
+            "prior_mean_sigma": prior_mean_sigma,
+            "prior_var_sigma": prior_var_sigma,
+        }
+
         # Priors
         sigma_control = pm.TruncatedNormal(
-            "sigma_control", lower=1e-4, mu=control_std, sigma=1
+            "sigma_control", lower=1e-4, mu=prior_mean_sigma, sigma=prior_var_sigma
         )
         sigma_variation = pm.TruncatedNormal(
-            "sigma_variation", lower=1e-4, mu=variation_std, sigma=1
+            "sigma_variation", lower=1e-4, mu=prior_mean_sigma, sigma=prior_var_sigma
         )
-        mu_control = pm.Normal("mu_control", mu=control_mean, sigma=control_std)
-        mu_variation = pm.Normal("mu_variation", mu=variation_mean, sigma=variation_std)
+        mu_control = pm.Normal("mu_control", mu=prior_mean_mu, sigma=prior_var_mu)
+        mu_variation = pm.Normal("mu_variation", mu=prior_mean_mu, sigma=prior_var_mu)
 
         # Likelihoods
         pm.Normal(
@@ -161,18 +165,15 @@ def build_gaussian_pymc_model(
 
         # Inference parameters
         delta = pm.Deterministic("delta", mu_variation - mu_control)
-        pm.Deterministic("delta_relative", (mu_variation / mu_control) - 1.0)
+        pm.Deterministic(
+            "delta_relative",
+            (mu_variation - mu_control) / pm.math.abs(control_samples.mean),
+        )
         pm.Deterministic(
             "effect_size",
             delta / pm.math.sqrt((sigma_control**2.0 + sigma_variation**2.0) / 2.0),
         )
 
-    hyperparams = {
-        "sigma_control_mu": control_mean,
-        "sigma_control_sigma": 1,
-        "sigma_variation_mu": variation_mean,
-        "sigma_variation_sigma": 1,
-    }
     return model, hyperparams
 
 
@@ -185,6 +186,11 @@ def build_student_t_analytic_model() -> None:
 def build_student_t_pymc_model(
     control_samples: Samples,
     variation_samples: Samples,
+    prior_mean_mu: float = 0.0,
+    prior_var_mu: float = 5.0,
+    prior_mean_sigma: float = 1.0,
+    prior_var_sigma: float = 5.0,
+    prior_nu_precision: float = 0.5,
 ) -> Tuple[pm.Model, Dict[str, float]]:
     """
     Compiles a Hierarchical Student-t Bayesian PyMC model for modeling binary data.
@@ -218,28 +224,22 @@ def build_student_t_pymc_model(
     """
 
     # Empirically-informed priors hyperparams
-    control_mean = control_samples.mean
-    control_std = control_samples.std
 
-    variation_mean = variation_samples.mean
-    variation_std = variation_samples.std
-
-    nu_prior_precision = 0.5
     sigma_prior_var = 1
 
     with pm.Model() as model:
         # Priors
         sigma_control = pm.TruncatedNormal(
-            "sigma_control", lower=1e-4, mu=control_std, sigma=sigma_prior_var
+            "sigma_control", lower=1e-4, mu=prior_mean_sigma, sigma=prior_var_sigma
         )
         sigma_variation = pm.TruncatedNormal(
-            "sigma_variation", lower=1e-4, mu=variation_std, sigma=sigma_prior_var
+            "sigma_variation", lower=1e-4, mu=prior_mean_sigma, sigma=prior_var_sigma
         )
-        mu_control = pm.Normal("mu_control", mu=control_mean, sigma=control_std)
-        mu_variation = pm.Normal("mu_variation", mu=variation_mean, sigma=variation_std)
+        mu_control = pm.Normal("mu_control", mu=prior_mean_mu, sigma=prior_var_mu)
+        mu_variation = pm.Normal("mu_variation", mu=prior_mean_mu, sigma=prior_var_mu)
 
-        nu_control = pm.Exponential("nu_control", lam=1 / nu_prior_precision)
-        nu_variation = pm.Exponential("nu_variation", lam=1 / nu_prior_precision)
+        nu_control = pm.Exponential("nu_control", lam=1 / prior_nu_precision)
+        nu_variation = pm.Exponential("nu_variation", lam=1 / prior_nu_precision)
 
         # Likelihoods
         pm.StudentT(
@@ -259,17 +259,20 @@ def build_student_t_pymc_model(
 
         # Inference parameters
         delta = pm.Deterministic("delta", mu_variation - mu_control)
-        pm.Deterministic("delta_relative", (mu_variation / mu_control) - 1.0)
+        pm.Deterministic(
+            "delta_relative",
+            (mu_variation - mu_control) / pm.math.abs(control_samples.mean),
+        )
         pm.Deterministic(
             "effect_size",
             delta / pm.math.sqrt((sigma_control**2.0 + sigma_variation**2.0) / 2.0),
         )
 
     hyperparams = {
-        "sigma_control_mu": control_mean,
-        "sigma_control_sigma": sigma_prior_var,
-        "sigma_variation_mu": variation_mean,
-        "sigma_variation_sigma": sigma_prior_var,
-        "nu_precision": nu_prior_precision,
+        "prior_mean_mu": prior_mean_mu,
+        "prior_var_mu": prior_var_mu,
+        "prior_mean_sigma": prior_mean_sigma,
+        "prior_var_sigma": prior_var_sigma,
+        "prior_nu_precision": prior_nu_precision,
     }
     return model, hyperparams
