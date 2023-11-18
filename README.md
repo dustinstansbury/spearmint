@@ -186,8 +186,14 @@ ab_test_results.visualize()
 ```
 
 Test here
-<script src="https://gist.github.com/dustinstansbury/431db64b9a5080c9fe9baf25be00fb7b.js"></script>
-
+<iframe src="/images/test.html"
+    sandbox="allow-same-origin allow-scripts"
+    width="100%"
+    height="500"
+    scrolling="no"
+    seamless="seamless"
+    frameborder="0">
+</iframe>
 
 ![proportions_delta_inference_example](./images/proportions_delta_example.png "proportions_delta Inference Example")
 
