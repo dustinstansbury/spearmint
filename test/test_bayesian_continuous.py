@@ -11,19 +11,42 @@ def continuous_data():
 
 
 @pytest.mark.pymc_test
+def test_bayesian_continuous_default(continuous_data):
+    exp = Experiment(data=continuous_data)
+    test = HypothesisTest(
+        metric="metric", control="A", variation="B", inference_method="bayesian"
+    )
+
+    test_results = exp.run_test(test)
+    test_results.display()
+
+    assert test_results.model_name == "gaussian"
+    assert test_results.parameter_estimation_method == "mcmc"
+    assert test_results.model_hyperparams["prior_mean_mu"] == 0.0
+    assert test_results.model_hyperparams["prior_var_mu"] == 5.0
+    assert test_results.model_hyperparams["prior_mean_sigma"] == 1.0
+    assert test_results.model_hyperparams["prior_var_sigma"] == 5.0
+    assert test_results.accept_hypothesis
+    assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
+
+
+@pytest.mark.pymc_test
 def test_bayesian_gaussian_ab_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="gaussian",
         metric="metric",
         control="A",
         variation="B",
+        inference_method="bayesian",
         # parameter_estimation_method="mcmc",  # MCMC is default
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert (
+        test_results.model_name == "gaussian"
+    )  # Gaussian is default for continuous data
     assert test_results.accept_hypothesis
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
@@ -32,16 +55,19 @@ def test_bayesian_gaussian_ab_mcmc(continuous_data):
 def test_bayesian_gaussian_aa_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="gaussian",
         metric="metric",
         control="A",
         variation="A",
+        inference_method="bayesian",
         # parameter_estimation_method="mcmc",  # MCMC is default
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert (
+        test_results.model_name == "gaussian"
+    )  # Gaussian is default for continuous data
     assert not test_results.accept_hypothesis
     assert (
         not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
@@ -52,16 +78,19 @@ def test_bayesian_gaussian_aa_mcmc(continuous_data):
 def test_bayesian_gaussian_ab_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="gaussian",
         metric="metric",
         control="A",
         variation="B",
+        inference_method="bayesian",
         parameter_estimation_method="advi",  # use ADVI parameter estimation
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert (
+        test_results.model_name == "gaussian"
+    )  # Gaussian is default for continuous data
     assert test_results.accept_hypothesis
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
@@ -70,16 +99,19 @@ def test_bayesian_gaussian_ab_advi(continuous_data):
 def test_bayesian_gaussian_aa_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="gaussian",
         metric="metric",
         control="A",
         variation="A",
+        inference_method="bayesian",
         parameter_estimation_method="advi",  # use ADVI parameter estimation
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert (
+        test_results.model_name == "gaussian"
+    )  # Gaussian is default for continuous data
     assert not test_results.accept_hypothesis
     assert (
         not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
@@ -89,16 +121,19 @@ def test_bayesian_gaussian_aa_advi(continuous_data):
 def test_bayesian_gaussian_ab_analytic(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="gaussian",
         metric="metric",
         control="A",
         variation="B",
+        inference_method="bayesian",
         parameter_estimation_method="analytic",  # use Analytic parameter estimation
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert (
+        test_results.model_name == "gaussian"
+    )  # Gaussian is default for continuous data
     assert test_results.accept_hypothesis
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
@@ -106,16 +141,19 @@ def test_bayesian_gaussian_ab_analytic(continuous_data):
 def test_bayesian_gaussian_aa_analytic(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="gaussian",
         metric="metric",
         control="A",
         variation="A",
+        inference_method="bayesian",
         parameter_estimation_method="analytic",  # use Analytic parameter estimation
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert (
+        test_results.model_name == "gaussian"
+    )  # Gaussian is default for continuous data
     assert not test_results.accept_hypothesis
     assert (
         not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
@@ -126,16 +164,18 @@ def test_bayesian_gaussian_aa_analytic(continuous_data):
 def test_bayesian_student_t_ab_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="student_t",
         metric="metric",
         control="A",
         variation="B",
+        inference_method="bayesian",
+        model_name="student_t",
         # parameter_estimation_method="mcmc",  # MCMC is default
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert test_results.model_name == "student_t"
     assert test_results.accept_hypothesis
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
@@ -144,15 +184,18 @@ def test_bayesian_student_t_ab_mcmc(continuous_data):
 def test_bayesian_student_t_aa_mcmc(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="student_t",
         metric="metric",
         control="A",
-        variation="A",  # parameter_estimation_method="mcmc",  # MCMC is default
+        variation="A",
+        inference_method="bayesian",
+        model_name="student_t",
+        # parameter_estimation_method="mcmc",  # MCMC is default
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert test_results.model_name == "student_t"
     assert not test_results.accept_hypothesis
     assert (
         not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
@@ -163,16 +206,18 @@ def test_bayesian_student_t_aa_mcmc(continuous_data):
 def test_bayesian_student_t_ab_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="student_t",
         metric="metric",
         control="A",
         variation="B",
+        inference_method="bayesian",
+        model_name="student_t",
         parameter_estimation_method="advi",  # use ADVI parameter estimation
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert test_results.model_name == "student_t"
     assert test_results.accept_hypothesis
     assert pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
 
@@ -181,16 +226,18 @@ def test_bayesian_student_t_ab_advi(continuous_data):
 def test_bayesian_student_t_aa_advi(continuous_data):
     exp = Experiment(data=continuous_data)
     test = HypothesisTest(
-        inference_method="student_t",
         metric="metric",
         control="A",
         variation="A",
+        inference_method="bayesian",
+        model_name="student_t",
         parameter_estimation_method="advi",  # use ADVI parameter estimation
     )
 
     test_results = exp.run_test(test)
     test_results.display()
 
+    assert test_results.model_name == "student_t"
     assert not test_results.accept_hypothesis
     assert (
         not pytest.approx(test_results.prob_greater_than_zero, rel=0.1, abs=0.01) == 1.0
