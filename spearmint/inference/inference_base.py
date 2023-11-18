@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-
+from enum import Enum
 from datetime import datetime
 
 from holoviews import Element
@@ -28,6 +28,24 @@ class InferenceResultsMissingError(Exception):
     """Raised when there are no results associated with an inference procedure."""
 
     pass
+
+
+class VariableType(str, Enum):
+    continuous = "continuous"
+    binary = "binary"
+    counts = "counts"
+
+
+class InferenceMethod(str, Enum):
+    frequentist = "frequentist"
+    bayesian = "bayesian"
+    bootstrap = "bootstrap"
+
+
+class Hypothesis(str, Enum):
+    larger = "larger"
+    smaller = "smaller"
+    unequal = "unequal"
 
 
 class InferenceResults(DataframeableMixin):
@@ -68,10 +86,11 @@ class InferenceResults(DataframeableMixin):
         delta: float,
         delta_relative: float,
         effect_size: float,
-        hypothesis: str,
+        hypothesis: Hypothesis,
         alpha: float,
         accept_hypothesis: bool,
-        inference_method: str = None,
+        inference_method: InferenceMethod = None,
+        variable_type: VariableType = None,
         comparison_type: str = None,
         warnings: List[str] = [],
         aux: dict = {},
@@ -84,6 +103,7 @@ class InferenceResults(DataframeableMixin):
         self.delta_relative = delta_relative
         self.effect_size = effect_size
         self.hypothesis = hypothesis
+        self.variable_type = variable_type
         self.alpha = alpha
         self.accept_hypothesis = accept_hypothesis
         self.inference_method = inference_method
@@ -201,6 +221,7 @@ class InferenceResults(DataframeableMixin):
                 ("hypothesis", self.hypothesis),
                 ("accept_hypothesis", self.accept_hypothesis),
                 ("inference_method", self.inference_method),
+                ("variable_type", self.variable_type),
                 # ("segmentation", self.segmentation),
                 ("warnings", self.warnings),
             ]
@@ -236,10 +257,10 @@ class InferenceProcedure(ABC):
 
     def __init__(
         self,
-        variable_type: str = "continuous",
-        inference_method: str = "frequentist",
+        variable_type: VariableType = VariableType.continuous,
+        inference_method: InferenceMethod = InferenceMethod.frequentist,
+        hypothesis: Hypothesis = Hypothesis.larger,
         metric_name: str = None,
-        hypothesis: str = "larger",
         alpha: float = DEFAULT_ALPHA,
         **inference_procedure_init_params,
     ):
@@ -247,15 +268,15 @@ class InferenceProcedure(ABC):
 
         Parameters
         ----------
-        variable_type : str, optional
+        variable_type : VariableType, optional
             The variable type we run inference on. One of "continuous", "binary",
             or "counts"; by default "continuous".
-        inference_method : str, optional
+        inference_method : InferenceMethod, optional
             The inference method to use. One of "frequentist", "bootstrap",
             or "bayesian"; by default "frequentist"
         metric_name : str, optional
             The name of the metric for reporting, by default None
-        hypothesis : str, optional
+        hypothesis : Hypothesis, optional
             The directionality of the hypothesis, namely whether the variation
             is "larger", "smaller", or "unequal" compared to the control;
             default "larger"
@@ -338,25 +359,25 @@ def get_inference_procedure(
         SUPPORTED_BAYESIAN_MODEL_NAMES,
     )
 
-    if inference_method == "frequentist":
-        if variable_type == "continuous":
+    if inference_method == InferenceMethod.frequentist:
+        if variable_type == VariableType.continuous:
             from .frequentist.means_delta import MeansDelta as IP
 
-        elif variable_type == "binary":
+        elif variable_type == VariableType.binary:
             from .frequentist.proportions_delta import ProportionsDelta as IP
 
-        elif variable_type == "counts":
+        elif variable_type == VariableType.counts:
             from .frequentist.rates_ratio import RatesRatio as IP
         else:
-            raise ValueError("Unknown variable type")
+            raise ValueError(f"Unknown variable type `{variable_type}`")
 
-    elif inference_method == "bootstrap":
+    elif inference_method == InferenceMethod.bootstrap:
         from .frequentist.bootstrap_delta import BootstrapDelta as IP
 
-    elif inference_method in SUPPORTED_BAYESIAN_MODEL_NAMES:
+    elif inference_method == InferenceMethod.bayesian:
         from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP
     else:
-        raise ValueError(f"Unknown inference method {inference_method}")
+        raise ValueError(f"Unknown inference method `{inference_method}`")
 
     return IP(
         variable_type=variable_type,
