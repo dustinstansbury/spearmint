@@ -1,6 +1,6 @@
+import numpy as np
 import pytest
 
-import numpy as np
 from spearmint import Experiment, HypothesisTest
 from spearmint.utils import generate_fake_observations
 

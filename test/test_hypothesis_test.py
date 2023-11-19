@@ -1,8 +1,10 @@
-import pytest
 import numpy as np
-from spearmint.utils import generate_fake_observations
+import pytest
+
 from spearmint.experiment import Experiment
-from spearmint.hypothesis_test import HypothesisTest, HypothesisTestGroup, CustomMetric
+from spearmint.hypothesis_test import (CustomMetric, HypothesisTest,
+                                       HypothesisTestGroup)
+from spearmint.utils import generate_fake_observations
 
 
 @pytest.fixture()

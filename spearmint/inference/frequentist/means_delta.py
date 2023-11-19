@@ -1,20 +1,20 @@
-from numpy import ndarray, inf
+from numpy import inf, ndarray
 
 from spearmint.config import MIN_OBS_FOR_Z_TEST
-from spearmint.typing import Tuple, FilePath
-from spearmint.stats import Samples, MeanComparison
-from .frequentist_inference import (
-    FrequentistInferenceProcedure,
-    FrequentistInferenceResults,
-)
+from spearmint.stats import MeanComparison, Samples
+from spearmint.typing import FilePath, Tuple
+
+from .frequentist_inference import (FrequentistInferenceProcedure,
+                                    FrequentistInferenceResults)
 
 
 def visualize_means_delta_results(
     results: FrequentistInferenceResults, outfile: FilePath = None
 ):  # pragma: no cover
     # Lazy import
-    from spearmint import vis
     import holoviews as hv
+
+    from spearmint import vis
 
     # Sample distributinos
     control_dist = vis.plot_gaussian(

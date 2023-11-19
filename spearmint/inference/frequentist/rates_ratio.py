@@ -1,20 +1,20 @@
 import numpy as np
 from scipy.stats import norm
 
-from spearmint.typing import Tuple, FilePath
-from spearmint.stats import Samples, RateComparison
-from .frequentist_inference import (
-    FrequentistInferenceProcedure,
-    FrequentistInferenceResults,
-)
+from spearmint.stats import RateComparison, Samples
+from spearmint.typing import FilePath, Tuple
+
+from .frequentist_inference import (FrequentistInferenceProcedure,
+                                    FrequentistInferenceResults)
 
 
 def visualize_rates_ratio_results(
     results: FrequentistInferenceResults, outfile: FilePath = None
 ):  # pragma: no cover
     # Lazy import
-    from spearmint import vis
     import holoviews as hv
+
+    from spearmint import vis
 
     # Sample distribution comparison plot
     control_dist = vis.plot_poisson(

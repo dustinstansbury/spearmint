@@ -1,15 +1,13 @@
-import os
-import logging
 import getpass
-
+import logging
+import os
 from configparser import ConfigParser
 from dataclasses import dataclass
 
 import holoviews as hv
 
+from spearmint.typing import Any, Iterable, Union
 from spearmint.utils import coerce_value, mkdir
-from spearmint.typing import Any, Union, Iterable
-
 
 CONFIG_TEMPLATE = """
 # Define default configuration for environment, including any common/standard

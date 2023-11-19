@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 
 from holoviews import Element
 
-
-from spearmint.typing import FilePath, List, Callable
 from spearmint.mixin import DataframeableMixin
-from spearmint.stats import Samples, SamplesComparisonTable, DEFAULT_ALPHA
+from spearmint.stats import DEFAULT_ALPHA, Samples, SamplesComparisonTable
+from spearmint.typing import Callable, FilePath, List
 from spearmint.utils import process_warnings
 
 
@@ -355,9 +354,8 @@ class InferenceProcedure(ABC):
 def get_inference_procedure(
     variable_type: str, inference_method: str, **inference_procedure_init_params
 ) -> InferenceProcedure:
-    from spearmint.inference.bayesian.bayesian_inference import (
-        SUPPORTED_BAYESIAN_MODEL_NAMES,
-    )
+    from spearmint.inference.bayesian.bayesian_inference import \
+        SUPPORTED_BAYESIAN_MODEL_NAMES
 
     if inference_method == InferenceMethod.frequentist:
         if variable_type == VariableType.continuous:
@@ -375,7 +373,8 @@ def get_inference_procedure(
         from .frequentist.bootstrap_delta import BootstrapDelta as IP
 
     elif inference_method == InferenceMethod.bayesian:
-        from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP
+        from .bayesian.bayesian_inference import \
+            BayesianInferenceProcedure as IP
     else:
         raise ValueError(f"Unknown inference method `{inference_method}`")
 

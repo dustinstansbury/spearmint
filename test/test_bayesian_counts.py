@@ -1,8 +1,8 @@
 import pytest
+
 from spearmint import Experiment, HypothesisTest
-from spearmint.inference.bayesian.bayesian_inference import (
-    UnsupportedParameterEstimationMethodException,
-)
+from spearmint.inference.bayesian.bayesian_inference import \
+    UnsupportedParameterEstimationMethodException
 from spearmint.utils import generate_fake_observations
 
 

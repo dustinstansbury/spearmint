@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import stats
+
 from spearmint import distributions as dst
 
 TEST_LABEL = "my_pdf"

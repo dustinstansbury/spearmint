@@ -1,20 +1,14 @@
 import copy
-
 from datetime import datetime
+
 from pandas import DataFrame
 
-from spearmint.typing import List
 from spearmint.config import DEFAULT_ALPHA
 from spearmint.dataset import Dataset
-from spearmint.stats import Samples
-
-from spearmint.stats import MultipleComparisonCorrection
-from spearmint.hypothesis_test import (
-    HypothesisTest,
-    HypothesisTestGroup,
-    InferenceResults,
-    GroupInferenceResults,
-)
+from spearmint.hypothesis_test import (GroupInferenceResults, HypothesisTest,
+                                       HypothesisTestGroup, InferenceResults)
+from spearmint.stats import MultipleComparisonCorrection, Samples
+from spearmint.typing import List
 
 
 class Experiment:

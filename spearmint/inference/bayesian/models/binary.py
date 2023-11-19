@@ -1,9 +1,9 @@
 import pymc as pm
-
 from scipy import stats
 
-from spearmint.typing import Tuple, Dict
 from spearmint.stats import Samples
+from spearmint.typing import Dict, Tuple
+
 from .analytic_base import BayesianAnalyticModel
 
 

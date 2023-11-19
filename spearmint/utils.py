@@ -1,10 +1,11 @@
 import os
 import shutil
-import numpy as np
-import pandas as pd
 import string
 
-from spearmint.typing import Any, List, Iterable, Union, DataFrame, Path
+import numpy as np
+import pandas as pd
+
+from spearmint.typing import Any, DataFrame, Iterable, List, Path, Union
 
 BIG_FLOAT = 2.0**32
 SMALL_FLOAT = -(2.0**32)
@@ -195,6 +196,7 @@ def set_matplotlib_backend() -> str:
         The matplotlib backend being used
     """
     from sys import platform
+
     import matplotlib as mpl
 
     backend = "pdf" if platform == "darwin" else "agg"

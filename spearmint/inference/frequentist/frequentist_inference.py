@@ -1,12 +1,14 @@
-import numpy as np
-from scipy.stats import norm
 from collections import OrderedDict
 
-from spearmint.typing import Tuple, Protocol, Union, List, FilePath
-from spearmint.utils import format_value, process_warnings
-from spearmint.table import SpearmintTable
+import numpy as np
+from scipy.stats import norm
+
+from spearmint.inference.inference_base import (InferenceProcedure,
+                                                InferenceResults)
 from spearmint.stats import CompareMeans
-from spearmint.inference.inference_base import InferenceProcedure, InferenceResults
+from spearmint.table import SpearmintTable
+from spearmint.typing import FilePath, List, Protocol, Tuple, Union
+from spearmint.utils import format_value, process_warnings
 
 
 class FrequentistInferenceResults(InferenceResults):

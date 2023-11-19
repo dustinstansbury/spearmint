@@ -1,5 +1,7 @@
-import pytest
 import json
+
+import pytest
+
 from spearmint import mixin
 
 

@@ -1,17 +1,11 @@
-import numpy as np
-
 import holoviews as hv
+import numpy as np
 from holoviews.element.chart import Curve
 
-from spearmint.typing import FilePath, Iterable
-from spearmint.config import (
-    FIGURE_PARAMS,
-    POINTS_PLOT_PARAMS,
-    COLORS,
-)
-from spearmint.utils import format_value
 from spearmint import distributions
-
+from spearmint.config import COLORS, FIGURE_PARAMS, POINTS_PLOT_PARAMS
+from spearmint.typing import FilePath, Iterable
+from spearmint.utils import format_value
 
 DEFAULT_COLOR = COLORS.blue
 CONTROL_COLOR = COLORS.blue

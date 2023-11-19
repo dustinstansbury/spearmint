@@ -1,16 +1,13 @@
 from abc import ABC, abstractmethod
 
-
+import holoviews as hv
 import numpy as np
-
+from holoviews.core.overlay import Overlay
+from holoviews.element.chart import Bars, Curve
 from scipy import stats
 
-import holoviews as hv
-from holoviews.element.chart import Curve, Bars
-from holoviews.core.overlay import Overlay
-
-from spearmint.config import FIGURE_PARAMS, COLORS
-from spearmint.typing import Union, List, Tuple
+from spearmint.config import COLORS, FIGURE_PARAMS
+from spearmint.typing import List, Tuple, Union
 
 N_GRID_POINTS = 100
 PDF_ZERO = 1e-5

@@ -1,4 +1,5 @@
 import json
+
 from pandas import DataFrame
 
 from spearmint.typing import Iterable

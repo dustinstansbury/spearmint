@@ -1,11 +1,11 @@
 import pymc as pm
 from scipy import stats
 
-from spearmint.typing import Dict, Tuple
+from spearmint.inference.bayesian.bayesian_inference import \
+    UnsupportedParameterEstimationMethodException
 from spearmint.stats import Samples
-from spearmint.inference.bayesian.bayesian_inference import (
-    UnsupportedParameterEstimationMethodException,
-)
+from spearmint.typing import Dict, Tuple
+
 from .analytic_base import BayesianAnalyticModel
 
 

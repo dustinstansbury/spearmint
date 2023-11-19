@@ -1,19 +1,11 @@
-from spearmint.typing import List, DataFrame, Union, Callable, Iterable, FilePath
-from spearmint.utils import ensure_dataframe, infer_variable_type
-from spearmint.config import DEFAULT_ALPHA
-from spearmint.stats import (
-    MultipleComparisonCorrection,
-    Samples,
-)
-from spearmint.inference import (
-    InferenceProcedure,
-    InferenceResults,
-    get_inference_procedure,
-)
-
-
-# from datetime import datetime
 from copy import deepcopy
+
+from spearmint.config import DEFAULT_ALPHA
+from spearmint.inference import InferenceResults, get_inference_procedure
+from spearmint.stats import MultipleComparisonCorrection, Samples
+from spearmint.typing import (Callable, DataFrame, FilePath, Iterable, List,
+                              Union)
+from spearmint.utils import ensure_dataframe, infer_variable_type
 
 
 class CohortFilter:

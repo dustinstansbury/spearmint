@@ -1,24 +1,20 @@
-import numpy as np
-import pymc as pm
-
-from arviz import InferenceData
 from dataclasses import dataclass
 
-from spearmint.typing import Union, Dict, Any, Tuple, FilePath
-from spearmint.config import N_POSTERIOR_SAMPLES
-from spearmint.table import SpearmintTable
-from spearmint.stats import Samples
-from spearmint.utils import format_value, process_warnings
-from spearmint.inference.inference_base import (
-    InferenceProcedure,
-    InferenceResultsMissingError,
-    InferenceResults,
-    OrderedDict,
-)
-from spearmint.inference.bayesian.models.analytic_base import (
-    BayesianAnalyticModel,
-)
+import numpy as np
+import pymc as pm
+from arviz import InferenceData
 
+from spearmint.config import N_POSTERIOR_SAMPLES
+from spearmint.inference.bayesian.models.analytic_base import \
+    BayesianAnalyticModel
+from spearmint.inference.inference_base import (InferenceProcedure,
+                                                InferenceResults,
+                                                InferenceResultsMissingError,
+                                                OrderedDict)
+from spearmint.stats import Samples
+from spearmint.table import SpearmintTable
+from spearmint.typing import Any, Dict, FilePath, Tuple, Union
+from spearmint.utils import format_value, process_warnings
 
 # TODO: Enums for all these
 CONTINUOUS_MODEL_NAMES = ["gaussian", "student_t"]
@@ -213,8 +209,9 @@ def visualize_bayesian_delta_results(
     results: BayesianInferenceResults, outfile: FilePath = None
 ):  # pragma: no cover
     # Lazy import
-    from spearmint import vis
     import holoviews as hv
+
+    from spearmint import vis
 
     control_posterior = results.control_posterior
     variation_posterior = results.variation_posterior

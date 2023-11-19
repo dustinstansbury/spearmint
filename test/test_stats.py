@@ -1,8 +1,8 @@
-import pytest
 import numpy as np
+import pytest
+
 from spearmint import stats
 from spearmint.utils import generate_fake_observations
-
 
 TEST_SAMPLES_NAME = "TestSamples"
 TEST_CONTINUOUS_SAMPLE_VARIANCE = 1.0

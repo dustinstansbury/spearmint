@@ -1,6 +1,8 @@
 import pytest
+
+from spearmint.dataset import (DataFrame, Dataset, DatasetException,
+                               search_config)
 from spearmint.utils import generate_fake_observations
-from spearmint.dataset import search_config, Dataset, DataFrame, DatasetException
 
 
 @pytest.fixture()

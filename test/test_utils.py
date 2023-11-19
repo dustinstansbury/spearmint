@@ -1,9 +1,11 @@
-import pytest
-import numpy as np
 import os
-from spearmint import utils
-import tempfile
 import shutil
+import tempfile
+
+import numpy as np
+import pytest
+
+from spearmint import utils
 
 
 @pytest.fixture()

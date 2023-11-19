@@ -1,4 +1,5 @@
 import pytest
+
 from spearmint import Experiment, HypothesisTest
 from spearmint.utils import generate_fake_observations
 

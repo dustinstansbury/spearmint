@@ -1,19 +1,19 @@
 import numpy as np
 
-from spearmint.typing import FilePath, Callable
-from spearmint.stats import Samples, BootstrapStatisticComparison
-from .frequentist_inference import (
-    FrequentistInferenceProcedure,
-    FrequentistInferenceResults,
-)
+from spearmint.stats import BootstrapStatisticComparison, Samples
+from spearmint.typing import Callable, FilePath
+
+from .frequentist_inference import (FrequentistInferenceProcedure,
+                                    FrequentistInferenceResults)
 
 
 def visualize_bootstrap_delta_results(
     results: FrequentistInferenceResults, outfile: FilePath = None
 ):  # pragma: no cover
     # Lazy import
-    from spearmint import vis
     import holoviews as hv
+
+    from spearmint import vis
 
     test_statistic_label = results.test_statistic_name.replace("_", " ")
     test_statistic_title = test_statistic_label.title()

@@ -1,8 +1,8 @@
-import pytest
 import logging
 import os
 import tempfile
 
+import pytest
 
 TEST_ENV_VARS = {"SPEARMINT_USER": "test", "SPEARMINT_HOME": tempfile.mkdtemp()}
 
@@ -14,8 +14,9 @@ def test_config():
     # Set update test env
     os.environ.update(TEST_ENV_VARS)
 
-    from spearmint import config
     import importlib
+
+    from spearmint import config
 
     # Reload the config with updated env vars
     importlib.reload(config)

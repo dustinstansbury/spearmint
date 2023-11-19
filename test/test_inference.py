@@ -1,10 +1,11 @@
-import pytest
 from collections import OrderedDict
 
+import pytest
+
+from spearmint.inference import InferenceProcedure, InferenceResults
 from spearmint.stats import Samples
-from spearmint.utils import generate_fake_observations
-from spearmint.inference import InferenceResults, InferenceProcedure
 from spearmint.typing import DataFrame
+from spearmint.utils import generate_fake_observations
 
 
 @pytest.fixture()
