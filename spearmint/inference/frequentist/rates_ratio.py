@@ -4,8 +4,10 @@ from scipy.stats import norm
 from spearmint.stats import RateComparison, Samples
 from spearmint.typing import FilePath, Tuple
 
-from .frequentist_inference import (FrequentistInferenceProcedure,
-                                    FrequentistInferenceResults)
+from .frequentist_inference import (
+    FrequentistInferenceProcedure,
+    FrequentistInferenceResults,
+)
 
 
 def visualize_rates_ratio_results(

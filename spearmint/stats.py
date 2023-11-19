@@ -4,8 +4,12 @@ from scipy.stats import norm
 from statsmodels.distributions.empirical_distribution import ECDF
 from statsmodels.stats.api import CompareMeans, DescrStatsW
 
-from spearmint.config import (DEFAULT_ALPHA, DEFAULT_TEST_DIRECTION,
-                              MIN_OBS_FOR_Z_TEST, logger)
+from spearmint.config import (
+    DEFAULT_ALPHA,
+    DEFAULT_TEST_DIRECTION,
+    MIN_OBS_FOR_Z_TEST,
+    logger,
+)
 from spearmint.table import SpearmintTable
 from spearmint.typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 from spearmint.utils import format_value

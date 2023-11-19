@@ -5,8 +5,12 @@ from pandas import DataFrame
 
 from spearmint.config import DEFAULT_ALPHA
 from spearmint.dataset import Dataset
-from spearmint.hypothesis_test import (GroupInferenceResults, HypothesisTest,
-                                       HypothesisTestGroup, InferenceResults)
+from spearmint.hypothesis_test import (
+    GroupInferenceResults,
+    HypothesisTest,
+    HypothesisTestGroup,
+    InferenceResults,
+)
 from spearmint.stats import MultipleComparisonCorrection, Samples
 from spearmint.typing import List
 

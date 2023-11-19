@@ -3,8 +3,7 @@ from collections import OrderedDict
 import numpy as np
 from scipy.stats import norm
 
-from spearmint.inference.inference_base import (InferenceProcedure,
-                                                InferenceResults)
+from spearmint.inference.inference_base import InferenceProcedure, InferenceResults
 from spearmint.stats import CompareMeans
 from spearmint.table import SpearmintTable
 from spearmint.typing import FilePath, List, Protocol, Tuple, Union

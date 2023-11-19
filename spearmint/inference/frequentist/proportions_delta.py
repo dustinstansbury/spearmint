@@ -3,8 +3,10 @@ import numpy as np
 from spearmint.stats import ProportionComparison, Samples
 from spearmint.typing import FilePath, Tuple
 
-from .frequentist_inference import (FrequentistInferenceProcedure,
-                                    FrequentistInferenceResults)
+from .frequentist_inference import (
+    FrequentistInferenceProcedure,
+    FrequentistInferenceResults,
+)
 
 
 def visualize_proportions_delta_results(

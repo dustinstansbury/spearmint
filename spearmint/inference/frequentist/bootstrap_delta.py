@@ -3,8 +3,10 @@ import numpy as np
 from spearmint.stats import BootstrapStatisticComparison, Samples
 from spearmint.typing import Callable, FilePath
 
-from .frequentist_inference import (FrequentistInferenceProcedure,
-                                    FrequentistInferenceResults)
+from .frequentist_inference import (
+    FrequentistInferenceProcedure,
+    FrequentistInferenceResults,
+)
 
 
 def visualize_bootstrap_delta_results(

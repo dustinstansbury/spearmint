@@ -5,12 +5,13 @@ import pymc as pm
 from arviz import InferenceData
 
 from spearmint.config import N_POSTERIOR_SAMPLES
-from spearmint.inference.bayesian.models.analytic_base import \
-    BayesianAnalyticModel
-from spearmint.inference.inference_base import (InferenceProcedure,
-                                                InferenceResults,
-                                                InferenceResultsMissingError,
-                                                OrderedDict)
+from spearmint.inference.bayesian.models.analytic_base import BayesianAnalyticModel
+from spearmint.inference.inference_base import (
+    InferenceProcedure,
+    InferenceResults,
+    InferenceResultsMissingError,
+    OrderedDict,
+)
 from spearmint.stats import Samples
 from spearmint.table import SpearmintTable
 from spearmint.typing import Any, Dict, FilePath, Tuple, Union
