@@ -197,8 +197,8 @@ def _get_vis_backend():
         try:
             import bokeh
 
-            return "bokeh"
-        except:
+            return bokeh.__name__
+        except ImportError:
             logger.warning(
                 "Bokeh not available, falling back to matplotlib visualizaiton backend"
             )

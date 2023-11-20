@@ -29,6 +29,7 @@ def test_large_proportions_delta_expermiment(binary_data):
     )
     results_aa = exp.run_test(test_aa)
 
+    results_aa.display()
     assert results_aa.test_statistic_name == "z"
     assert not results_aa.accept_hypothesis
 
@@ -42,6 +43,7 @@ def test_large_proportions_delta_expermiment(binary_data):
         variable_type="binary",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
 
     assert results_ab.test_statistic_name == "z"
     assert results_ab.accept_hypothesis
@@ -61,6 +63,7 @@ def test_proportions_delta_ab_unequal(binary_data):
     )
     results_ab = exp.run_test(test_ab)
 
+    results_ab.display()
     assert results_ab.test_statistic_name == "z"
     assert results_ab.accept_hypothesis
 
@@ -78,6 +81,7 @@ def test_proportions_delta_ab_larger(binary_data):
         variable_type="binary",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.accept_hypothesis
 
 
@@ -94,6 +98,7 @@ def test_proportions_delta_ab_smaller(binary_data):
         variable_type="binary",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert not results_ab.accept_hypothesis
 
 
@@ -110,6 +115,7 @@ def test_proportions_delta_aa(binary_data):
         variable_type="binary",
     )
     results_aa = exp.run_test(test_aa)
+    results_aa.display()
     assert not results_aa.accept_hypothesis
 
 
@@ -119,6 +125,7 @@ def test_proportions_delta_default(binary_data):
     # run A/B test
     test_ab = HypothesisTest(metric="metric", control="A", variation="F")
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.accept_hypothesis
     assert test_ab.inference_method == "frequentist"
     assert test_ab.variable_type == "binary"

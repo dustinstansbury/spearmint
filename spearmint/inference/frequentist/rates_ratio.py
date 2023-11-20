@@ -52,7 +52,7 @@ def visualize_rates_ratio_results(
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
-        f"Sample Distribution\nand Mean Estimates"
+        "Sample Distribution\nand Mean Estimates"
     ).opts(legend_position="right", xlabel="N Events", ylabel="pdf")
 
     # Delta distribution plot
@@ -225,6 +225,7 @@ class RatesRatio(FrequentistInferenceProcedure):
             delta_confidence_interval_percentiles=self.delta_ci_percentiles,
             hypothesis=self.hypothesis,
             inference_method=self.inference_method,
+            variable_type=self.variable_type,
             warnings=self.comparison.warnings,
             test_statistic_name=test_stats["statistic_name"],
             test_statistic_value=test_stats["statistic_value"],

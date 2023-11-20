@@ -224,10 +224,6 @@ def build_student_t_pymc_model(
     -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.Exponential.html
     """
 
-    # Empirically-informed priors hyperparams
-
-    sigma_prior_var = 1
-
     with pm.Model() as model:
         # Priors
         sigma_control = pm.TruncatedNormal(

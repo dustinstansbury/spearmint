@@ -25,6 +25,7 @@ class ExtendedInferenceResults(InferenceResults):
             alpha=alpha,
             accept_hypothesis=False,
             inference_method="test_inference",
+            variable_type="test_variable_type",
             warnings=["a warning"],
             *args,
             **kwargs
@@ -74,8 +75,9 @@ def validate_results(results, alpha: float = 0.05):
     assert results.dict["effect_size"] == 0
     assert results.dict["alpha"] == alpha
     assert results.dict["hypothesis"] == "larger"
-    assert results.dict["accept_hypothesis"] == False
+    assert results.dict["accept_hypothesis"] is False
     assert results.dict["inference_method"] == "test_inference"
+    assert results.dict["variable_type"] == "test_variable_type"
     assert results.dict["warnings"] == "a warning"
     assert results.dict["specific_property"] == "blah"
 
@@ -88,7 +90,7 @@ def test_inference_results(test_samples):
     # Check datarame export support
     results_df = results.to_dataframe()
     assert isinstance(results_df, DataFrame)
-    assert len(results_df.columns) == len(results._base_properties)
+    assert len(results_df.columns) == len(results._base_properties) + 1
 
 
 def test_inference_procedure(test_samples):

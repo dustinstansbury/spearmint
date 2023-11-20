@@ -21,8 +21,9 @@ def test_rates_ratio_larger(counts_data):
         inference_method="frequentist",
         variable_type="counts",
     )
-    ab_results = exp.run_test(ab_test)
-    assert ab_results.accept_hypothesis
+    results_ab = exp.run_test(ab_test)
+    results_ab.display()
+    assert results_ab.accept_hypothesis
 
 
 def test_rates_ratio_smaller(counts_data):
@@ -35,8 +36,9 @@ def test_rates_ratio_smaller(counts_data):
         inference_method="frequentist",
         variable_type="counts",
     )
-    ab_results = exp.run_test(ab_test)
-    assert not ab_results.accept_hypothesis
+    results_ab = exp.run_test(ab_test)
+    results_ab.display()
+    assert not results_ab.accept_hypothesis
 
 
 def test_rates_ratio_unequal(counts_data):
@@ -49,8 +51,9 @@ def test_rates_ratio_unequal(counts_data):
         inference_method="frequentist",
         variable_type="counts",
     )
-    ab_results = exp.run_test(ab_test)
-    assert ab_results.accept_hypothesis
+    results_ab = exp.run_test(ab_test)
+    results_ab.display()
+    assert results_ab.accept_hypothesis
 
 
 def test_rates_ratio_aa(counts_data):
@@ -62,14 +65,16 @@ def test_rates_ratio_aa(counts_data):
         inference_method="frequentist",
         variable_type="counts",
     )
-    aa_results = exp.run_test(aa_test)
-    assert not aa_results.accept_hypothesis
+    results_aa = exp.run_test(aa_test)
+    results_aa.display()
+    assert not results_aa.accept_hypothesis
 
 
 def test_rates_ratio_default(counts_data):
     exp = Experiment(data=counts_data)
     ab_test = HypothesisTest(metric="metric", control="A", variation="C")
-    ab_results = exp.run_test(ab_test)
+    results_ab = exp.run_test(ab_test)
+    results_ab.display()
+    assert results_ab.accept_hypothesis
     assert ab_test.inference_method == "frequentist"
     assert ab_test.variable_type == "counts"
-    assert ab_results.accept_hypothesis

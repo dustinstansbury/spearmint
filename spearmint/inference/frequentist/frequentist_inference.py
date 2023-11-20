@@ -118,7 +118,7 @@ class FrequentistInferenceResultsTable(SpearmintTable):
             format_value(results.delta, precision=4),
         )
         self.add_row(
-            f"Delta CI",
+            "Delta CI",
             format_value(results.delta_confidence_interval, precision=4),
         )
         self.add_row(
@@ -126,7 +126,7 @@ class FrequentistInferenceResultsTable(SpearmintTable):
             format_value(results.delta_confidence_interval_percents, precision=4),
         )
         self.add_row(
-            f"Delta-relative",
+            "Delta-relative",
             format_value(results.delta_ci_relative, precision=4) + " %",
         )
         self.add_row(
@@ -140,6 +140,10 @@ class FrequentistInferenceResultsTable(SpearmintTable):
         self.add_row(
             "Power",
             format_value(results.power, precision=2),
+        )
+        self.add_row(
+            "Variable Type",
+            results.variable_type,
         )
         self.add_row(
             "Inference Method",

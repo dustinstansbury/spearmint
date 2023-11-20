@@ -15,7 +15,7 @@ def test_means_delta_experiment_t(continuous_data):
     """Small sample sizes defautl to t-tests"""
     exp = Experiment(continuous_data.sample(29))
 
-    test_ab = HypothesisTest(
+    test_aa = HypothesisTest(
         metric="metric",
         control="A",
         variation="A",
@@ -23,8 +23,9 @@ def test_means_delta_experiment_t(continuous_data):
         inference_method="frequentist",
         variable_type="continuous",
     )
-    results_ab = exp.run_test(test_ab)
-    assert results_ab.test_statistic_name == "t"
+    results_aa = exp.run_test(test_aa)
+    results_aa.display()
+    assert results_aa.test_statistic_name == "t"
 
 
 def test_means_delta_experiment_unequal_ab(continuous_data):
@@ -39,6 +40,7 @@ def test_means_delta_experiment_unequal_ab(continuous_data):
         variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.test_statistic_name == "z"
     assert results_ab.accept_hypothesis
 
@@ -55,6 +57,7 @@ def test_means_delta_experiment_larger_ab(continuous_data):
         variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.test_statistic_name == "z"
     assert results_ab.accept_hypothesis
 
@@ -71,6 +74,7 @@ def test_means_delta_experiment_smaller_ab(continuous_data):
         variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.test_statistic_name == "z"
     assert not results_ab.accept_hypothesis
 
@@ -87,6 +91,7 @@ def test_means_delta_experiment_aa(continuous_data):
         variable_type="continuous",
     )
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.test_statistic_name == "z"
     assert not results_ab.accept_hypothesis
 
@@ -96,6 +101,7 @@ def test_means_delta_default(continuous_data):
 
     test_ab = HypothesisTest(metric="metric", control="A", variation="B")
     results_ab = exp.run_test(test_ab)
+    results_ab.display()
     assert results_ab.accept_hypothesis
     assert test_ab.inference_method == "frequentist"
     assert test_ab.variable_type == "continuous"

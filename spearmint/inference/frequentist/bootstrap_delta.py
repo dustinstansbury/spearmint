@@ -189,6 +189,7 @@ class BootstrapDelta(FrequentistInferenceProcedure):
             delta_confidence_interval_percentiles=self.delta_ci_percentiles,
             hypothesis=self.hypothesis,
             inference_method=self.inference_method,
+            variable_type=self.variable_type,
             warnings=self.comparison.warnings,
             test_statistic_name=test_stats["statistic_name"],
             test_statistic_value=test_stats["statistic_value"],

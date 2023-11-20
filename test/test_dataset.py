@@ -1,20 +1,15 @@
 import pytest
 
-from spearmint.dataset import (DataFrame, Dataset, DatasetException,
-                               search_config)
+from spearmint.dataset import DataFrame, Dataset, DatasetException, search_config
 from spearmint.utils import generate_fake_observations
 
 
 @pytest.fixture()
 def test_observations():
-    from spearmint.utils import generate_fake_observations
-
     return generate_fake_observations(distribution="bernoulli")
 
 
 def test_search_config():
-    from spearmint.utils import generate_fake_observations
-
     df = generate_fake_observations(n_observations=1)
 
     # Test against default config template

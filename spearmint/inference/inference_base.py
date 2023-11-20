@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from datetime import datetime
 from enum import Enum
+from datetime import datetime
 
 from holoviews import Element
 
+
+from spearmint.typing import FilePath, List, Callable
 from spearmint.mixin import DataframeableMixin
-from spearmint.stats import DEFAULT_ALPHA, Samples, SamplesComparisonTable
-from spearmint.typing import Callable, FilePath, List
+from spearmint.stats import Samples, SamplesComparisonTable, DEFAULT_ALPHA
 from spearmint.utils import process_warnings
 
 
@@ -88,8 +89,8 @@ class InferenceResults(DataframeableMixin):
         hypothesis: Hypothesis,
         alpha: float,
         accept_hypothesis: bool,
-        inference_method: InferenceMethod = None,
-        variable_type: VariableType = None,
+        inference_method: InferenceMethod,
+        variable_type: VariableType,
         comparison_type: str = None,
         warnings: List[str] = [],
         aux: dict = {},
@@ -153,7 +154,7 @@ class InferenceResults(DataframeableMixin):
             raise InferenceResultsVisualizationError(e)
 
     def _render_stats_table(self):
-        raise NotImplemented(
+        raise NotImplementedError(
             "No implementation of `_render_stats_table` for ",
             f"class {self.__name__}, cannot execute `.summary`",
         )
@@ -354,10 +355,6 @@ class InferenceProcedure(ABC):
 def get_inference_procedure(
     variable_type: str, inference_method: str, **inference_procedure_init_params
 ) -> InferenceProcedure:
-    from spearmint.inference.bayesian.bayesian_inference import (
-        SUPPORTED_BAYESIAN_MODEL_NAMES,
-    )
-
     if inference_method == InferenceMethod.frequentist:
         if variable_type == VariableType.continuous:
             from .frequentist.means_delta import MeansDelta as IP

@@ -1,7 +1,7 @@
 from pandas import DataFrame
 
 from spearmint import config
-from spearmint.typing import DataFrameColumns, List, Tuple, Union
+from spearmint.typing import DataFrameColumns, List, Tuple
 
 
 def search_config(df: DataFrame, section: str, key: str) -> List[str]:

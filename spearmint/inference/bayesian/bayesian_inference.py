@@ -147,7 +147,7 @@ class BayesianInferenceResultsTable(SpearmintTable):
             format_value(results.delta, precision=4),
         )
         self.add_row(
-            f"Delta HDI",
+            "Delta HDI",
             format_value(results.delta_hdi, precision=4),
         )
         self.add_row(
@@ -155,7 +155,7 @@ class BayesianInferenceResultsTable(SpearmintTable):
             format_value(100 * results.delta_relative, precision=2) + " %",
         )
         self.add_row(
-            f"Delta-relative HDI",
+            "Delta-relative HDI",
             format_value(100 * np.array(results.delta_relative_hdi), precision=2)
             + " %",
         )
@@ -174,6 +174,10 @@ class BayesianInferenceResultsTable(SpearmintTable):
         self.add_row(
             "Credible Mass",
             format_value(1 - results.alpha, precision=2),
+        )
+        self.add_row(
+            "Variable Type",
+            results.variable_type,
         )
         self.add_row(
             "Inference Method",
@@ -557,6 +561,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             alpha=self.alpha,
             hypothesis=self.hypothesis,
             inference_method=self.inference_method,
+            variable_type=self.variable_type,
             metric_name="posterior_delta",
             data_type=self.data_type,
             model_params=self.model_params,

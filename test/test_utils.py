@@ -84,8 +84,8 @@ def test_set_matplotlib_backend():
 
 def test_safe_isnan():
     assert utils.safe_isnan(None) is False
-    assert utils.safe_isnan(np.inf) == False
-    assert utils.safe_isnan(np.nan) == True
+    assert utils.safe_isnan(np.inf) == False  # noqa
+    assert utils.safe_isnan(np.nan) == True  # noqa
 
 
 def test_generate_fake_observations():
