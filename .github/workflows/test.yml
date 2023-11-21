@@ -34,8 +34,7 @@ jobs:
           pip install -e .[test]
       - name: Test with pytest & generate coverage report
         run: |
-          pytest --include_pymc_tests --color=yes
-          --cov=spearmint test --cov-report html --cov-report term
+          pytest --include_pymc_tests --color=yes --cov=spearmint test --cov-report html --cov-report term
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
         env:
