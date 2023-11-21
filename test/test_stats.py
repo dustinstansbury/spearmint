@@ -166,7 +166,7 @@ def test_samples_summary_table(continuous_test_samples):
 
     assert "Samples Summary" in printed_lines[0]
     assert TEST_SAMPLES_NAME in printed_lines[2]
-    assert "# Samples" in printed_lines[4]
+    assert "Samples" in printed_lines[4]
     assert "Mean" in printed_lines[5]
     assert "Standard Error" in printed_lines[6]
     assert "Variance" in printed_lines[7]

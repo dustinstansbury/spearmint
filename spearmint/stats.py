@@ -725,7 +725,7 @@ class SamplesSummaryTable(SpearmintTable):
         self.add_column(sample_name)
 
         self.add_row(
-            "# Samples",
+            "Samples",
             format_value(samples.nobs),
         )
         self.add_row(
