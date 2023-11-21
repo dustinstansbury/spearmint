@@ -1,8 +1,12 @@
 # ✨ Spearmint ✨
 
-![MIT License](https://img.shields.io/github/license/dustinstansbury/spearmint)
-<!-- [![dustinstansbury](https://circleci.com/gh/dustinstansbury/spearmint.svg?style=shield)](https://circleci.com/gh/dustinstansbury/spearmint) -->
-<!-- ![Coverage](https://codecov.io/gh/dustinstansbury/spearmint/branch/main/graph/badge.svg) -->
+<a href="https://github.com/dustinstansbury/spearmint/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+![Linting](https://github.com/dustinstansbury/spearmint/actions/workflows/lint.yml/badge.svg?branch=main)
+![Tests](https://github.com/dustinstansbury/spearmint/actions/workflows/test.yml/badge.svg?branch=main)
+[![codecov](https://codecov.io/gh/dustinstansbury/spearmint/graph/badge.svg?token=HZC4CGNLTV)](https://codecov.io/gh/dustinstansbury/spearmint)
+
+
 
 # ⚠️ This fork is a WIP
  The goals of this fork are to...
@@ -13,29 +17,19 @@
 - [X] improve reporting
   - [X] better terminal output (e.g. via rich)
   - [X] modern interactive plotting
-- [ ] Make API more intuitive
+- [X] More intuitive API
+- [ ] Add an conda-forge install option (particularly helpful for Mac/ARM64 architectures)
+
 ## Features
 - Offers a simple and intuitive, yet powerful API for running, visualizing, and interpreting statistically-rigorous hypothesis tests with none of the hastle of jumping between various statistical or visualization packages.
 - Supports most common variable types used in AB Tests inlcuding:
     + Continuous
     + Binary/Proportions
     + Counts/Rates
-- Implements many Frequentist and Bayesian inference methods including:
-
-
-| Variable Type | Model Class| `inference_method` parameter  |
-|---|---|---|
-| Continuous | Frequentist| `'means_delta'` (t-test) |
-|  | Bayesian| `'gaussian'`, `'student_t'`|
-| Binary / Proportions | Frequentist| `'proportions_delta'` (z-test) |
-|  | Bayesian| `'binomial'`, `'bernoulli'`  |
-| Counts/Rates  |Frequentist| `'rates_ratio'`
-|  |Bayesian| `'poisson'`  |
-| Non-parametric  |Bootstrap| `'bootstrap'` |
-
+- Implements many Frequentist, Bayesian, and Bootstrap inference methods
 - Supports multiple customizations:
     + Custom metric definitions
-    + Bayesian priors
+    + Simple Bayesian prior definition
     + Easily extendable to support new inference methods
 
 
@@ -51,6 +45,12 @@
 # pip install spearmint # not yet on PyPI
 ```
 
+If you plan to run your analyses in `jupyterlab` can add the `notebook` option
+
+```bash
+pip install spearmint[notebook]
+```
+
 #### from the Github repo
 
 ```bash
@@ -64,10 +64,10 @@ If you would like to contribute to spearmint, then you'll probably want to insta
 mkdir /PATH/TO/LOCAL/SPEARMINT && cd /PATH/TO/LOCAL/SPEARMINT
 git clone git@github.com:dustinstansbury/spearmint.git
 cd spearmint
-python setup.py develop
+pip install -e .
 ```
 
-## spearmint Basics
+## `spearmint` Basics
 
 ### Observations data
 Spearmint takes as input a [pandas](https://pandas.pydata.org/) `DataFrame` containing experiment observations data. Each record represents an observation/trial recorded in the experiment and has the following columns:
@@ -86,7 +86,8 @@ experiment_observations = generate_fake_observations(
     distribution='bernoulli',
     n_treatments=3,
     n_attributes=4,
-    n_observations=120
+    n_observations=120,
+    random_seed=123
 )
 
 experiment_observations.head()
@@ -108,7 +109,7 @@ The three key components of running an AB test are:
 - **The `HypothesisTest`**, which defines the hypothesis and statistical inference method applied to the experiment data.
 - **The `InferenceResults`**, which is the statistical artifact that results from running a `HypothesisTest` against an `Experiment`'s observations. The `InferenceResults` are used to summarize, visualize, and interpret the inference results and make decisions based on these results.
 
-Thus running an hypothesiss test in spearmint follows the basic 123 pattern:
+Thus running an hypothesiss test in spearmint follows the basic 1-2-3 pattern:
 
 1. Initialize your `Experiment` with observations and (optionally) any associated metadata.
 2. Define your `HypothesisTest`. This requires defining the `hypothesis` and a relevant `inference_method`, which will depend on the support of your observations.
@@ -121,11 +122,10 @@ In addition to the `inference_method`, we also want to establish the `hypothesis
 Below we show how to run such a test in spearmint.
 
 ```python
-# Running an AB Test is as easy as 1, 2, 3
+# Running an AB Test is as easy as 1-2-3
 from abra import Experiment, HypothesisTest
 
 # 1. Initialize the `Experiment`
-# We (optionally) name the experiment "Demo"
 exp = Experiment(data=experiment_observations, name='Demo')
 
 # 2. Define the `HypothesisTest`
@@ -136,7 +136,6 @@ ab_test = HypothesisTest(
     metric='metric',
     treatment='treatment',
     control='A', variation='C',
-    inference_method='proportions_delta',
     hypothesis='larger'
 )
 
