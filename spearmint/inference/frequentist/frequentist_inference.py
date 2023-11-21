@@ -122,12 +122,16 @@ class FrequentistInferenceResultsTable(SpearmintTable):
             format_value(results.delta_confidence_interval, precision=4),
         )
         self.add_row(
-            "Delta CI %-tiles",
-            format_value(results.delta_confidence_interval_percents, precision=4),
+            "Delta-relative",
+            format_value(results.delta_relative, precision=4) + " %",
         )
         self.add_row(
-            "Delta-relative",
+            "Delta-relative CI",
             format_value(results.delta_ci_relative, precision=4) + " %",
+        )
+        self.add_row(
+            "Delta CI %-tiles",
+            format_value(results.delta_confidence_interval_percents, precision=4),
         )
         self.add_row(
             "Effect Size",
