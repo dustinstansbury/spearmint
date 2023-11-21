@@ -1,5 +1,6 @@
-# ✨ Spearmint ✨
+# <img src="images/mint.png" alt="drawing" width="30"/> <span style="color:00A33D"> _spearmint_ </span> <img src="images/mint.png" alt="drawing" width="30"/>
 
+<!-- ![spearmint](./images/mint.png) -->
 <a href="https://github.com/dustinstansbury/spearmint/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Linting](https://github.com/dustinstansbury/spearmint/actions/workflows/lint.yml/badge.svg?branch=main)
@@ -7,9 +8,8 @@
 [![codecov](https://codecov.io/gh/dustinstansbury/spearmint/graph/badge.svg?token=HZC4CGNLTV)](https://codecov.io/gh/dustinstansbury/spearmint)
 
 
-
-# ⚠️ This fork is a WIP
- The goals of this fork are to...
+# ⚠️ This fork is a WIP ⚠️
+ This repo was forked (and detached) from [abracadabra](https://github.com/quizlet/abracadabra), which AFAICT, is no longer being maintained. The goals of the fork are to...
 - [X] update to newer version of python (>=3.10)
 - [X] update to 100% Python
   - [X] convert all Stan MCMC models to PyMC5
@@ -18,7 +18,7 @@
   - [X] better terminal output (e.g. via rich)
   - [X] modern interactive plotting
 - [X] More intuitive API
-- [ ] Add an conda-forge install option (particularly helpful for Mac/ARM64 architectures)
+- [ ] Add conda-forge install option (particularly helpful for Mac ARM64 architectures)
 
 ## Features
 - Offers a simple and intuitive, yet powerful API for running, visualizing, and interpreting statistically-rigorous hypothesis tests with none of the hastle of jumping between various statistical or visualization packages.
@@ -33,28 +33,27 @@
     + Easily extendable to support new inference methods
 
 
-## Installation (TBD)
+## Installation (WIP)
 
 ### Requirements
 - spearmint has been tested on `python>=3.10`.
 
 ### Install via `pip`
-#### from the PyPI index (recommended)
 
 ```bash
-# pip install spearmint # not yet on PyPI
+pip install spearmint # not yet on PyPI
 ```
 
-If you plan to run your analyses in `jupyterlab` can add the `notebook` option
+If you plan to run your analyses in `jupyterlab`, you can add the `notebook` option
 
 ```bash
 pip install spearmint[notebook]
 ```
 
-#### from the Github repo
+### Install via `conda`
 
 ```bash
-# pip install git+https://github.com/dustinstansbury/spearmint.git # not yet ready for primetime
+conda install -c conda-forge spearmint # not yet on conda-forge
 ```
 
 ### Install from source
@@ -81,27 +80,27 @@ To demonstrate, let's generate some artificial experiment observations data. The
 ```python
 from spearmint.utils import generate_fake_observations
 
-# generate demo data
+"""Generate binary demo data"""
 experiment_observations = generate_fake_observations(
-    distribution='bernoulli',
+    distribution="bernoulli",
     n_treatments=3,
     n_attributes=4,
     n_observations=120,
     random_seed=123
 )
-
 experiment_observations.head()
-"""
-   id treatment attr_0 attr_1 attr_2 attr_3  metric
-0   0         C    A0a    A1a    A2a    A3a     1.0
-1   1         B    A0b    A1a    A2a    A3a     1.0
-2   2         C    A0c    A1a    A2a    A3a     1.0
-3   3         C    A0c    A1a    A2a    A3a     0.0
-4   4         A    A0b    A1a    A2a    A3a     1.0
-"""
 ```
 
-### Running an AB test in spearmint is as easy as ✨123✨:
+```bash
+   id treatment attr_0 attr_1 attr_2 attr_3  metric
+0   0         C    A0a    A1b    A2a    A3a    True
+1   1         B    A0a    A1b    A2a    A3b    True
+2   2         C    A0a    A1a    A2a    A3b    True
+3   3         C    A0a    A1a    A2a    A3b    True
+4   4         A    A0a    A1b    A2a    A3a    True
+```
+
+## Running an AB test in spearmint is as easy as ✨1-2-3✨:
 
 The three key components of running an AB test are:
 
@@ -109,7 +108,7 @@ The three key components of running an AB test are:
 - **The `HypothesisTest`**, which defines the hypothesis and statistical inference method applied to the experiment data.
 - **The `InferenceResults`**, which is the statistical artifact that results from running a `HypothesisTest` against an `Experiment`'s observations. The `InferenceResults` are used to summarize, visualize, and interpret the inference results and make decisions based on these results.
 
-Thus running an hypothesiss test in spearmint follows the basic 1-2-3 pattern:
+Thus running an hypothesis test in spearmint follows the basic 1-2-3 pattern:
 
 1. Initialize your `Experiment` with observations and (optionally) any associated metadata.
 2. Define your `HypothesisTest`. This requires defining the `hypothesis` and a relevant `inference_method`, which will depend on the support of your observations.
@@ -122,178 +121,212 @@ In addition to the `inference_method`, we also want to establish the `hypothesis
 Below we show how to run such a test in spearmint.
 
 ```python
-# Running an AB Test is as easy as 1-2-3
-from abra import Experiment, HypothesisTest
+from spearmint import Experiment, HypothesisTest
 
-# 1. Initialize the `Experiment`
-exp = Experiment(data=experiment_observations, name='Demo')
+"""1. Initialize the `Experiment`"""
+exp = Experiment(data=experiment_observations)
 
-# 2. Define the `HypothesisTest`
-# Here, we test that the variation "C" is "larger" than the control "A",
-# based on the values of the "metric" column, using a Frequentist z-test,
-# as parameterized by `inference_method="proportions_delta"`
+"""
+2. Define the `HypothesisTest`
+Here, we test that the variation "C" is "larger" than the control "A",
+based on the values of the "metric" column, using a Frequentist z-test,
+as parameterized by `inference_method="proportions_delta"`
+"""
 ab_test = HypothesisTest(
     metric='metric',
     treatment='treatment',
-    control='A', variation='C',
+    control='A',
+    variation='C',
     hypothesis='larger'
 )
 
-# 3. Run and interpret the `InferenceResults`
-# Here, we run our HypothesisTest with an assumed
-# Type I error rate of alpha=0.05
-ab_test_results = exp.run_test(ab_test, alpha=.05)
+"""
+3. Run and interpret the `InferenceResults`
+Here, we run our HypothesisTest with an assumed
+Type I error rate of alpha=0.05
+"""
+ab_test_results = exp.run_test(ab_test, alpha=0.05)
 assert ab_test_results.accept_hypothesis
 
-# Display results
+"""Display test results to stdout"""
 ab_test_results.display()
-"""
-Observations Summary:
-+----------------+------------------+------------------+
-| Treatment      | A                | C                |
-+----------------+------------------+------------------+
-| Metric         | metric           | metric           |
-| Observations   | 35               | 44               |
-| Mean           | 0.4286           | 0.7500           |
-| Standard Error | (0.2646, 0.5925) | (0.6221, 0.8779) |
-| Variance       | 0.2449           | 0.1875           |
-+----------------+------------------+------------------+
+```
 
-Test Results:
-+---------------------------+---------------------+
-| ProportionsDelta          | 0.3214              |
-| ProportionsDelta CI       | (0.1473, inf)       |
-| CI %-tiles                | (0.0500, inf)       |
-| ProportionsDelta-relative | 75.00 %             |
-| CI-relative               | (34.37, inf) %      |
-| Effect Size               | 0.6967              |
-| alpha                     | 0.0500              |
-| Power                     | 0.9238              |
-| Inference Method          | 'proportions_delta' |
-| Test Statistic ('z')      | 3.4671              |
-| p-value                   | 0.0003              |
-| Degrees of Freedom        | None                |
-| Hypothesis                | 'C is larger'       |
-| Accept Hypothesis         | True                |
-| MC Correction             | None                |
-| Warnings                  | None                |
-+---------------------------+---------------------+
-"""
+```bash
+Samples Comparison
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃                ┃ A                ┃ C                ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│        Samples │ 35               │ 44               │
+│           Mean │ 0.4286           │ 0.75             │
+│ Standard Error │ (0.2646, 0.5925) │ (0.6221, 0.8779) │
+│       Variance │ 0.2449           │ 0.1875           │
+│          Delta │                  │ 0.3214           │
+└────────────────┴──────────────────┴──────────────────┘
+ProportionsDelta Results
+┌────────────────────┬──────────────────┐
+│ Delta              │ 0.3214           │
+│ Delta CI           │ (0.1473, inf)    │
+│ Delta-relative     │ 0.75 %           │
+│ Delta-relative CI  │ (34.3703, inf) % │
+│ Delta CI %-tiles   │ (0.05, inf)      │
+│ Effect Size        │ 0.6967           │
+│ alpha              │ 0.05             │
+│ Power              │ 0.92             │
+│ Variable Type      │ binary           │
+│ Inference Method   │ frequentist      │
+│ Test statistic (z) │ 3.47             │
+│ p-value            │ 0.0003           │
+│ Hypothesis         │ C is larger      │
+│ Accept Hypothesis  │ True             │
+└────────────────────┴──────────────────┘
+```
 
-# Visualize Frequentist Test results
+### Interpreting inference results
+We see that the Hypothesis test declares that the variation `'C is larger'` (than the control `A`), showing an increase in proportionality (e.g. conversion rate) of 0.32, which is 75% improvement relative to the control.
+
+These deltas also have confidence intervals `CI` around their estimates. Since the hypothesis is "larger", the lower bound of the `CI` is $1-\alpha$ %, while the upper bound of the condifence intervals is $\infty$.
+
+The size of the increase is moderately large, as indicated by an effect size of 0.70. This test also results in a p-value of 0.0003, which is lower than the prescribed $\alpha=$ 0.05, thus we accept the hypothesis that the average proportionality for C is larger than A.
+
+#### Default `Variable Type`
+Note that the `Variable Type` was inferred from the the `experiment_observations` as `"binary"`. You can also explicitly provide the variable type as with the `variable_type` argument to `HypothesisTest`. Other variable types in clude `"continuous"` and `"counts"`.
+
+#### Default `Inference Method`
+`spearmint` supports multiple inference methods, including `"frequentist"`, `"bayesian"`, and `"bootstrap"`. Above we didn't explicitly provide an inference method, but it defaults `"frequentist"`. This is the default behavior out-of-the-box, but can also be configured in your `.spearmint.cfg` by updating the config for `hypothesis_test.default_inference_method`.
+
+
+#### Visualizing `InferenceResults`
+
+```python
+"""Visualize test's inference results"""
 ab_test_results.visualize()
 ```
 
-![proportions_delta_inference_example](./images/proportions_delta_example.png "proportions_delta Inference Example")
+<div style="text-align:center"><img src="./images/proportions_delta_example.png"/></div>
 
-We see that the Hypothesis test declares that the variation `'C is larger'` (than the control `"A"`) showing a 43% relative increase in conversion rate, and a moderate effect size of 0.38. This results in a p-value of 0.028, which is lower than the prescribed $\alpha=0.05$.
+Note that for binary frequentist tests, we display the samples in the trials space as binomial distributions (as opposed to the proportionality space).
 
-## Bootstrap Hypothesis Tests
+### Bootstrap Hypothesis Tests
 
-If your samples do not follow standard parametric distributions (e.g. Gaussian, Binomial, Poisson), or if you're comparing more exotic descriptive statistics (e.g. median, mode, etc) then you might want to consider using a non-parametric [Bootstrap Hypothesis Test](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)).  Running bootstrap tests is easy in ✨spearmint✨, you simply use the `"bootstrap"` `inference_method`.
+If your samples are not well-characterized by standard parametric distributions (e.g. Gaussian, Binomial, Poisson), or if you're comparing more exotic descriptive statistics (e.g. median, mode, etc) then you might want to consider using a non-parametric [Bootstrap Hypothesis Test](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)). Running bootstrap tests is easy in ✨spearmint✨, you simply use the `"bootstrap"` `inference_method`.
 
 ```python
-# Tests and data can be copied via the `.copy` method.
+"""Tests and data can be copied via the `.copy` method."""
 bootstrap_ab_test = ab_test.copy(inference_method='bootstrap')
 
-# Run the Bootstrap test
+"""Run the Bootstrap test"""
 bootstrap_ab_test_results = exp.run_test(bootstrap_ab_test)
 
-# Display results
+"""Display results"""
 bootstrap_ab_test_results.display()
+```
 
-"""
-Observations Summary:
-+----------------+------------------+------------------+
-| Treatment      | A                | C                |
-+----------------+------------------+------------------+
-| Metric         | metric           | metric           |
-| Observations   | 35               | 44               |
-| Mean           | 0.4286           | 0.7500           |
-| Standard Error | (0.2646, 0.5925) | (0.6221, 0.8779) |
-| Variance       | 0.2449           | 0.1875           |
-+----------------+------------------+------------------+
+```bash
+Samples Comparison
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃                ┃ A                ┃ C                ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│        Samples │ 35               │ 44               │
+│           Mean │ 0.4286           │ 0.75             │
+│ Standard Error │ (0.2646, 0.5925) │ (0.6221, 0.8779) │
+│       Variance │ 0.2449           │ 0.1875           │
+│          Delta │                  │ 0.3214           │
+└────────────────┴──────────────────┴──────────────────┘
+BootstrapDelta Results
+┌─────────────────────────────────┬───────────────────────┐
+│ Delta                           │ 0.3219                │
+│ Delta CI                        │ (0.1331, 0.4922)      │
+│ Delta-relative                  │ 0.751 %               │
+│ Delta-relative CI               │ (31.0606, 114.8561) % │
+│ Delta CI %-tiles                │ (0.05, inf)           │
+│ Effect Size                     │ 0.6976                │
+│ alpha                           │ 0.05                  │
+│ Power                           │ 0.88                  │
+│ Variable Type                   │ binary                │
+│ Inference Method                │ bootstrap             │
+│ Test statistic (bootstrap_mean) │ 0.32                  │
+│ p-value                         │ 0.003                 │
+│ Hypothesis                      │ C is larger           │
+│ Accept Hypothesis               │ True                  │
+└─────────────────────────────────┴───────────────────────┘
 
-Test Results:
-+-----------------------------------------+-------------------+
-| BootstrapDelta                          | 0.3285            |
-| BootstrapDelta CI                       | (0.1497, 0.5039)  |
-| CI %-tiles                              | (0.0500, inf)     |
-| BootstrapDelta-relative                 | 76.65 %           |
-| CI-relative                             | (34.94, 117.58) % |
-| Effect Size                             | 0.7121            |
-| alpha                                   | 0.0500            |
-| Power                                   | 0.8950            |
-| Inference Method                        | 'bootstrap'       |
-| Test Statistic ('bootstrap-mean-delta') | 0.3285            |
-| p-value                                 | 0.0020            |
-| Degrees of Freedom                      | None              |
-| Hypothesis                              | 'C is larger'     |
-| Accept Hypothesis                       | True              |
-| MC Correction                           | None              |
-| Warnings                                | None              |
-+-----------------------------------------+-------------------+
-"""
+```
 
+```python
 ## Visualize Bayesian AB test results, including samples from the model
 bootstrap_ab_test_results.visualize()
 ```
 
-![`bootstrap_test_example](./images/bootstrap_example.png "bootstrap Inference Example")
+<div style="text-align:center"><img src="./images/bootstrap_delta_example.png"/></div>
+
 
 Notice that the `"bootstrap"` hypothesis test results above--which are based on resampling the data set with replacent--are very similar to the results returned by the `"proportions_delta"` parametric model, which are based on descriptive statistics and model the data set as a Binomial distribution. The results will converge as the sample sizes grow.
 
-## Bayesian AB Tests
+### Bayesian AB Tests
 
 Running Bayesian AB Tests is just as easy as running a Frequentist test, simply change the `inference_method` of the `HypothesisTest`. Here we run Bayesian hypothesis test that is analogous to `"proportions_delta"` used above for conversion rates. The Bayesian test is based on the [Beta-Binomial model](https://en.wikipedia.org/wiki/Beta-binomial_distribution), and thus called with the argument `inference_method="beta_binomial"`.
 
 ```python
-# Copy the parameters of the original HypothesisTest,
-# but update the `inference_method`
-bayesian_ab_test = ab_test.copy(inference_method='beta_binomial')
+"""
+Copy the parameters of the original HypothesisTest,
+but update the `inference_method` for bayesian test
+"""
+bayesian_ab_test = ab_test.copy(inference_method='bayesian')
 bayesian_ab_test_results = exp.run_test(bayesian_ab_test)
+"""
+Auto-assigning NUTS sampler...
+Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [p_control, p_variation]
+Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws total) took 1 seconds.% [8000/8000 00:00<00:00 Sampling 4 chains, 0 divergences]
+"""
+
 assert bayesian_ab_test_results.accept_hypothesis
 
 # Display results
 bayesian_ab_test_results.display()
-"""
-Observations Summary:
-+----------------+------------------+------------------+
-| Treatment      | A                | C                |
-+----------------+------------------+------------------+
-| Metric         | metric           | metric           |
-| Observations   | 35               | 44               |
-| Mean           | 0.4286           | 0.7500           |
-| Standard Error | (0.2646, 0.5925) | (0.6221, 0.8779) |
-| Variance       | 0.2449           | 0.1875           |
-+----------------+------------------+------------------+
+```
 
-Test Results:
-+----------------------+-------------------------------+
-| Delta                | 0.3028                        |
-| HDI                  | (0.0965, 0.5041)              |
-| HDI %-tiles          | (0.0500, 0.9500)              |
-| Delta-relative       | 76.23 %                       |
-| HDI-relative         | (7.12, 152.56) %              |
-| Effect Size          | 0.6628                        |
-| alpha                | 0.0500                        |
-| Credible Mass        | 0.9500                        |
-| p(C > A)             | 0.9978                        |
-| Inference Method     | 'beta_binomial'               |
-| Model Hyperarameters | {'alpha_': 1.0, 'beta_': 1.0} |
-| Inference Method     | 'sample'                      |
-| Hypothesis           | 'C is larger'                 |
-| Accept Hypothesis    | True                          |
-| Warnings             | None                          |
-+----------------------+-------------------------------+
-"""
+```bash
+Samples Comparison
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃                ┃ A                ┃ C                ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│        Samples │ 35               │ 44               │
+│           Mean │ 0.4286           │ 0.75             │
+│ Standard Error │ (0.2646, 0.5925) │ (0.6221, 0.8779) │
+│       Variance │ 0.2449           │ 0.1875           │
+│          Delta │                  │ 0.3214           │
+└────────────────┴──────────────────┴──────────────────┘
+Bayesian Delta Results
+┌────────────────────┬──────────────────┐
+│ Delta              │ 0.307            │
+│ Delta HDI          │ (0.1122, 0.5044) │
+│ Delta Relative     │ 77.03 %          │
+│ Delta-relative HDI │ (11.51, 155.0) % │
+│ Effect Size        │ 0.6718           │
+│ Effect Size HDI    │ (0.2095, 1.1584) │
+│ HDI %-tiles        │ (0.025, 0.975)   │
+│ Credible Mass      │ 0.95             │
+│ Variable Type      │ binary           │
+│ Inference Method   │ Bayesian         │
+│ Model Name         │ binomial         │
+│ Estimation Method  │ mcmc             │
+│ p(C > A)           │ 0.999            │
+│ Hypothesis         │ C is larger      │
+│ Accept Hypothesis  │ True             │
+└────────────────────┴──────────────────┘
+```
 
-# Visualize Bayesian AB test results, including samples from the model
+```python
+# Visualize Bayesian AB test results, including samples from the posterior
 bayesian_ab_test_results.visualize()
 ```
-![`beta_binomial_inference_example](./images/beta_binomial_example.png "beta_binomial Inference Example")
 
-Above we see that the Bayesian hypothesis test provides similar results to the Frequentist test, indicating a 45% relative lift in conversion rate when comparing `"C"` to `"A"`. Rather than providing p-values that are used to accept or reject a Null hypothesis, the Bayesian tests provides directly-interpretable probability estimates `p(C > A) = 0.95`, here indicating that there is 95% chance that the `variation` `"C"` is larger than the `control` `"A"`.
+<div style="text-align:center"><img src="./images/bayesian_delta_example.png"/></div>
+
+Above we see that the Bayesian hypothesis test provides similar results to the Frequentist test, indicating a 45% relative lift in conversion rate when comparing `"C"` to `"A"`. Rather than providing p-values that are used to accept or reject a Null hypothesis, the Bayesian tests provides directly-interpretable probability estimates `p(C > A) = 0.999`, here indicating that there is 95% chance that the `variation` `"C"` is larger than the `control` `"A"`.
 
 ## [Additional Documentation and Tutorials](https://github.com/quizlet/spearmint/blob/master/docs)
 
