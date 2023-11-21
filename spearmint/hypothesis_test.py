@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from spearmint.config import DEFAULT_ALPHA
+from spearmint.config import DEFAULT_ALPHA, DEFAULT_INFERENCE_METHOD
 from spearmint.inference import InferenceResults, get_inference_procedure
 from spearmint.stats import MultipleComparisonCorrection, Samples
 from spearmint.typing import Callable, DataFrame, FilePath, Iterable, List, Union
@@ -84,7 +84,7 @@ class HypothesisTest:
 
     def __init__(
         self,
-        inference_method: str = "frequentist",
+        inference_method: str = DEFAULT_INFERENCE_METHOD,
         metric: Union[str, CustomMetric] = None,
         control: str = None,
         variation: str = None,
@@ -152,12 +152,6 @@ class HypothesisTest:
             self.metric_column = metric
 
         self.inference_procedure_init_params = inference_procedure_init_params
-
-        # self.inference_procedure = get_inference_procedure(
-        #     inference_method=self.inference_method,
-        #     metric_name=self.metric_column,
-        #     **inference_procedure_init_params,
-        # )
 
     def _add_custom_metric_column(self, _data):
         data = _data.copy()
@@ -318,9 +312,6 @@ class GroupInferenceResults:
         self.original_results = original_results
         self.corrected_results = corrected_results
         self.correction = correction
-
-    # def __repr__(self) -> str:
-    #     return f"{self.__class__.__name__}(ntests={self.ntests}, correction_method='{self.correction.mc_correction_method}')"
 
     def display(self) -> None:
         for ii, res in enumerate(self.corrected_results):

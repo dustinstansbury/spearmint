@@ -33,6 +33,7 @@ default_attribute_names=attr_0,attr_1
 default_alpha=.05
 default_test_direction=larger
 min_obs_for_z_test=30
+default_inference_method=frequentist
 
 [vis]
 vis_backend=matplotlib
@@ -178,6 +179,7 @@ logger.setLevel(get("core", "logging_level"))
 # Configure Hypothesis testing
 DEFAULT_ALPHA = get("hypothesis_test", "default_alpha")
 DEFAULT_TEST_DIRECTION = get("hypothesis_test", "default_test_direction")
+DEFAULT_INFERENCE_METHOD = get("hypothesis_test", "default_inference_method")
 MIN_OBS_FOR_Z_TEST = get("hypothesis_test", "min_obs_for_z_test")
 # DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "bayesian_inference_method")
 
