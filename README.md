@@ -284,7 +284,7 @@ Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws 
 
 assert bayesian_ab_test_results.accept_hypothesis
 
-# Display results
+"""Display results"""
 bayesian_ab_test_results.display()
 ```
 
@@ -320,7 +320,7 @@ Bayesian Delta Results
 ```
 
 ```python
-# Visualize Bayesian AB test results, including samples from the posterior
+"""Visualize Bayesian AB test results, including samples from the posterior"""
 bayesian_ab_test_results.visualize()
 ```
 
