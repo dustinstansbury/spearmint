@@ -3,8 +3,9 @@
 <!-- ![spearmint](./images/mint.png) -->
 <a href="https://github.com/dustinstansbury/spearmint/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![Linting](https://github.com/dustinstansbury/spearmint/actions/workflows/lint.yml/badge.svg?branch=main)
-![Tests](https://github.com/dustinstansbury/spearmint/actions/workflows/test.yml/badge.svg?branch=main)
+![linting](https://github.com/dustinstansbury/spearmint/actions/workflows/lint.yml/badge.svg?branch=main)
+![mypy](https://github.com/dustinstansbury/spearmint/actions/workflows/mypy.yml/badge.svg?branch=main)
+![tests](https://github.com/dustinstansbury/spearmint/actions/workflows/test.yml/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/dustinstansbury/spearmint/graph/badge.svg?token=HZC4CGNLTV)](https://codecov.io/gh/dustinstansbury/spearmint)
 
 
