@@ -2,7 +2,7 @@ from numpy import inf
 
 from spearmint.config import MIN_OBS_FOR_Z_TEST
 from spearmint.stats import MeanComparison, Samples
-from spearmint.typing import FilePath, Tuple
+from spearmint.typing import FilePath, Tuple, Optional
 
 from .frequentist_inference import (
     FrequentistInferenceProcedure,
@@ -11,7 +11,7 @@ from .frequentist_inference import (
 
 
 def visualize_means_delta_results(
-    results: FrequentistInferenceResults, outfile: FilePath = None
+    results: FrequentistInferenceResults, outfile: Optional[FilePath] = None
 ):  # pragma: no cover
     # Lazy import
     import holoviews as hv
@@ -147,7 +147,7 @@ class MeansDelta(FrequentistInferenceProcedure):
 
     # @abstractmethod
     def _run_inference(
-        self, control_samples: Samples, variation_samples: Samples
+        self, control_samples: Samples, variation_samples: Samples, **inference_kwargs
     ) -> None:
         nobs = min(control_samples.nobs, variation_samples.nobs)
         test_statistic_name = "z" if nobs > MIN_OBS_FOR_Z_TEST else "t"

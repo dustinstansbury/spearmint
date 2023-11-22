@@ -38,7 +38,7 @@ class PoissonAnalyticModel(BayesianAnalyticModel):
         prior_beta : float, optional
             The shape parametrer for the Gamma prior distribution
         """
-        super().__init__(delta_param="lambda", *args, **kwargs)
+        super().__init__(delta_param="lambda", *args, **kwargs)  # type: ignore # (mypy bug, see #6799)
         self.prior_alpha = prior_alpha
         self.prior_beta = prior_beta
 

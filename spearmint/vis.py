@@ -4,7 +4,7 @@ from holoviews.element.chart import Curve
 
 from spearmint import distributions
 from spearmint.config import COLORS, FIGURE_PARAMS, POINTS_PLOT_PARAMS
-from spearmint.typing import FilePath, Iterable
+from spearmint.typing import FilePath, Optional
 from spearmint.utils import format_value
 
 DEFAULT_COLOR = COLORS.blue
@@ -20,7 +20,7 @@ NEUTRAL_COLOR = COLORS.gray
 def plot_interval(
     left: float,
     right: float,
-    middle: float = None,
+    middle: Optional[float] = None,
     color: str = DEFAULT_COLOR,
     label: str = "Interval",
     show_interval_text: bool = False,
@@ -71,7 +71,10 @@ def plot_interval(
         left in (np.inf, -np.inf) or right in (np.inf, -np.inf)
     ):
         raise ValueError("Too many interval values are inf")
-    middle = np.mean((left, right)) if middle is None else middle
+
+    middle = np.mean((left, right)) if middle is None else middle  # type: ignore
+    assert isinstance(middle, float)
+
     INFTY_SCALE = 2
 
     _left = middle - INFTY_SCALE * np.abs(right) if left in (np.inf, -np.inf) else left
@@ -160,7 +163,7 @@ def plot_bernoulli(
 
 
 def plot_binomial(
-    n: float = 10,
+    n: int = 10,
     p: float = 0.5,
     color: str = DEFAULT_COLOR,
     label: str = "Binomial",
@@ -219,7 +222,7 @@ def plot_poisson(
 
 
 def plot_kde(
-    samples: Iterable[float],
+    samples: np.ndarray,
     color: str = DEFAULT_COLOR,
     label: str = "KDE",
     **plot_kwargs,

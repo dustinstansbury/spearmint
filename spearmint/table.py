@@ -1,11 +1,13 @@
 from rich.console import Console
 from rich.table import Table as RichTable
 
+from spearmint.typing import Optional
+
 
 class SpearmintTable(RichTable):
     """Consistently-formatted Rich table with history"""
 
-    def __init__(self, title: str = None, **rich_table_kwargs):
+    def __init__(self, title: Optional[str] = None, **rich_table_kwargs):
         """
         Formatted table with print history
 
@@ -27,7 +29,7 @@ class SpearmintTable(RichTable):
             title_style="bold cyan",
             **rich_table_kwargs,
         )
-        self._print_history = []
+        self._print_history: list = []
 
     def print(self) -> None:
         """Print the table state, appending to print history"""

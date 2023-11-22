@@ -6,7 +6,7 @@ from scipy.stats import norm
 from spearmint.inference.inference_base import InferenceProcedure, InferenceResults
 from spearmint.stats import CompareMeans
 from spearmint.table import SpearmintTable
-from spearmint.typing import FilePath, List, Protocol, Tuple, Union
+from spearmint.typing import FilePath, List, Protocol, Tuple, Union, Optional
 from spearmint.utils import format_value, process_warnings
 
 
@@ -39,13 +39,13 @@ class FrequentistInferenceResults(InferenceResults):
         self,
         delta_confidence_interval: Tuple[float, float],
         delta_confidence_interval_percentiles: Tuple[float, float],
+        test_statistic_name: str,
         p_value: float,
-        power=np.nan,
-        degrees_freedom: int = None,
-        test_statistic_name: str = None,
+        power: float = np.nan,
+        degrees_freedom: Optional[int] = None,
         test_statistic_value: float = np.nan,
-        correction_method: str = None,
-        warnings: Union[str, List[str]] = None,
+        correction_method: Optional[str] = None,
+        warnings: Optional[Union[str, List[str]]] = None,
         *args,
         **kwargs,
     ):
@@ -58,7 +58,7 @@ class FrequentistInferenceResults(InferenceResults):
         self.p_value = p_value
         self.degrees_freedom = degrees_freedom
         self.correction_method = correction_method
-        self.warnings = warnings
+        self.warnings = warnings  # type: ignore
         self.estimate_relative_delta_confidence_interval()
 
     def estimate_relative_delta_confidence_interval(self):
@@ -104,7 +104,7 @@ class FrequentistInferenceResults(InferenceResults):
         self._stats_table = FrequentistInferenceResultsTable(self)
         return self._stats_table
 
-    def visualize(self, outfile: FilePath = None, *args, **kwargs):
+    def visualize(self, outfile: Optional[FilePath] = None, *args, **kwargs):
         return self.visualization_function(self, outfile=outfile)
 
 
@@ -177,7 +177,7 @@ class FrequentistInferenceResultsTable(SpearmintTable):
         if results.correction_method is not None:
             self.add_row(
                 "MC Correction",
-                results.correction_method.__name__,
+                results.correction_method,
             )
         if results.warnings:
             self.add_row(

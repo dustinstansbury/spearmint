@@ -31,7 +31,7 @@ class GaussianAnalyticModel(BayesianAnalyticModel):
         prior_var : float, optional
             The variance of the prior distribution on means, by default 1.0
         """
-        super().__init__(delta_param="mu", *args, **kwargs)
+        super().__init__(delta_param="mu", *args, **kwargs)  # type: ignore # (mypy bug, see #6799)
         self.prior_mean = prior_mean
         self.prior_var = prior_var
 

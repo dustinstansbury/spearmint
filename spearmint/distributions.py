@@ -14,12 +14,44 @@ PDF_ZERO = 1e-5
 DEFAULT_DISTRIBUTION_COLOR = COLORS.blue
 
 
+class _RandomVariableClass:
+    """Placeholder class for type hinting. Do not extend!"""
+
+    def __init__(self):
+        pass
+
+    def ppf(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        return values
+
+    def pdf(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        return values
+
+    def pmf(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        return values
+
+    def cdf(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        return values
+
+    def evaluate(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+        return values
+
+    def rvs(self, size: int) -> np.ndarray:
+        return np.ones(size)
+
+    def resample(self, size: int) -> np.ndarray:
+        return np.ones(size)
+
+
+_RandomVariable = _RandomVariableClass()
+
+
 class ProbabilityDistribution(ABC):
     """Base class for plottable probability distributions"""
 
     def __init__(self, label: str = "", color: str = DEFAULT_DISTRIBUTION_COLOR):
         self.label = label
         self.color = color
+        self.dist = _RandomVariable
 
     def get_series(self) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -35,20 +67,20 @@ class ProbabilityDistribution(ABC):
         probs = self.density(values)
         return values, probs
 
-    def sample(self, sample_size: int):
+    def sample(self, sample_size: int) -> np.ndarray:
         """
         Return a sample of `sample_size` from the probability distribution
         """
         return self.dist.rvs(size=sample_size)
 
-    def cdf(self, values: np.ndarray) -> np.ndarray:
+    def cdf(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """
         Return the Cumulative Distribution function for the probability
         distribution, evaluated at `values`
         """
         return self.dist.cdf(values)
 
-    def ppf(self, values: np.ndarray) -> np.ndarray:
+    def ppf(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         return self.dist.ppf(values)
 
     @abstractmethod
@@ -77,9 +109,10 @@ class Pdf(ProbabilityDistribution):
     """
 
     def __init__(self, label: str = "PDF", *args, **kwargs):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
 
-    def density(self, values: np.ndarray) -> np.ndarray:
+    def density(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:  # type: ignore
         return self.dist.pdf(values)
 
     def plot(self, **plot_opts) -> Curve:  # pragma: no cover
@@ -96,9 +129,10 @@ class Pmf(ProbabilityDistribution):
     """
 
     def __init__(self, label: str = "PMF", *args, **kwargs):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
 
-    def density(self, values: np.ndarray) -> np.ndarray:
+    def density(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:  # type: ignore
         return self.dist.pmf(values)
 
     def plot(self, **plot_opts) -> Bars:  # pragma: no cover
@@ -140,7 +174,8 @@ class Gaussian(Pdf):
         *args,
         **kwargs,
     ):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
         self.mean = mean
         self.std = std
         self.dist = stats.norm(loc=mean, scale=std)
@@ -157,7 +192,8 @@ class Bernoulli(Pmf):
     """
 
     def __init__(self, p: float = 0.5, label: str = "Bernoulli", *args, **kwargs):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
         self.p = p
         self.dist = stats.bernoulli(p)
 
@@ -173,7 +209,8 @@ class Binomial(Pmf):
     def __init__(
         self, n: int = 20, p: float = 0.5, label: str = "Binomial", *args, **kwargs
     ):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
         self.n = n
         self.p = p
         self.dist = stats.binom(n, p)
@@ -195,7 +232,8 @@ class Poisson(Pmf):
     """
 
     def __init__(self, mu: float = 1.0, label: str = "Poisson", *args, **kwargs):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
         self.mu = mu
         self.dist = stats.poisson(mu)
 
@@ -211,7 +249,8 @@ class Kde(Pdf):
     """
 
     def __init__(self, samples: np.ndarray, label: str = "KDE", *args, **kwargs):
-        super().__init__(label=label, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.label = label
         self.dist = stats.gaussian_kde(samples)
         self.low = min(samples)
         self.high = max(samples)
@@ -219,10 +258,10 @@ class Kde(Pdf):
     def _get_values_grid(self):
         return np.linspace(self.low, self.high, N_GRID_POINTS + 1)
 
-    def density(self, values: np.ndarray) -> np.ndarray:
+    def density(self, values: Union[float, np.ndarray]) -> Union[float, np.ndarray]:  # type: ignore
         """Note, we overload Pdf.density here"""
         return self.dist.evaluate(values)
 
-    def sample(self, sample_size: int):
+    def sample(self, sample_size: int) -> np.ndarray:
         """Note: we sample 1D arrays"""
         return self.dist.resample(size=sample_size).flatten()

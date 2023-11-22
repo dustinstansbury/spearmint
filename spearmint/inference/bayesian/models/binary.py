@@ -2,7 +2,7 @@ import pymc as pm
 from scipy import stats
 
 from spearmint.stats import Samples
-from spearmint.typing import Dict, Tuple
+from spearmint.typing import Dict, Tuple, Optional
 
 from .analytic_base import BayesianAnalyticModel
 
@@ -35,7 +35,7 @@ class BinomialAnalyticModel(BayesianAnalyticModel):
         prior_beta : float, optional
             The shape parametrer for the Beta prior distribution
         """
-        super().__init__(delta_param="p", *args, **kwargs)
+        super().__init__(delta_param="p", *args, **kwargs)  # type: ignore # (mypy bug, see #6799)
         self.prior_alpha = prior_alpha
         self.prior_beta = prior_beta
 
@@ -178,7 +178,7 @@ def build_binomial_pymc_model(
     variation_samples: Samples,
     prior_alpha: float = 1.0,
     prior_beta: float = 1.0,
-    possible_outcomes: float = None,
+    possible_outcomes: Optional[float] = None,
 ) -> pm.Model:
     """
     Compiles a Beta-Binomial Bayesian PyMC model for modeling binary data. The

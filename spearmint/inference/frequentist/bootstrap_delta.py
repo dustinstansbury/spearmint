@@ -1,7 +1,7 @@
 import numpy as np
 
 from spearmint.stats import BootstrapStatisticComparison, Samples
-from spearmint.typing import Callable, FilePath
+from spearmint.typing import Callable, FilePath, Optional
 
 from .frequentist_inference import (
     FrequentistInferenceProcedure,
@@ -10,7 +10,7 @@ from .frequentist_inference import (
 
 
 def visualize_bootstrap_delta_results(
-    results: FrequentistInferenceResults, outfile: FilePath = None
+    results: FrequentistInferenceResults, outfile: Optional[FilePath] = None
 ):  # pragma: no cover
     # Lazy import
     import holoviews as hv
@@ -45,7 +45,7 @@ def visualize_bootstrap_delta_results(
         label=results.control.name,
         color=vis.CONTROL_COLOR,
         show_interval_text=True,
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     variation_ci = vis.plot_interval(
         *variation_samples.percentiles(ci_bounds),
@@ -53,7 +53,7 @@ def visualize_bootstrap_delta_results(
         label=results.variation.name,
         color=vis.VARIATION_COLOR,
         show_interval_text=True,
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
@@ -77,7 +77,7 @@ def visualize_bootstrap_delta_results(
         label=f"{ci_percent}% Confidence Interval",
         show_interval_text=True,
         vertical_offset=-(max_pdf_height * 0.01),
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     zero_delta_vline = hv.Spikes(
         ([0.0], [max_pdf_height]), vdims="pdf", label="Null Delta"
@@ -131,9 +131,7 @@ class BootstrapDelta(FrequentistInferenceProcedure):
 
     # @abstractmethod
     def _run_inference(
-        self,
-        control_samples: Samples,
-        variation_samples: Samples,
+        self, control_samples: Samples, variation_samples: Samples, **inference_kwargs
     ) -> None:
         self.comparison = BootstrapStatisticComparison(
             samples_a=variation_samples,
@@ -143,7 +141,7 @@ class BootstrapDelta(FrequentistInferenceProcedure):
             statistic_function=self.statistic_function,
         )
 
-    def accept_hypothesis(self, statistic_value: bool) -> bool:
+    def accept_hypothesis(self, statistic_value: float) -> bool:
         """
         Overloads `FrequentistInferenceProcedure.accept_hypothesis()` method
         to use the boostrapped estimate of the sampling distribition to test the

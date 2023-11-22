@@ -1,8 +1,6 @@
 import json
 
-from pandas import DataFrame
-
-from spearmint.typing import Iterable
+from spearmint.typing import Iterable, DataFrame, Any, Dict
 
 
 class JsonableMixin:
@@ -14,9 +12,11 @@ class JsonableMixin:
         """Serialize object to JSON string"""
         return json.dumps(self, default=lambda x: x.__dict__, sort_keys=True, indent=4)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[Any, Any]:
         """Deserialize object to dictionary"""
-        return json.loads(self.to_json())
+        _dict = json.loads(self.to_json())
+        assert isinstance(_dict, dict), "to_json must return a dict-able string"
+        return _dict
 
     def __repr__(self) -> str:
         return self.to_json()

@@ -5,8 +5,7 @@ from datetime import datetime
 
 from holoviews import Element
 
-
-from spearmint.typing import FilePath, List, Callable
+from spearmint.typing import FilePath, List, Callable, Optional, Any, Union
 from spearmint.mixin import DataframeableMixin
 from spearmint.stats import Samples, SamplesComparisonTable, DEFAULT_ALPHA
 from spearmint.utils import process_warnings
@@ -91,10 +90,11 @@ class InferenceResults(DataframeableMixin):
         accept_hypothesis: bool,
         inference_method: InferenceMethod,
         variable_type: VariableType,
-        comparison_type: str = None,
-        warnings: List[str] = [],
+        visualization_function: Callable,
+        comparison_type: Optional[str] = None,
+        warnings: Optional[Union[str, List[str]]] = None,
+        correction_method: Optional[str] = None,
         aux: dict = {},
-        visualization_function: Callable = None,
     ):
         self.control = control
         self.variation = variation
@@ -111,12 +111,14 @@ class InferenceResults(DataframeableMixin):
         self.warnings = process_warnings(warnings)
         self.aux = aux
         self.visualization_function = visualization_function
-
-        self.created_at: datetime.now()
-        self.run_at: datetime.timestamp = None
-
-        # These properties should be updated by the running the inference
+        self.correction_method = correction_method
         # self.segmentation = None
+
+        self.created_at: datetime = datetime.now()
+
+        # These properties should be updated by the running inference proc.
+        self.run_at: Optional[datetime] = None
+        self.p_value: Optional[float] = None  # only Frequentist/Bootstrap tests
 
     def display(self) -> None:
         """Display the inference procedure results to the console"""
@@ -126,7 +128,7 @@ class InferenceResults(DataframeableMixin):
             raise InferenceResultsDisplayError(e)
 
     def visualize(
-        self, outfile: FilePath = None, *args, **kwargs
+        self, outfile: Optional[FilePath] = None, *args, **kwargs
     ) -> Element:  # pragma: no cover
         """Visualize the inference procedure results
 
@@ -234,9 +236,10 @@ class InferenceResults(DataframeableMixin):
         """
         return OrderedDict()
 
-    def to_dict(self) -> OrderedDict:
+    def to_dict(self) -> OrderedDict[Any, Any]:
         _dict = self._base_properties
         _dict.update(self._specific_properties)
+        assert isinstance(_dict, OrderedDict)
         return _dict
 
     @property
@@ -260,7 +263,7 @@ class InferenceProcedure(ABC):
         variable_type: VariableType = VariableType.continuous,
         inference_method: InferenceMethod = InferenceMethod.frequentist,
         hypothesis: Hypothesis = Hypothesis.larger,
-        metric_name: str = None,
+        metric_name: Optional[str] = None,
         alpha: float = DEFAULT_ALPHA,
         **inference_procedure_init_params,
     ):
@@ -308,7 +311,7 @@ class InferenceProcedure(ABC):
         """
         Generate and return a `InferenceResults` object
         """
-        raise NotImplementedError("Implement me")
+        pass
 
     def run(
         self,
@@ -333,7 +336,7 @@ class InferenceProcedure(ABC):
             The results of running the inference procedure
         """
         self._run_inference(control_samples, variation_samples)
-        self._results = self._make_results()
+        self._results = self._make_results()  # type: ignore
         return self.results
 
     @property
@@ -360,18 +363,18 @@ def get_inference_procedure(
             from .frequentist.means_delta import MeansDelta as IP
 
         elif variable_type == VariableType.binary:
-            from .frequentist.proportions_delta import ProportionsDelta as IP
+            from .frequentist.proportions_delta import ProportionsDelta as IP  # type: ignore
 
         elif variable_type == VariableType.counts:
-            from .frequentist.rates_ratio import RatesRatio as IP
+            from .frequentist.rates_ratio import RatesRatio as IP  # type: ignore
         else:
             raise ValueError(f"Unknown variable type `{variable_type}`")
 
     elif inference_method == InferenceMethod.bootstrap:
-        from .frequentist.bootstrap_delta import BootstrapDelta as IP
+        from .frequentist.bootstrap_delta import BootstrapDelta as IP  # type: ignore
 
     elif inference_method == InferenceMethod.bayesian:
-        from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP
+        from .bayesian.bayesian_inference import BayesianInferenceProcedure as IP  # type: ignore
     else:
         raise ValueError(f"Unknown inference method `{inference_method}`")
 

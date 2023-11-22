@@ -27,13 +27,14 @@ class ExtendedInferenceResults(InferenceResults):
             inference_method="test_inference",
             variable_type="test_variable_type",
             warnings=["a warning"],
+            visualization_function=lambda x: x,  # placeholder visualization function
             *args,
             **kwargs
         )
 
     @property
     def _specific_properties(self) -> OrderedDict:
-        return {"specific_property": "blah"}
+        return OrderedDict([("specific_property", "blah")])
 
     def _render_stats_table(self):
         class DummyStatsTable:
@@ -50,7 +51,9 @@ class ExtendedInferenceProcedure(InferenceProcedure):
         super().__init__(*args, **kwargs)
         self.inference_run = False
 
-    def _run_inference(self, control_samples, variation_samples) -> None:
+    def _run_inference(
+        self, control_samples, variation_samples, **inference_kwargs
+    ) -> None:
         self.inference_run = True
         self.control_samples = control_samples
         self.variation_samples = variation_samples

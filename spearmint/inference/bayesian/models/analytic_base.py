@@ -4,6 +4,7 @@ import arviz as az
 import numpy as np
 
 from spearmint.stats import Samples
+from spearmint.typing import Optional
 
 
 class BayesianAnalyticModel(ABC):
@@ -14,8 +15,8 @@ class BayesianAnalyticModel(ABC):
     def __init__(
         self,
         delta_param: str,
-        control_name: str = None,
-        variation_name: str = None,
+        control_name: Optional[str] = None,
+        variation_name: Optional[str] = None,
         *args,
         **kwargs,
     ):

@@ -1,7 +1,7 @@
 from pandas import DataFrame
 
 from spearmint import config
-from spearmint.typing import DataFrameColumns, List, Tuple
+from spearmint.typing import DataFrameColumns, List, Tuple, Optional
 
 
 def search_config(df: DataFrame, section: str, key: str) -> List[str]:
@@ -36,10 +36,10 @@ class Dataset:
     def __init__(
         self,
         df: DataFrame,
-        treatment: str = None,
-        measures: DataFrameColumns = None,
-        attributes: DataFrameColumns = None,
-        metadata: DataFrameColumns = None,
+        treatment: Optional[str] = None,
+        measures: Optional[DataFrameColumns] = None,
+        attributes: Optional[DataFrameColumns] = None,
+        metadata: Optional[DataFrameColumns] = None,
     ):
         """
         Parameters
@@ -193,7 +193,7 @@ class Dataset:
         A  [False, True, False, False, False, False, Fals...
         B  [True, False, True, False, False, False, True,...
         """
-        measures = {}
+        measures: dict = {}
         for cohort in self.cohorts:
             measures[cohort] = {}
             for metric in self.measures:
@@ -229,7 +229,7 @@ class Dataset:
             A0b     [False, False, True, True, False, False, False...
             A0c     [True, False, True, False, True, True, True, F...
         """
-        measures = {}
+        measures: dict = {}
         for segment in self.segments(attribute):
             measures[segment] = {}
             for metric in self.measures:

@@ -1,11 +1,10 @@
 import os
 import shutil
-import string
-
 import numpy as np
 import pandas as pd
+import string
 
-from spearmint.typing import Any, DataFrame, Iterable, List, Path, Union
+from spearmint.typing import Any, List, Iterable, Union, DataFrame, Path, Optional
 
 BIG_FLOAT = 2.0**32
 SMALL_FLOAT = -(2.0**32)
@@ -48,8 +47,10 @@ def rmdir(dirname: Union[str, Path]) -> None:
         shutil.rmtree(dirname)
 
 
-def process_warnings(warnings: Union[str, List[str]]) -> str:
+def process_warnings(warnings: Union[str, List[str], None]) -> str:
     """Convert sequence of warnings into a string"""
+    if warnings is None:
+        return ""
 
     def _flatten(_warnings):  # noqa
         for w in _warnings:
@@ -64,6 +65,7 @@ def process_warnings(warnings: Union[str, List[str]]) -> str:
             flattened_warnings = _flatten(warnings)
             warnings = "; ".join(flattened_warnings)
         return warnings
+    return ""
 
 
 def isnumeric(val: Any) -> bool:
@@ -113,7 +115,9 @@ def coerce_value(val: Any) -> Any:
     return val
 
 
-def format_value(val: Union[float, Iterable[float]], precision: int = 4) -> str:
+def format_value(
+    val: Optional[Union[float, Iterable[float]]], precision: int = 4
+) -> str:
     """Helper function for standardizing the precision of numerical and
     iterable values, returning a string representation.
 
@@ -129,6 +133,9 @@ def format_value(val: Union[float, Iterable[float]], precision: int = 4) -> str:
     formatted_value : str
         Representation of `val` with proper precision
     """
+    if val is None:
+        return ""
+
     if isinstance(val, Iterable):
         return f"{tuple((round(v, precision) for v in val))}"
     if precision == 0:
@@ -175,7 +182,7 @@ def infer_variable_type(values: np.ndarray) -> str:
     Returns
     -------
     str
-        The type of variable. Either 'binary', 'counts', or 'continuous'
+        The type of variable. Either 'binary', 'counts', or 'continuous'.
     """
     if values.dtype == bool:
         return "binary"
@@ -196,7 +203,6 @@ def set_matplotlib_backend() -> str:
         The matplotlib backend being used
     """
     from sys import platform
-
     import matplotlib as mpl
 
     backend = "pdf" if platform == "darwin" else "agg"
@@ -219,7 +225,7 @@ def safe_isnan(val: Any) -> bool:
         Truth value of the the value being a NaN
     """
     if val is not None:
-        return np.isnan(val)
+        return np.isnan(val)  # type: ignore
     return False
 
 
@@ -305,28 +311,11 @@ def generate_fake_observations(
 
     # Set the metric data type
     if distribution_ == "poisson":
-        dtype = int
+        dtype = int  # type: ignore
     elif distribution_ == "bernoulli":
-        dtype = bool
+        dtype = bool  # type: ignore
     elif distribution_ == "gaussian":
-        dtype = float
+        dtype = float  # type: ignore
 
     data = data.astype({"metric": dtype})
     return data
-
-
-def generate_fake_samples(
-    name: str = None,
-    distribution: str = "bernoulli",
-    random_seed: int = 123,
-    n_observations: int = 1000,
-):
-    from spearmint.stats import Samples
-
-    observations = generate_fake_observations(
-        n_observations=n_observations,
-        n_treatments=1,
-        distribution=distribution,
-        random_seed=random_seed,
-    )["metric"].values
-    return Samples(observations=observations, name=name)

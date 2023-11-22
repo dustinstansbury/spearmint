@@ -14,7 +14,7 @@ from spearmint.inference.inference_base import (
 )
 from spearmint.stats import Samples
 from spearmint.table import SpearmintTable
-from spearmint.typing import Any, Dict, FilePath, Tuple, Union
+from spearmint.typing import Any, Dict, FilePath, Tuple, Union, Optional
 from spearmint.utils import format_value, process_warnings
 
 # TODO: Enums for all these
@@ -43,7 +43,10 @@ class UnsupportedParameterEstimationMethodException(Exception):
     pass
 
 
-def _get_model_name(model_name: str, variable_type: str) -> str:
+def _get_model_name(
+    variable_type: str,
+    model_name: Optional[str],
+) -> str:
     if model_name is None:
         return DEFAULT_VARIABLE_TYPE_MODELS[variable_type]
 
@@ -53,7 +56,7 @@ def _get_model_name(model_name: str, variable_type: str) -> str:
     return clean_model_name
 
 
-def _get_model_datatype(model_name: str) -> Union[float, int]:
+def _get_model_datatype(model_name: str) -> type:
     if model_name in CONTINUOUS_MODEL_NAMES:
         return float
     return int
@@ -89,9 +92,9 @@ class BayesianInferenceResults(InferenceResults):
         prob_greater_than_zero: float,
         parameter_estimation_method: str,
         model_name: str,
-        data_type: Union[float, int],
-        model_params: Dict[str, Any] = None,
-        model_hyperparams: Dict[str, Any] = None,
+        data_type: type,
+        model_params: Optional[Dict[str, Any]] = None,
+        model_hyperparams: Optional[Dict[str, Any]] = None,
         *args,
         **kwargs,
     ):
@@ -211,7 +214,7 @@ class BayesianInferenceResultsTable(SpearmintTable):
 
 
 def visualize_bayesian_delta_results(
-    results: BayesianInferenceResults, outfile: FilePath = None
+    results: BayesianInferenceResults, outfile: Optional[FilePath] = None
 ):  # pragma: no cover
     # Lazy import
     import holoviews as hv
@@ -243,7 +246,7 @@ def visualize_bayesian_delta_results(
         label=results.control.name,
         color=vis.CONTROL_COLOR,
         show_interval_text=True,
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     variation_ci = vis.plot_interval(
         *variation_posterior.hdi(credible_mass),
@@ -251,7 +254,7 @@ def visualize_bayesian_delta_results(
         label=results.variation.name,
         color=vis.VARIATION_COLOR,
         show_interval_text=True,
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
@@ -276,7 +279,7 @@ def visualize_bayesian_delta_results(
         label=f"{credible_mass}% HDI",
         show_interval_text=True,
         vertical_offset=-(max_pdf_height * 0.01),
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     vline = hv.Spikes(([0.0], [max_pdf_height]), vdims="pdf", label="Null Delta").opts(
         color=vis.COLORS.red
@@ -301,7 +304,7 @@ def visualize_bayesian_delta_results(
 
 @dataclass
 class _BayesianModel:
-    """Container for PyMC model and available fitting options"""
+    """Container for Bayesian model object and available fitting options"""
 
     model_name: str
     model_object: Union[pm.Model, BayesianAnalyticModel]
@@ -317,7 +320,7 @@ def _build_bayesian_inference_model(
     variation_samples: Samples,
     parameter_estimation_method: str,
     **model_params,
-) -> Tuple[_BayesianModel, Dict[str, Any]]:
+) -> _BayesianModel:
     mcmc_estimation_supported = True  # MCMC works for all models
     advi_estimation_supported = False  # ADVI not supported for all models
     analytic_estimation_supported = False  # No Analytic solution for all model
@@ -361,7 +364,7 @@ def _build_bayesian_inference_model(
 
 def _fit_model_mcmc(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.mcmc_estimation_supported:
-        with model.model_object:
+        with model.model_object:  # type: ignore  # context manager only on PyMC model_objects
             return pm.sample(**inference_kwargs)
     raise UnsupportedParameterEstimationMethodException(
         f"MCMC not supported for {model.model_name} model"
@@ -370,7 +373,7 @@ def _fit_model_mcmc(model: _BayesianModel, **inference_kwargs) -> InferenceData:
 
 def _fit_model_advi(model: _BayesianModel, **inference_kwargs) -> InferenceData:
     if model.advi_estimation_supported:
-        with model.model_object:
+        with model.model_object:  # type: ignore  # context manager only on PyMC model_objects
             mean_field = pm.fit(method="advi", **inference_kwargs)
 
             return mean_field.sample(N_POSTERIOR_SAMPLES)
@@ -398,15 +401,15 @@ class BayesianInferenceProcedure(InferenceProcedure):
     def __init__(
         self,
         parameter_estimation_method: str = "mcmc",
-        model_name: str = None,
-        model_params: dict = None,
+        model_name: Optional[str] = None,
+        model_params: Optional[dict] = None,
         *args,
         **kwargs,
     ):
         """
         Parameters
         ----------
-        inference_procedure: str
+        model_name: str
             The name of the inference model to use:
                 -   "gaussian"       : Hierarchical Gaussian model (continuous)
                 -   "student-t"      : Hierarchical Student's t model (continuous)
@@ -431,12 +434,12 @@ class BayesianInferenceProcedure(InferenceProcedure):
             model.
         """
         super().__init__(*args, **kwargs)
-        self.model_name = _get_model_name(model_name, self.variable_type)
+        self.model_name = _get_model_name(self.variable_type, model_name)
         self.data_type = _get_model_datatype(self.model_name)
         assert parameter_estimation_method in SUPPORTED_PARAMETER_ESTIMATION_METHODS
         self.parameter_estimation_method = parameter_estimation_method
         self.model_params = model_params if model_params else {}
-        self.inference_results = None
+        self.inference_data: Optional[InferenceData] = None
 
     def _process_samples(self, samples: Samples) -> Samples:
         return Samples(np.array(samples.data, dtype=self.data_type), name=samples.name)
@@ -467,17 +470,13 @@ class BayesianInferenceProcedure(InferenceProcedure):
         )
 
         if self.parameter_estimation_method == "mcmc":
-            self.inference_results = _fit_model_mcmc(
-                _bayesian_model, **inference_kwargs
-            )
+            self.inference_data = _fit_model_mcmc(_bayesian_model, **inference_kwargs)
 
         elif self.parameter_estimation_method == "advi":
-            self.inference_results = _fit_model_advi(
-                _bayesian_model, **inference_kwargs
-            )
+            self.inference_data = _fit_model_advi(_bayesian_model, **inference_kwargs)
 
         elif self.parameter_estimation_method == "analytic":
-            self.inference_results = _fit_model_analytic(
+            self.inference_data = _fit_model_analytic(
                 _bayesian_model, **inference_kwargs
             )
 
@@ -515,9 +514,9 @@ class BayesianInferenceProcedure(InferenceProcedure):
             If the inference procedure has not been run, there is no posterior
             to sample.
         """
-        if self.inference_results is not None:
+        if self.inference_data is not None:
             return Samples(
-                observations=self.inference_results.posterior[
+                observations=self.inference_data.posterior[  # type: ignore  # posterior attribute not initialized by default
                     parameter_name
                 ].values.flatten(),
                 name=parameter_name,
