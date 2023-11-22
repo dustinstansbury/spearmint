@@ -1,9 +1,10 @@
 from copy import deepcopy
+from datetime import datetime
 
 from spearmint.config import DEFAULT_ALPHA, DEFAULT_INFERENCE_METHOD
 from spearmint.inference import InferenceResults, get_inference_procedure
 from spearmint.stats import MultipleComparisonCorrection, Samples
-from spearmint.typing import Callable, DataFrame, FilePath, Iterable, List, Union
+from spearmint.typing import Callable, DataFrame, FilePath, Optional, List, Union
 from spearmint.utils import ensure_dataframe, infer_variable_type
 
 
@@ -44,7 +45,7 @@ class SegmentFilter:
     pandas `query` interface.
     """
 
-    def __init__(self, segment_query: str = None):
+    def __init__(self, segment_query: Optional[str] = None):
         self.segment_query = segment_query
 
     def apply(self, data: DataFrame) -> DataFrame:
@@ -84,13 +85,13 @@ class HypothesisTest:
 
     def __init__(
         self,
+        control: str,
+        variation: str,
         inference_method: str = DEFAULT_INFERENCE_METHOD,
-        metric: Union[str, CustomMetric] = None,
-        control: str = None,
-        variation: str = None,
-        hypothesis: str = "larger",
-        segmentation: Union[str, List[str]] = None,
-        variable_type: str = None,
+        metric: Optional[Union[str, CustomMetric]] = None,
+        hypothesis: Optional[str] = "larger",
+        segmentation: Optional[Union[str, List[str]]] = None,
+        variable_type: Optional[str] = None,
         **inference_procedure_init_params,
     ):
         """
@@ -112,7 +113,7 @@ class HypothesisTest:
                     - 'binomial'            Proportions
                     - 'gamma_poisson'       Counts / rates
 
-        metric: str or CustomMetric instance (optional)
+        metric: str | CustomMetric instance (optional)
             a performance indicator over which statistical analyses
             will be performed. Each can either be a measurment in the experiment's
             dataset, or an instance of a CustomMetric. If None provided, the
@@ -149,7 +150,7 @@ class HypothesisTest:
         if isinstance(self.metric, CustomMetric):
             self.metric_column = self.metric.metric_function.__name__
         else:
-            self.metric_column = metric
+            self.metric_column = str(metric)
 
         self.inference_procedure_init_params = inference_procedure_init_params
 
@@ -252,7 +253,7 @@ class HypothesisTest:
         )
 
         results.metric_name = self.metric_column
-        results.segmentation = self.segmentation
+        # results.segmentation = self.segmentation
         return results
 
     def copy(self, **update_kwargs) -> "HypothesisTest":
@@ -267,7 +268,7 @@ class HypothesisTest:
                 setattr(copy, k, v)
 
         copy.inference_procedure = get_inference_procedure(
-            copy.variable_type, copy.inference_method, **inference_kwargs
+            copy.variable_type, copy.inference_method, **inference_kwargs  # type: ignore  # `.variable_type` inherited, or determined during inference
         )
         return copy
 
@@ -287,9 +288,7 @@ class HypothesisTestGroup:
             'fdr_bh', 'bh; : Benjamini/Hochberg (non-negative)
     """
 
-    def __init__(
-        self, tests: Iterable[HypothesisTest], correction_method: str = "sidak"
-    ):
+    def __init__(self, tests: List[HypothesisTest], correction_method: str = "sidak"):
         self.tests = tests
         self.correction_method = correction_method
 
@@ -312,12 +311,13 @@ class GroupInferenceResults:
         self.original_results = original_results
         self.corrected_results = corrected_results
         self.correction = correction
+        self.run_at: Optional[datetime] = None
 
     def display(self) -> None:
         for ii, res in enumerate(self.corrected_results):
             print("-" * 60 + f"\nTest {ii + 1} of {self.ntests}")
             res.display()
 
-    def visualize(self, outfile: FilePath = None, *args, **kwargs):
+    def visualize(self, outfile: Optional[FilePath] = None, *args, **kwargs):
         for _, res in enumerate(self.corrected_results):
             res.visualize(outfile=outfile)

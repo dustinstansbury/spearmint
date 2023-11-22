@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 from spearmint.experiment import Experiment
-from spearmint.hypothesis_test import (CustomMetric, HypothesisTest,
-                                       HypothesisTestGroup)
+from spearmint.hypothesis_test import CustomMetric, HypothesisTest, HypothesisTestGroup
 from spearmint.utils import generate_fake_observations
 
 
@@ -98,7 +97,7 @@ def test_hypothesis_test_group(test_data):
     test_group_results.display()
 
     assert (
-        test_group_results.corrected_results[0].correction_method.__name__
+        test_group_results.corrected_results[0].correction_method
         == "bonferroni_correction"
     )
     assert test_group_results.original_results[0].correction_method is None
