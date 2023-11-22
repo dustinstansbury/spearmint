@@ -1,7 +1,7 @@
 import numpy as np
 
 from spearmint.stats import ProportionComparison, Samples
-from spearmint.typing import FilePath, Tuple
+from spearmint.typing import FilePath, Tuple, Optional
 
 from .frequentist_inference import (
     FrequentistInferenceProcedure,
@@ -10,7 +10,7 @@ from .frequentist_inference import (
 
 
 def visualize_proportions_delta_results(
-    results: FrequentistInferenceResults, outfile: FilePath = None
+    results: FrequentistInferenceResults, outfile: Optional[FilePath] = None
 ):  # pragma: no cover
     # Lazy import
     import holoviews as hv
@@ -45,14 +45,14 @@ def visualize_proportions_delta_results(
         label=results.control.name,
         color=vis.CONTROL_COLOR,
         show_interval_text=True,
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     variation_ci = vis.plot_interval(
         *get_binomial_cis(results.variation),
         label=results.variation.name,
         color=vis.VARIATION_COLOR,
         show_interval_text=True,
-    )
+    )  # type: ignore # (mypy bug, see #6799)
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
@@ -154,7 +154,7 @@ class ProportionsDelta(FrequentistInferenceProcedure):
 
     # @abstractmethod
     def _run_inference(
-        self, control_samples: Samples, variation_samples: Samples
+        self, control_samples: Samples, variation_samples: Samples, **inference_kwargs
     ) -> None:
         """
         Run the inference procedure over the samples with a selected alpha
@@ -188,7 +188,6 @@ class ProportionsDelta(FrequentistInferenceProcedure):
             power=self.comparison.power,
             delta_confidence_interval=self.delta_ci,
             delta_confidence_interval_percentiles=self.delta_ci_percentiles,
-            hypothesis=self.hypothesis,
             inference_method=self.inference_method,
             variable_type=self.variable_type,
             warnings=self.comparison.warnings,
@@ -196,6 +195,7 @@ class ProportionsDelta(FrequentistInferenceProcedure):
             test_statistic_value=test_stats["statistic_value"],
             p_value=test_stats["p_value"],
             degrees_freedom=None,
+            hypothesis=self.hypothesis,
             accept_hypothesis=accept_hypothesis,
             visualization_function=visualize_proportions_delta_results,
         )

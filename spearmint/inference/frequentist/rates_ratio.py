@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import norm
 
 from spearmint.stats import RateComparison, Samples
-from spearmint.typing import FilePath, Tuple
+from spearmint.typing import FilePath, Tuple, Optional
 
 from .frequentist_inference import (
     FrequentistInferenceProcedure,
@@ -11,7 +11,7 @@ from .frequentist_inference import (
 
 
 def visualize_rates_ratio_results(
-    results: FrequentistInferenceResults, outfile: FilePath = None
+    results: FrequentistInferenceResults, outfile: Optional[FilePath] = None
 ):  # pragma: no cover
     # Lazy import
     import holoviews as hv
@@ -195,9 +195,7 @@ class RatesRatio(FrequentistInferenceProcedure):
 
     # @abstractmethod
     def _run_inference(
-        self,
-        control_samples: Samples,
-        variation_samples: Samples,
+        self, control_samples: Samples, variation_samples: Samples, **inference_kwargs
     ) -> None:
         self.comparison = RateComparison(
             samples_a=variation_samples,
@@ -223,7 +221,6 @@ class RatesRatio(FrequentistInferenceProcedure):
             power=self.comparison.power,
             delta_confidence_interval=self.delta_ci,
             delta_confidence_interval_percentiles=self.delta_ci_percentiles,
-            hypothesis=self.hypothesis,
             inference_method=self.inference_method,
             variable_type=self.variable_type,
             warnings=self.comparison.warnings,
@@ -231,6 +228,7 @@ class RatesRatio(FrequentistInferenceProcedure):
             test_statistic_value=test_stats["statistic_value"],
             p_value=test_stats["p_value"],
             degrees_freedom=None,
+            hypothesis=self.hypothesis,
             accept_hypothesis=accept_hypothesis,
             visualization_function=visualize_rates_ratio_results,
         )
