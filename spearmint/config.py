@@ -50,7 +50,7 @@ TEMPLATE_BEGIN_PATTERN = (
 )
 
 
-def expand_env_var(env_var: str) -> None:
+def expand_env_var(env_var: str) -> Any:
     """
     Expands (potentially nested) env vars by repeatedly applying
     `expandvars` and `expanduser` until interpolation stops having
@@ -100,7 +100,7 @@ class SpearmintConfigParser(ConfigParser, object):
     def _validate(self) -> None:
         self.is_validated = True
 
-    def read(self, filenames: Union[str, Iterable[str]]) -> None:
+    def read(self, filenames: Union[str, Iterable[str]]) -> None:  # type: ignore
         ConfigParser.read(self, filenames)
         self._validate()
 
