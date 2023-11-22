@@ -12,7 +12,7 @@ from spearmint.hypothesis_test import (
     InferenceResults,
 )
 from spearmint.stats import MultipleComparisonCorrection, Samples
-from spearmint.typing import List
+from spearmint.typing import List, Optional
 
 
 class Experiment:
@@ -24,12 +24,10 @@ class Experiment:
     def __init__(
         self,
         data: DataFrame,
-        treatment: str = None,
-        measures: List[str] = None,
-        attributes: List[str] = None,
-        # date: datetime.datetime = None,
-        # name: str = None,
-        metadata: List[str] = None,
+        treatment: Optional[str] = None,
+        measures: Optional[List[str]] = None,
+        attributes: Optional[List[str]] = None,
+        metadata: Optional[List[str]] = None,
     ):
         """
         Parameters
@@ -105,10 +103,9 @@ class Experiment:
         self,
         test: HypothesisTest,
         alpha: float = DEFAULT_ALPHA,
-        correction_method: str = None,
-        display_results: bool = False,
-        visualize_results: bool = False,
-        # **inference_kwargs,
+        correction_method: Optional[str] = None,
+        display_results: Optional[bool] = False,
+        visualize_results: Optional[bool] = False,
     ) -> InferenceResults:
         """
         Given a HypothesisTest, run the test and return the results.
@@ -160,7 +157,7 @@ class Experiment:
         if visualize_results:
             test_results.visualize()
 
-        test_results.run_on = datetime.now()
+        test_results.run_at = datetime.now()
         return test_results
 
     def run_test_group(
@@ -214,7 +211,7 @@ class Experiment:
             self.run_test(
                 test,
                 alpha=correction.alpha_corrected,
-                correction_method=correction.mc_correction_method,
+                correction_method=correction.mc_correction_method.__name__,
             )
             for test in corrected_tests
         ]
