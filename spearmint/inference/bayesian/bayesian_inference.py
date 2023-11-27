@@ -80,6 +80,7 @@ class BayesianInferenceResults(InferenceResults):
 
     def __init__(
         self,
+        prior: Samples,
         delta_posterior: Samples,
         delta_relative_posterior: Samples,
         control_posterior: Samples,
@@ -99,6 +100,7 @@ class BayesianInferenceResults(InferenceResults):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self.prior = prior
         self.control_posterior = control_posterior
         self.variation_posterior = variation_posterior
         self.delta_posterior = delta_posterior
@@ -214,7 +216,9 @@ class BayesianInferenceResultsTable(SpearmintTable):
 
 
 def visualize_bayesian_delta_results(
-    results: BayesianInferenceResults, outfile: Optional[FilePath] = None
+    results: BayesianInferenceResults,
+    outfile: Optional[FilePath] = None,
+    include_prior: bool = False,
 ):  # pragma: no cover
     # Lazy import
     import holoviews as hv
@@ -257,6 +261,13 @@ def visualize_bayesian_delta_results(
     )  # type: ignore # (mypy bug, see #6799)
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
+
+    if include_prior:
+        prior_dist = vis.plot_kde(
+            samples=results.prior.data, label="prior", color=vis.PRIOR_COLOR
+        )
+        distribution_plot *= prior_dist
+
     distribution_plot = distribution_plot.relabel(
         f"Posterior {comparison_param} Comparison"
     ).opts(
@@ -484,6 +495,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
         comparison_param = _get_delta_param(self.model_name)
         self.control = control_samples
         self.variation = variation_samples
+        self.prior = self.posterior_samples("prior")
         self.control_posterior = self.posterior_samples(f"{comparison_param}_control")
         self.variation_posterior = self.posterior_samples(
             f"{comparison_param}_variation"
@@ -550,6 +562,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
         results = BayesianInferenceResults(
             control=self.control,
             variation=self.variation,
+            prior=self.prior,
             control_posterior=self.control_posterior,
             variation_posterior=self.variation_posterior,
             delta_posterior=self.delta_posterior,

@@ -77,7 +77,6 @@ class GaussianAnalyticModel(BayesianAnalyticModel):
             variation_posterior_var,
             variation_samples,
         )
-
         self._control_posterior = stats.norm(
             control_posterior_mean, control_posterior_var**0.5
         )
@@ -85,6 +84,8 @@ class GaussianAnalyticModel(BayesianAnalyticModel):
         self._variation_posterior = stats.norm(
             variation_posterior_mean, variation_posterior_var**0.5
         )
+        # Add prior samples for visualization
+        self._prior = stats.norm(self.prior_mean, self.prior_var)
 
 
 def build_gaussian_analytic_model(
@@ -150,6 +151,9 @@ def build_gaussian_pymc_model(
         sigma_variation = pm.TruncatedNormal(
             "sigma_variation", lower=1e-4, mu=prior_mean_sigma, sigma=prior_var_sigma
         )
+        pm.Normal(
+            "prior", mu=prior_mean_mu, sigma=prior_var_mu
+        )  # for visualizing prior
         mu_control = pm.Normal("mu_control", mu=prior_mean_mu, sigma=prior_var_mu)
         mu_variation = pm.Normal("mu_variation", mu=prior_mean_mu, sigma=prior_var_mu)
 
@@ -232,6 +236,9 @@ def build_student_t_pymc_model(
         sigma_variation = pm.TruncatedNormal(
             "sigma_variation", lower=1e-4, mu=prior_mean_sigma, sigma=prior_var_sigma
         )
+        pm.Normal(
+            "prior", mu=prior_mean_mu, sigma=prior_var_mu
+        )  # for visualizing prior
         mu_control = pm.Normal("mu_control", mu=prior_mean_mu, sigma=prior_var_mu)
         mu_variation = pm.Normal("mu_variation", mu=prior_mean_mu, sigma=prior_var_mu)
 

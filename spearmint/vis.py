@@ -11,6 +11,7 @@ DEFAULT_COLOR = COLORS.blue
 CONTROL_COLOR = COLORS.blue
 VARIATION_COLOR = COLORS.green
 DELTA_COLOR = COLORS.black
+PRIOR_COLOR = COLORS.light_gray
 
 POSITIVE_COLOR = COLORS.green
 NEGATIVE_COLOR = COLORS.red
@@ -73,7 +74,6 @@ def plot_interval(
         raise ValueError("Too many interval values are inf")
 
     middle = np.mean((left, right)) if middle is None else middle  # type: ignore
-    assert isinstance(middle, float)
 
     INFTY_SCALE = 2
 

@@ -150,7 +150,7 @@ class InferenceResults(DataframeableMixin):
             option for std-out-only reporting
         """
         try:
-            return self.visualization_function(self, outfile)
+            return self.visualization_function(self, outfile, *args, **kwargs)
 
         except Exception as e:
             raise InferenceResultsVisualizationError(e)

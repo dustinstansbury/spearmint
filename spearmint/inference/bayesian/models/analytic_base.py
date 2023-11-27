@@ -25,6 +25,7 @@ class BayesianAnalyticModel(ABC):
         self.variation_name = variation_name
         self._control_posterior = None
         self._variation_posterior = None
+        self._prior = None
 
     @property
     def control_posterior(self):
@@ -33,6 +34,10 @@ class BayesianAnalyticModel(ABC):
     @property
     def variation_posterior(self):
         return self._variation_posterior
+
+    @property
+    def prior(self):
+        return self._prior
 
     def sample(self, n_samples: int = 1000) -> az.InferenceData:
         """
@@ -48,6 +53,8 @@ class BayesianAnalyticModel(ABC):
         inference_data : InferenceData
             An Arviz InferenceData structure with a `.posterior` attribute.
         """
+        # Sample the prior (for visualization)
+        prior_samples = self.prior.rvs(size=n_samples)
 
         # Sample delta parameters from the posterior
         control_posterior_samples = self.control_posterior.rvs(size=n_samples)
@@ -64,6 +71,7 @@ class BayesianAnalyticModel(ABC):
         )
 
         data_dict = {
+            "prior": prior_samples,
             f"{self.delta_param}_control": control_posterior_samples,
             f"{self.delta_param}_variation": variation_posterior_samples,
             "delta": delta_posterior_samples,

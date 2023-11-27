@@ -81,6 +81,9 @@ class BinomialAnalyticModel(BayesianAnalyticModel):
             variation_posterior_alpha, variation_posterior_beta
         )
 
+        # Add prior for visualization
+        self._prior = stats.beta(self.prior_alpha, self.prior_beta)
+
 
 def build_binomial_analytic_model(
     control_samples: Samples,
@@ -232,6 +235,7 @@ def build_binomial_pymc_model(
 
     with pm.Model() as model:
         # Priors
+        pm.Beta("prior", alpha=prior_alpha, beta=prior_beta)  # for displaying prior
         p_control = pm.Beta("p_control", alpha=prior_alpha, beta=prior_beta)
         p_variation = pm.Beta("p_variation", alpha=prior_alpha, beta=prior_beta)
 

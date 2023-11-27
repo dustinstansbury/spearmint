@@ -72,6 +72,8 @@ class PoissonAnalyticModel(BayesianAnalyticModel):
         )
         variation_posterior_beta = _posterior_beta(self.prior_beta, variation_samples)
 
+        # Add prior for visualization
+        self._prior = stats.gamma(a=self.prior_alpha, scale=1 / self.prior_beta)
         self._control_posterior = stats.gamma(
             a=control_posterior_alpha, scale=1 / control_posterior_beta
         )
@@ -95,7 +97,10 @@ def build_poisson_analytic_model(
 
 
 def build_poisson_pymc_model(
-    control_samples: Samples, variation_samples: Samples
+    control_samples: Samples,
+    variation_samples: Samples,
+    prior_alpha: float = 1.0,
+    prior_beta: float = 1.0,
 ) -> pm.Model:
     """
     Compile a Gamma-Poisson Bayesian PyMC model for modeling counted events data.
@@ -123,17 +128,14 @@ def build_poisson_pymc_model(
     -   https://www.pymc.io/projects/docs/en/stable/api/distributions/generated/pymc.Poisson.html
     """
 
-    # Informed priors
-    alpha_control, beta_control = _get_gamma_prior_params(control_samples)
-    alpha_variation, beta_variation = _get_gamma_prior_params(variation_samples)
+    hyperparams = {"prior_alpha": prior_alpha, "prior_beta": prior_beta}
 
     with pm.Model() as model:
         # Priors
-        lambda_control = pm.Gamma(
-            "lambda_control", alpha=alpha_control, beta=beta_control
-        )
+        pm.Gamma("prior", alpha=prior_alpha, beta=prior_beta)  # for visualizing prior
+        lambda_control = pm.Gamma("lambda_control", alpha=prior_alpha, beta=prior_beta)
         lambda_variation = pm.Gamma(
-            "lambda_variation", alpha=alpha_variation, beta=beta_variation
+            "lambda_variation", alpha=prior_alpha, beta=prior_beta
         )
 
         # Likelihoods
@@ -146,12 +148,5 @@ def build_poisson_pymc_model(
             "effect_size", (lambda_variation / lambda_control) - 1.0
         )
         pm.Deterministic("delta_relative", effect_size - 1)
-
-    hyperparams = {
-        "alpha_control": alpha_control,
-        "alpha_variation": alpha_variation,
-        "beta_control": beta_control,
-        "beta_variation": beta_variation,
-    }
 
     return model, hyperparams
