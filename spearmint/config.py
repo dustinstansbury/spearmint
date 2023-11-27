@@ -23,17 +23,19 @@ logging_level=INFO
 
 # Defaults
 [experiment]
-default_control_name=control
-default_treatment_name=treatment
-enrollment=enrollment
 default_measure_names=metric
-default_attribute_names=attr_0,attr_1
+enrollment=enrollment
 
 [hypothesis_test]:
-default_alpha=.05
-default_test_direction=larger
-min_obs_for_z_test=30
+default_control_name=control
+default_variation_name=variation
+default_treatment_name=treatment
+default_metric_name=metric
+default_hypothesis=larger
 default_inference_method=frequentist
+default_alpha=.05
+min_obs_for_z_test=30
+default_attribute_names=attr_0,attr_1
 
 [vis]
 vis_backend=matplotlib
@@ -176,10 +178,16 @@ def set(section: str, option: str, value: Any) -> None:
 logger = logging.getLogger(__name__)
 logger.setLevel(get("core", "logging_level"))
 
-# Configure Hypothesis testing
-DEFAULT_ALPHA = get("hypothesis_test", "default_alpha")
-DEFAULT_TEST_DIRECTION = get("hypothesis_test", "default_test_direction")
+# Configure defaults
+DEFAULT_METRIC_NAME = get("hypothesis_test", "default_metric_name")
+DEFAULT_TREATMENT_NAME = get("hypothesis_test", "default_treatment_name")
+DEFAULT_CONTROL_NAME = get("hypothesis_test", "default_control_name")
+DEFAULT_VARIATION_NAME = get("hypothesis_test", "default_variation_name")
 DEFAULT_INFERENCE_METHOD = get("hypothesis_test", "default_inference_method")
+DEFAULT_HYPOTHESIS = get("hypothesis_test", "default_hypothesis")
+DEFAULT_ALPHA = get("hypothesis_test", "default_alpha")
+
+
 MIN_OBS_FOR_Z_TEST = get("hypothesis_test", "min_obs_for_z_test")
 # DEFAULT_BAYESIAN_INFERENCE_METHOD = get("pymc", "bayesian_inference_method")
 

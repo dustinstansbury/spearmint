@@ -1,7 +1,13 @@
 from copy import deepcopy
 from datetime import datetime
 
-from spearmint.config import DEFAULT_ALPHA, DEFAULT_INFERENCE_METHOD
+from spearmint.config import (
+    DEFAULT_ALPHA,
+    DEFAULT_INFERENCE_METHOD,
+    DEFAULT_HYPOTHESIS,
+    DEFAULT_METRIC_NAME,
+    DEFAULT_TREATMENT_NAME,
+)
 from spearmint.inference import InferenceResults, get_inference_procedure
 from spearmint.stats import MultipleComparisonCorrection, Samples
 from spearmint.typing import Callable, DataFrame, FilePath, Optional, List, Union
@@ -87,9 +93,10 @@ class HypothesisTest:
         self,
         control: str,
         variation: str,
+        metric: Optional[Union[str, CustomMetric]] = DEFAULT_METRIC_NAME,
+        treatment: Optional[Union[str, CustomMetric]] = DEFAULT_TREATMENT_NAME,
         inference_method: str = DEFAULT_INFERENCE_METHOD,
-        metric: Optional[Union[str, CustomMetric]] = None,
-        hypothesis: Optional[str] = "larger",
+        hypothesis: Optional[str] = DEFAULT_HYPOTHESIS,
         segmentation: Optional[Union[str, List[str]]] = None,
         variable_type: Optional[str] = None,
         **inference_procedure_init_params,
@@ -97,30 +104,29 @@ class HypothesisTest:
         """
         Parameters
         ----------
-        inference_method : str
-            The name of the inference method used to perform the hypothesis test.
-            Can be one of the following:
-
-                Frequentist Inference:
-                    - 'means_delta'         Continuous
-                    - 'proprortions_delta'  Proportions
-                    - 'rates_ratio'         Counts / rates
-                Bayesian Inference:
-                    - 'gaussian'            Continuous
-                    - 'exp_student_t'       Continuous
-                    - 'bernoulli'           Proportions / binary
-                    - 'beta_binomial'       Proportions
-                    - 'binomial'            Proportions
-                    - 'gamma_poisson'       Counts / rates
-
-        metric: str | CustomMetric instance (optional)
-            a performance indicator over which statistical analyses
-            will be performed. Each can either be a measurment in the experiment's
-            dataset, or an instance of a CustomMetric. If None provided, the
         control : str
             The name of the control treatment
         variation : str
             The name of the experimental treatment
+        metric: str | CustomMetric (optional)
+            a performance indicator over which statistical analyses
+            will be performed. Each can either be a measurment in the experiment's
+            dataset (i.e. a column name), or an instance of a CustomMetric. If
+            None provided, we use the setting in
+            spearmint.cfg::hypothesis_test.default_metric_name
+        inference_method : str (optional)
+            The name of the inference method used to perform the hypothesis test.
+            Can be one of "frequentist", "bayesian", "bootstrap". If None provided,
+            we use the setting in
+            spearmint.cfg::hypothesis_test.default_inference_method
+        hypothesis: str (optional)
+            One of "larger", "smaller", "unqual". The hypothesis to test when
+            comparing the `control` and `variation` groups. If
+            None provided, we use the setting in
+            spearmint.cfg::hypothesis_test.default_hypothesis
+        treatment: Str (optional)
+            The name of the treatment column in the experiement observations. If None
+            provided, we load it from spearmint.cfg
         segmentation : str | List[str] (optional)
             Defines a list of logical filter operations that follows the conventions
             used by Panda's dataframe query api and segments the treatments into subgroups.
@@ -134,6 +140,7 @@ class HypothesisTest:
 
         """
         self.metric = metric
+        self.treatment = treatment
         self.control = control
         self.variation = variation
         self.inference_method = (
@@ -160,7 +167,7 @@ class HypothesisTest:
         data[self.metric_name] = self.metric.apply(data)
         return data
 
-    def filter_variations(self, data, variation_name, treatment=None):
+    def filter_variations(self, data: DataFrame, variation_name: str) -> DataFrame:
         """
         Helper function used to pull out the data series observations for a
         variation.
@@ -171,19 +178,10 @@ class HypothesisTest:
         else:
             self.metric_name = self.metric
 
-        if treatment is None:
-            if hasattr(self, "treatment"):
-                treatment = self.treatment
-            else:
-                raise ValueError(
-                    "Cant't determine the treatment column, ",
-                    "please provide as `treatment` argument",
-                )
-
-        cohort_filter = CohortFilter(treatment, variation_name)
+        cohort_filter = CohortFilter(self.treatment, variation_name)  # type: ignore
         return cohort_filter.apply(data)
 
-    def filter_segments(self, data):
+    def filter_segments(self, data: DataFrame) -> DataFrame:
         """
         Helper function used to filter observations for all segments.
         """
@@ -191,7 +189,7 @@ class HypothesisTest:
         segment_filter = SegmentFilter(self.segmentation)
         return segment_filter.apply(data)
 
-    def filter_metrics(self, data):
+    def filter_metrics(self, data: DataFrame) -> DataFrame:
         """
         Helper function used to filter out observations that have invalid metric
         values.

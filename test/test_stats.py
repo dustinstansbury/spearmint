@@ -210,7 +210,7 @@ def test_mean_comparison(continuous_test_samples):
     assert len(means_comparison._comparison_table._print_history) > 0
     assert means_comparison.delta == 0
     assert means_comparison.alpha == stats.DEFAULT_ALPHA
-    assert means_comparison.test_direction == stats.DEFAULT_TEST_DIRECTION
+    assert means_comparison.test_direction == stats.DEFAULT_HYPOTHESIS
     assert np.isclose(
         means_comparison.pooled_variance, TEST_CONTINUOUS_SAMPLE_VARIANCE, atol=0.01
     )

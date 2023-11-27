@@ -129,16 +129,12 @@ class Experiment:
             The results of the statistical test.
         """
 
-        control_obs = test.filter_variations(
-            self.dataset, test.control, self.ds.treatment
-        )
+        control_obs = test.filter_variations(self.dataset, test.control)
         control_obs = test.filter_segments(control_obs)
         control_obs = test.filter_metrics(control_obs)
         control_samples = Samples(control_obs, name=test.control)
 
-        variation_obs = test.filter_variations(
-            self.dataset, test.variation, self.ds.treatment
-        )
+        variation_obs = test.filter_variations(self.dataset, test.variation)
         variation_obs = test.filter_segments(variation_obs)
         variation_obs = test.filter_metrics(variation_obs)
         variation_samples = Samples(variation_obs, name=test.variation)

@@ -6,7 +6,7 @@ from statsmodels.stats.api import CompareMeans, DescrStatsW
 
 from spearmint.config import (
     DEFAULT_ALPHA,
-    DEFAULT_TEST_DIRECTION,
+    DEFAULT_HYPOTHESIS,
     MIN_OBS_FOR_Z_TEST,
     logger,
 )
@@ -821,7 +821,7 @@ class MeanComparison(CompareMeans):
         samples_b: Samples,
         alpha: float = DEFAULT_ALPHA,
         test_statistic_name: str = "t",
-        hypothesis: str = DEFAULT_TEST_DIRECTION,
+        hypothesis: str = DEFAULT_HYPOTHESIS,
     ):
         """
         Parameters

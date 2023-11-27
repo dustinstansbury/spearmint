@@ -78,7 +78,7 @@ class Dataset:
         treatment = (
             treatment
             if treatment
-            else search_config(df, "experiment", "default_treatment_name")[0]
+            else search_config(df, "hypothesis_test", "default_treatment_name")[0]
         )
         _check_columns_in_df(treatment, "treatment")
         self.treatment = treatment
@@ -98,7 +98,7 @@ class Dataset:
         attributes = (
             attributes
             if attributes
-            else search_config(df, "experiment", "default_attribute_names")
+            else search_config(df, "hypothesis_test", "default_attribute_names")
         )
         _check_columns_in_df(attributes, "attribute")
         self.attributes = attributes

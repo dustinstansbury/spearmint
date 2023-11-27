@@ -13,9 +13,12 @@ def test_search_config():
     df = generate_fake_observations(n_observations=1)
 
     # Test against default config template
-    assert "treatment" in search_config(df, "experiment", "default_treatment_name")[0]
-    assert "metric" in search_config(df, "experiment", "default_measure_names")
-    assert "attr_0" in search_config(df, "experiment", "default_attribute_names")
+    assert (
+        "treatment" in search_config(df, "hypothesis_test", "default_treatment_name")[0]
+    )
+    assert "metric" in search_config(df, "hypothesis_test", "default_metric_name")
+    assert "attr_0" in search_config(df, "hypothesis_test", "default_attribute_names")
+    assert "attr_1" in search_config(df, "hypothesis_test", "default_attribute_names")
 
 
 def test_default_init(test_observations):
