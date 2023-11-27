@@ -130,3 +130,27 @@ def test_custom_metric(test_data):
     assert results_ab.accept_hypothesis
     assert results_ab.test_statistic_name == "z"
     assert results_ab.accept_hypothesis
+
+
+def test_filter_segments(test_data):
+    unsegmented_test = HypothesisTest(metric="metric", control="A", variation="B")
+    unsegmented_data = unsegmented_test.filter_segments(test_data)
+    assert unsegmented_data.equals(test_data)
+
+    segmented_test = HypothesisTest(
+        metric="metric", control="A", variation="B", segmentation="attr_0 == 'A0b'"
+    )
+    segmented_data = segmented_test.filter_segments(test_data)
+    assert np.all(segmented_data.attr_0 == "A0b")
+
+
+def test_filter_variation(test_data):
+    test = HypothesisTest(
+        metric="metric", control="A", variation="B", treatment="treatment"
+    )
+
+    control_data = test.filter_variations(test_data, test.control)
+    variation_data = test.filter_variations(test_data, test.variation)
+
+    assert np.all(control_data.treatment == test.control)
+    assert np.all(variation_data.treatment == test.variation)
