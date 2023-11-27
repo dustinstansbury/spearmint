@@ -213,7 +213,7 @@ class RatesRatio(FrequentistInferenceProcedure):
             control=self.comparison.d2,
             variation=self.comparison.d1,
             metric_name=self.metric_name,
-            comparison_type="RatesRatio",
+            comparison_type="Rates Ratio",
             delta=self.comparison.delta,
             delta_relative=self.comparison.delta_relative,
             effect_size=self.comparison.effect_size,

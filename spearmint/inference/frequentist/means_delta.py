@@ -169,7 +169,7 @@ class MeansDelta(FrequentistInferenceProcedure):
             control=self.comparison.d2,
             variation=self.comparison.d1,
             metric_name=self.metric_name,
-            comparison_type="MeansDelta",
+            comparison_type="Means Delta",
             delta=self.comparison.delta,
             delta_relative=self.comparison.delta_relative,
             effect_size=self.comparison.effect_size,
