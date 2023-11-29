@@ -28,6 +28,7 @@ class ExtendedInferenceResults(InferenceResults):
             variable_type="test_variable_type",
             warnings=["a warning"],
             visualization_function=lambda x: x,  # placeholder visualization function
+            segmentation="test_segmentation",
             *args,
             **kwargs
         )
@@ -93,6 +94,8 @@ def test_inference_results(test_samples):
     # Check datarame export support
     results_df = results.to_dataframe()
     assert isinstance(results_df, DataFrame)
+
+    # We added one _specific property
     assert len(results_df.columns) == len(results._base_properties) + 1
 
 
