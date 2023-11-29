@@ -137,13 +137,16 @@ class FrequentistInferenceResultsTable(SpearmintTable):
             "Effect Size",
             format_value(results.effect_size, precision=4),
         )
+        alpha_corrected = (
+            " (corrected)" if results.correction_method is not None else ""
+        )
         self.add_row(
-            "alpha",
-            format_value(results.alpha, precision=2),
+            "alpha" + alpha_corrected,
+            format_value(results.alpha, precision=3),
         )
         self.add_row(
             "Power",
-            format_value(results.power, precision=2),
+            format_value(results.power, precision=3),
         )
         self.add_row(
             "Variable Type",

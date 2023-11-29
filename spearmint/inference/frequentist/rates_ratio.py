@@ -35,7 +35,7 @@ def visualize_rates_ratio_results(
 
     # Proportion/conversion rate confidence intervals plot
     control_ci = vis.plot_interval(
-        *results.control.std_err,
+        *results.control.confidence_interval(1 - results.alpha),
         middle=results.control.mean,
         label=results.control.name,
         color=vis.CONTROL_COLOR,
@@ -43,7 +43,7 @@ def visualize_rates_ratio_results(
     )
 
     variation_ci = vis.plot_interval(
-        *results.variation.std_err,
+        *results.variation.confidence_interval(1 - results.alpha),
         middle=results.variation.mean,
         label=results.variation.name,
         color=vis.VARIATION_COLOR,
@@ -52,8 +52,8 @@ def visualize_rates_ratio_results(
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
-        "Sample Distribution\nand Mean Estimates"
-    ).opts(legend_position="right", xlabel="N Events", ylabel="pdf")
+        "Sample Distribution and\nCentral Tendency Estimates"
+    ).opts(legend_position="top_right", xlabel="N Events", ylabel="pdf")
 
     # Delta distribution plot
     mean_ratio = results.variation.mean / results.control.mean
@@ -98,11 +98,11 @@ def visualize_rates_ratio_results(
     delta_plot = (
         delta_plot.relabel("Rates Ratio")
         .opts(xlabel="ratio", ylabel="pdf")
-        .opts(legend_position="right")
+        .opts(legend_position="top_right")
     )
 
     visualization = distribution_plot + delta_plot
-    visualization.opts(shared_axes=False).cols(1)
+    visualization.opts(shared_axes=False)
 
     if outfile is not None:
         vis.save_visualization(visualization, outfile)

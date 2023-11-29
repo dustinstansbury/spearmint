@@ -34,21 +34,25 @@ def visualize_proportions_delta_results(
         alpha=0.5,
     ).opts(axiswise=True)
 
-    def get_binomial_cis(samples):
-        """Convert proportionality to trials"""
-        cis = np.round(np.array(samples.std_err) * samples.nobs).astype(int)
+    def get_binomial_cis(samples, alpha):
+        """Convert proportionality to successful # trials"""
+        confidence = 1 - alpha
+        cis = np.round(
+            np.array(samples.confidence_interval(confidence=confidence)) * samples.nobs
+        ).astype(int)
+
         mean = np.round(samples.mean * samples.nobs).astype(int)
         return cis[0], cis[1], mean
 
     control_ci = vis.plot_interval(
-        *get_binomial_cis(results.control),
+        *get_binomial_cis(results.control, results.alpha),
         label=results.control.name,
         color=vis.CONTROL_COLOR,
         show_interval_text=True,
     )  # type: ignore # (mypy bug, see #6799)
 
     variation_ci = vis.plot_interval(
-        *get_binomial_cis(results.variation),
+        *get_binomial_cis(results.variation, results.alpha),
         label=results.variation.name,
         color=vis.VARIATION_COLOR,
         show_interval_text=True,
@@ -56,8 +60,8 @@ def visualize_proportions_delta_results(
 
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
-        "Sample Distribution\nand Mean Estimates"
-    ).opts(legend_position="right", xlabel="# Successful Trials", ylabel="pdf")
+        "Sample Distribution and\nCentral Tendency Estimates"
+    ).opts(legend_position="top_right", xlabel="# Successful Trials", ylabel="pdf")
 
     # Delta distribution plot
     mean_delta = results.variation.mean - results.control.mean
@@ -103,12 +107,11 @@ def visualize_proportions_delta_results(
     delta_plot = (
         delta_plot.relabel("Proportionality Delta")
         .opts(xlabel="delta", ylabel="pdf")
-        .opts(legend_position="right")
+        .opts(legend_position="top_right")
     )
 
-    # visualization = distribution_plot + ci_plot + delta_plot
     visualization = distribution_plot + delta_plot
-    visualization.opts(shared_axes=False).cols(1)
+    visualization.opts(shared_axes=False)
     if outfile is not None:
         vis.save_visualization(visualization, outfile)
 

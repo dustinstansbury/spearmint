@@ -58,7 +58,7 @@ def visualize_bootstrap_delta_results(
     distribution_plot = control_dist * variation_dist * control_ci * variation_ci
     distribution_plot = distribution_plot.relabel(
         f"{test_statistic_title} Comparison"
-    ).opts(legend_position="right", xlabel=test_statistic_label, ylabel="pdf")
+    ).opts(legend_position="top_right", xlabel=test_statistic_label, ylabel="pdf")
 
     delta_dist = vis.plot_kde(
         samples=delta_samples.data,
@@ -88,11 +88,12 @@ def visualize_bootstrap_delta_results(
     delta_plot = (
         delta_plot.relabel(delta_plot_title)
         .opts(xlabel="delta", ylabel="pdf")
-        .opts(legend_position="right")
+        .opts(legend_position="top_right")
     )
 
     visualization = distribution_plot + delta_plot
-    visualization.opts(shared_axes=False).cols(1)
+    visualization.opts(shared_axes=False)
+    # visualization.opts(shared_axes=False).cols(1)
 
     if outfile is not None:
         vis.save_visualization(visualization, outfile)
@@ -177,7 +178,7 @@ class BootstrapDelta(FrequentistInferenceProcedure):
             control=self.comparison.d2,
             variation=self.comparison.d1,
             metric_name=self.metric_name,
-            comparison_type="BootstrapDelta",
+            comparison_type="Bootstrap Delta",
             delta=self.comparison.delta,
             delta_relative=self.comparison.delta_relative,
             effect_size=self.comparison.effect_size,

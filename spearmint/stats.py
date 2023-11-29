@@ -678,28 +678,16 @@ class Samples(DescrStatsW):
             The upper and lower bounds of the the `confidence`-% confidence interval
             around the mean estimate.
         """
-        alpha = 1 - confidence
-        return self.zconfint_mean(alpha)[:2]
+
+        alpha = (1 - confidence) / 2.0  # symmetric about mean
+        z = norm.ppf(1 - alpha)
+        ci = z * self.std_err
+
+        return self.mean - ci, self.mean + ci
 
     @property
     def std_err(self) -> Tuple[float, float]:
-        return self.calculate_std_err()
-
-    def calculate_std_err(self, confidence: float = 0.95) -> Tuple[float, float]:
-        """
-        Standard error of the mean estimate, assuming a Gaussian error distribution.
-
-        Returns
-        -------
-        std_err : Tuple[float, float]
-            The standard error interval around the mean estimate.
-        """
-        alpha = (1 - confidence) / 2.0
-
-        z = norm.ppf(1 - alpha)
-        ci = z * (self.var / self.nobs) ** 0.5
-
-        return self.mean - ci, self.mean + ci
+        return (self.var / self.nobs) ** 0.5
 
     def hdi(
         self, credible_mass: float = 0.95
@@ -782,7 +770,7 @@ class SamplesComparisonTable(SpearmintTable):
             ]
 
         self.add_row(
-            "# Samples",
+            "Samples",
             format_value(control_samples.nobs, precision=0),
             *get_variation_row_values("nobs", precision=0),
         )
@@ -848,10 +836,14 @@ class MeanComparison(CompareMeans):
         super().__init__(samples_a, samples_b)
 
         self.alpha = alpha
-        self.test_statistic_name = test_statistic_name
+        self._test_statistic_name = test_statistic_name
         self.hypothesis = hypothesis
         self.warnings: List = []
         self._comparison_table = None
+
+    @property  # property allows different test statistic name definitions
+    def test_statistic_name(self) -> str:
+        return self._test_statistic_name
 
     @property
     def pooled_variance(self) -> float:
@@ -1000,7 +992,7 @@ class ProportionComparison(MeanComparison):
         """
 
         super().__init__(*args, **kwargs)
-        self.test_statistic_name = "z"
+        self._test_statistic_name = "z"
         nobs = min(self.d1.nobs, self.d2.nobs)
 
         # to use Normal approx, must have "large" N
@@ -1102,7 +1094,7 @@ class RateComparison(MeanComparison):
             ratio is unity.
         """
         super().__init__(*args, **kwargs)
-        self.test_statistic_name = "W"
+        self._test_statistic_name = "W"
         self.null_ratio = null_ratio
 
     @property
@@ -1249,14 +1241,16 @@ class BootstrapStatisticComparison(MeanComparison):
             of samples. Defaults to the mean.
         *args, **kwargs:
             Valid arguments to `MeanComparison`
-
-
         """
-        statistic_function_name = statistic_function.__name__
+
         super().__init__(*args, **kwargs)
-        self.test_statistic_name = f"bootstrap_{statistic_function_name}"
-        self.statistic_function = statistic_function
+
         self.n_bootstraps = n_bootstraps
+        self.statistic_function = statistic_function
+
+    @property
+    def test_statistic_name(self) -> str:
+        return f"bootstrap_{self.statistic_function.__name__}"
 
     @property
     def bootstrap_test_stats(self) -> Dict[str, Any]:
