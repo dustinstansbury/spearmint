@@ -92,12 +92,12 @@ def build_gaussian_analytic_model(
     control_samples: Samples,
     variation_samples: Samples,
     prior_mean: float = 0.0,
-    prior_var: float = 10.0,
+    prior_var: float = 5.0,
 ) -> Tuple[GaussianAnalyticModel, Dict[str, float]]:
     model = GaussianAnalyticModel(prior_mean=prior_mean, prior_var=prior_var)
     model.calculate_posteriors(control_samples, variation_samples)
 
-    hyperparams = {"prior_mean": prior_mean, "prior_var": prior_var}
+    hyperparams = {"prior_mean_mu": prior_mean, "prior_var_mu": prior_var}
     return model, hyperparams
 
 
@@ -182,7 +182,10 @@ def build_gaussian_pymc_model(
     return model, hyperparams
 
 
-def build_student_t_analytic_model() -> None:
+def build_student_t_analytic_model(
+    control_samples: Samples,
+    variation_samples: Samples,
+) -> None:
     raise UnsupportedParameterEstimationMethodException(
         "Analytic parameter estimation not supported for `student_t` model"
     )

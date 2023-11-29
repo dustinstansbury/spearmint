@@ -155,6 +155,7 @@ def build_bernoulli_pymc_model(
 
     with pm.Model() as model:
         # Priors
+        pm.Beta("prior", alpha=prior_alpha, beta=prior_beta)  # for displaying prior
         p_control = pm.Beta("p_control", alpha=prior_alpha, beta=prior_beta)
         p_variation = pm.Beta("p_variation", alpha=prior_alpha, beta=prior_beta)
 

@@ -4,7 +4,7 @@ import numpy as np
 import pymc as pm
 from arviz import InferenceData
 
-from spearmint.config import N_POSTERIOR_SAMPLES
+from spearmint.config import N_POSTERIOR_SAMPLES, DEFAULT_PARAMETER_ESTIMATION_METHOD
 from spearmint.inference.bayesian.models.analytic_base import BayesianAnalyticModel
 from spearmint.inference.inference_base import (
     InferenceProcedure,
@@ -91,10 +91,10 @@ class BayesianInferenceResults(InferenceResults):
         effect_size_hdi: Tuple[float, float],
         hdi_percentiles: Tuple[float, float],
         prob_greater_than_zero: float,
-        parameter_estimation_method: str,
+        bayesian_parameter_estimation_method: str,
         model_name: str,
         data_type: type,
-        model_params: Optional[Dict[str, Any]] = None,
+        bayesian_model_params: Optional[Dict[str, Any]] = None,
         model_hyperparams: Optional[Dict[str, Any]] = None,
         *args,
         **kwargs,
@@ -110,10 +110,12 @@ class BayesianInferenceResults(InferenceResults):
         self.delta_relative_hdi = delta_relative_hdi
         self.effect_size_hdi = effect_size_hdi
         self.prob_greater_than_zero = prob_greater_than_zero
-        self.parameter_estimation_method = parameter_estimation_method
-        self.model_name = model_name
+        self.bayesian_parameter_estimation_method = bayesian_parameter_estimation_method
         self.data_type = data_type
-        self.model_params = model_params if model_params else {}
+        self.model_name = model_name
+        self.bayesian_model_params = (
+            bayesian_model_params if bayesian_model_params else {}
+        )
         self.model_hyperparams = model_hyperparams if model_hyperparams else {}
         self.hdi_percentiles = hdi_percentiles
 
@@ -194,7 +196,7 @@ class BayesianInferenceResultsTable(SpearmintTable):
         )
         self.add_row(
             "Estimation Method",
-            results.parameter_estimation_method,
+            results.bayesian_parameter_estimation_method,
         )
         self.add_row(
             f"p({results.variation.name} > {results.control.name})",
@@ -271,7 +273,9 @@ def visualize_bayesian_delta_results(
     distribution_plot = distribution_plot.relabel(
         f"Posterior {comparison_param} Comparison"
     ).opts(
-        legend_position="right", xlabel=f"Posterior {comparison_param}", ylabel="pdf"
+        legend_position="top_right",
+        xlabel=f"Posterior {comparison_param}",
+        ylabel="pdf",
     )
 
     delta_dist = vis.plot_kde(
@@ -301,11 +305,11 @@ def visualize_bayesian_delta_results(
     delta_plot = (
         delta_plot.relabel(delta_plot_title)
         .opts(xlabel="delta", ylabel="pdf")
-        .opts(legend_position="right")
+        .opts(legend_position="top_right")
     )
 
     visualization = distribution_plot + delta_plot
-    visualization.opts(shared_axes=False).cols(1)
+    visualization.opts(shared_axes=False)
 
     if outfile is not None:
         vis.save_visualization(visualization, outfile)
@@ -329,14 +333,16 @@ def _build_bayesian_inference_model(
     model_name: str,
     control_samples: Samples,
     variation_samples: Samples,
-    parameter_estimation_method: str,
-    **model_params,
+    bayesian_parameter_estimation_method: str,
+    **bayesian_model_params,
 ) -> _BayesianModel:
     mcmc_estimation_supported = True  # MCMC works for all models
     advi_estimation_supported = False  # ADVI not supported for all models
     analytic_estimation_supported = False  # No Analytic solution for all model
 
-    model_type = "analytic" if parameter_estimation_method == "analytic" else "pymc"
+    model_type = (
+        "analytic" if bayesian_parameter_estimation_method == "analytic" else "pymc"
+    )
 
     if model_name in CONTINUOUS_MODEL_NAMES:
         from .models import continuous
@@ -360,7 +366,7 @@ def _build_bayesian_inference_model(
         model_builder = getattr(counts, f"build_{model_name}_{model_type}_model")
 
     model_object, hyperparams = model_builder(
-        control_samples, variation_samples, **model_params
+        control_samples, variation_samples, **bayesian_model_params
     )
 
     return _BayesianModel(
@@ -411,9 +417,9 @@ class BayesianInferenceProcedure(InferenceProcedure):
 
     def __init__(
         self,
-        parameter_estimation_method: str = "mcmc",
-        model_name: Optional[str] = None,
-        model_params: Optional[dict] = None,
+        bayesian_model_name: Optional[str] = None,
+        bayesian_model_params: Optional[dict] = None,
+        bayesian_parameter_estimation_method: str = DEFAULT_PARAMETER_ESTIMATION_METHOD,
         *args,
         **kwargs,
     ):
@@ -427,7 +433,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
                 -   "binomial"       : Beta-Binomial hierarchical model (binary)
                 -   "bernoulli"      : Beta-Bernoulli hierarchical model (binary)
                 -   "poisson"        : Gamma-Poisson hierarichcal model (counts)
-        parameter_estimation_method: str
+        bayesian_parameter_estimation_method: str
             The method used estimate the posterior model parameters. One of:
                 -   'mcmc' : use Markov Chain Monte Carlo via PyMC. All models,
                     supported, but may not scale well with large datasets.
@@ -445,11 +451,16 @@ class BayesianInferenceProcedure(InferenceProcedure):
             model.
         """
         super().__init__(*args, **kwargs)
-        self.model_name = _get_model_name(self.variable_type, model_name)
+        self.model_name = _get_model_name(self.variable_type, bayesian_model_name)
         self.data_type = _get_model_datatype(self.model_name)
-        assert parameter_estimation_method in SUPPORTED_PARAMETER_ESTIMATION_METHODS
-        self.parameter_estimation_method = parameter_estimation_method
-        self.model_params = model_params if model_params else {}
+        assert (
+            bayesian_parameter_estimation_method
+            in SUPPORTED_PARAMETER_ESTIMATION_METHODS
+        )
+        self.bayesian_parameter_estimation_method = bayesian_parameter_estimation_method
+        self.bayesian_model_params = (
+            bayesian_model_params if bayesian_model_params else {}
+        )
         self.inference_data: Optional[InferenceData] = None
 
     def _process_samples(self, samples: Samples) -> Samples:
@@ -476,17 +487,17 @@ class BayesianInferenceProcedure(InferenceProcedure):
             model_name=self.model_name,
             control_samples=control_samples,
             variation_samples=variation_samples,
-            parameter_estimation_method=self.parameter_estimation_method,
-            **self.model_params,
+            bayesian_parameter_estimation_method=self.bayesian_parameter_estimation_method,
+            **self.bayesian_model_params,
         )
 
-        if self.parameter_estimation_method == "mcmc":
+        if self.bayesian_parameter_estimation_method == "mcmc":
             self.inference_data = _fit_model_mcmc(_bayesian_model, **inference_kwargs)
 
-        elif self.parameter_estimation_method == "advi":
+        elif self.bayesian_parameter_estimation_method == "advi":
             self.inference_data = _fit_model_advi(_bayesian_model, **inference_kwargs)
 
-        elif self.parameter_estimation_method == "analytic":
+        elif self.bayesian_parameter_estimation_method == "analytic":
             self.inference_data = _fit_model_analytic(
                 _bayesian_model, **inference_kwargs
             )
@@ -568,7 +579,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             delta_posterior=self.delta_posterior,
             delta_relative_posterior=self.delta_relative_posterior,
             effect_size_posterior=self.effect_size_posterior,
-            parameter_estimation_method=self.parameter_estimation_method,
+            bayesian_parameter_estimation_method=self.bayesian_parameter_estimation_method,
             model_name=self.model_name,
             alpha=self.alpha,
             hypothesis=self.hypothesis,
@@ -576,7 +587,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             variable_type=self.variable_type,
             metric_name="posterior_delta",
             data_type=self.data_type,
-            model_params=self.model_params,
+            bayesian_model_params=self.bayesian_model_params,
             model_hyperparams=self.model_hyperparams,
             delta=test_stats["delta"],
             delta_relative=test_stats["delta_relative"],
