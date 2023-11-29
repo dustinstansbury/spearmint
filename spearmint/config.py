@@ -38,11 +38,12 @@ min_obs_for_z_test=30
 default_attribute_names=attr_0,attr_1
 
 [vis]
-vis_backend=matplotlib
-figure_width_pixels=800
+vis_backend=bokeh
+figure_width_pixels=400
 figure_height_pixels=400
 
 [bayesian_inference]:
+default_parameter_estimation_method=analytic
 default_mcmc_sampler=nuts
 n_posterior_samples=1000
 """
@@ -193,6 +194,9 @@ MIN_OBS_FOR_Z_TEST = get("hypothesis_test", "min_obs_for_z_test")
 
 # Configure Bayesian Inference
 N_POSTERIOR_SAMPLES = get("bayesian_inference", "n_posterior_samples")
+DEFAULT_PARAMETER_ESTIMATION_METHOD = get(
+    "bayesian_inference", "default_parameter_estimation_method"
+)
 
 
 # Configure Visualization
