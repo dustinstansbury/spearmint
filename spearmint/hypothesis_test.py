@@ -99,7 +99,7 @@ class HypothesisTest:
         hypothesis: Optional[str] = DEFAULT_HYPOTHESIS,
         segmentation: Optional[Union[str, List[str]]] = None,
         variable_type: Optional[str] = None,
-        **inference_procedure_init_params,
+        **inference_procedure_params,
     ):
         """
         Parameters
@@ -124,9 +124,10 @@ class HypothesisTest:
             comparing the `control` and `variation` groups. If
             None provided, we use the setting in
             spearmint.cfg::hypothesis_test.default_hypothesis
-        treatment: Str (optional)
-            The name of the treatment column in the experiement observations. If None
-            provided, we load it from spearmint.cfg
+        treatment: str (optional)
+            The name of the column in the experiement observations associated
+            with treatment naems. If None provided, we use the setting in
+            spearmint.cfg::hypothesis_test.default_treatment_name
         segmentation : str | List[str] (optional)
             Defines a list of logical filter operations that follows the conventions
             used by Panda's dataframe query api and segments the treatments into subgroups.
@@ -135,7 +136,7 @@ class HypothesisTest:
             One of 'continuous', 'binary', 'counts'. Explicitly declares the variable
             type. If None provided, we infer the variable type from the values
             of `metric`.
-        **inference_procedure_init_params : dict
+        **inference_procedure_params : dict
             Any additional parameters used to initialize the inference procedure
 
         """
@@ -159,7 +160,7 @@ class HypothesisTest:
         else:
             self.metric_column = str(metric)
 
-        self.inference_procedure_init_params = inference_procedure_init_params
+        self.inference_procedure_params = inference_procedure_params
 
     def _add_custom_metric_column(self, _data):
         data = _data.copy()
@@ -238,7 +239,7 @@ class HypothesisTest:
             inference_method=self.inference_method,
             metric_name=self.metric_column,
             hypothesis=self.hypothesis,
-            **self.inference_procedure_init_params,
+            **self.inference_procedure_params,
         )
 
         # Update alphas
@@ -262,8 +263,7 @@ class HypothesisTest:
         copy = deepcopy(self)
         inference_kwargs = update_kwargs.get("infer_kwargs", {})
         for k, v in update_kwargs.items():
-            if hasattr(copy, k):
-                setattr(copy, k, v)
+            setattr(copy, k, v)
 
         copy.inference_procedure = get_inference_procedure(
             copy.variable_type, copy.inference_method, **inference_kwargs  # type: ignore  # `.variable_type` inherited, or determined during inference

@@ -94,6 +94,7 @@ class InferenceResults(DataframeableMixin):
         comparison_type: Optional[str] = None,
         warnings: Optional[Union[str, List[str]]] = None,
         correction_method: Optional[str] = None,
+        segmentation: Optional[str] = None,
         aux: dict = {},
     ):
         self.control = control
@@ -112,7 +113,7 @@ class InferenceResults(DataframeableMixin):
         self.aux = aux
         self.visualization_function = visualization_function
         self.correction_method = correction_method
-        # self.segmentation = None
+        self.segmentation = segmentation
 
         self.created_at: datetime = datetime.now()
 
@@ -224,7 +225,7 @@ class InferenceResults(DataframeableMixin):
                 ("accept_hypothesis", self.accept_hypothesis),
                 ("inference_method", self.inference_method),
                 ("variable_type", self.variable_type),
-                # ("segmentation", self.segmentation),
+                ("segmentation", self.segmentation),
                 ("warnings", self.warnings),
             ]
         )
@@ -263,9 +264,9 @@ class InferenceProcedure(ABC):
         variable_type: VariableType = VariableType.continuous,
         inference_method: InferenceMethod = InferenceMethod.frequentist,
         hypothesis: Hypothesis = Hypothesis.larger,
-        metric_name: Optional[str] = None,
         alpha: float = DEFAULT_ALPHA,
-        **inference_procedure_init_params,
+        metric_name: Optional[str] = None,
+        **inference_procedure_params,
     ):
         """_summary_
 
@@ -277,17 +278,19 @@ class InferenceProcedure(ABC):
         inference_method : InferenceMethod, optional
             The inference method to use. One of "frequentist", "bootstrap",
             or "bayesian"; by default "frequentist"
-        metric_name : str, optional
-            The name of the metric for reporting, by default None
         hypothesis : Hypothesis, optional
             The directionality of the hypothesis, namely whether the variation
             is "larger", "smaller", or "unequal" compared to the control;
-            default "larger"
+            default "larger". If None provided we use the value configured in
+            `spearmint.cfg::hypothesis_test::default_hypothesis`
         alpha : float, optional
-            The acceptable Type I error for the inference procedure. By default
-            takes the value of `hypothesis_test.default_alpha` in the system
-            `spearmint.cfg` file.
-        **inference_procedure_init_params
+            The acceptable Type I error for the inference procedure. If None
+            provided, we use the value configured in
+            `spearmint.cfg::hypothesis_test::default_alpha`
+        metric_name : str, optional
+            The name of the metric used to compare groups during the inference
+            procedure, mostly used for reporting. By default None
+        **inference_procedure_params
             Any additional parameters used to customize a specific inference
             procedure on init.
         """
@@ -356,7 +359,7 @@ class InferenceProcedure(ABC):
 
 
 def get_inference_procedure(
-    variable_type: str, inference_method: str, **inference_procedure_init_params
+    variable_type: str, inference_method: str, **inference_procedure_params
 ) -> InferenceProcedure:
     if inference_method == InferenceMethod.frequentist:
         if variable_type == VariableType.continuous:
@@ -381,5 +384,5 @@ def get_inference_procedure(
     return IP(
         variable_type=variable_type,
         inference_method=inference_method,
-        **inference_procedure_init_params,
+        **inference_procedure_params,
     )
