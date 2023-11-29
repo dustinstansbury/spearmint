@@ -1,4 +1,4 @@
-## [0.0.1] - 2023-11-21
+## [0.0.1] - 2023-11-29
 ### Changed
 - Initial release, forked (and detached) from [abracadabra](https://github.com/quizlet/abracadabra)
 - Improves API to make better distinction between inference methods, variable types, and model names
