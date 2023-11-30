@@ -1,6 +1,11 @@
-## [0.0.1] - 2023-11-29
+## [0.0.1] - 2023-11-30
+- Official release
+- Available on PyPi
+- Added `spearmint-basics` Google Collab link badge
+  
+## [0.0.1a] - 2023-11-29
 ### Changed
-- Initial release, forked (and detached) from [abracadabra](https://github.com/quizlet/abracadabra)
+- Initial alpha release, forked (and detached) from [abracadabra](https://github.com/quizlet/abracadabra)
 - Improves API to make better distinction between inference methods, variable types, and model names
 - Supports modern `python>=3.10`
 - Use github actions in place of CircleCI
