@@ -206,7 +206,7 @@ For `"binary"`, `"frequentist"` tests--i.e. `Proportions Delta` tests--we displa
 ---
 
 ## [Additional Documentation and Tutorials](https://github.com/dustinstansbury/spearmint/blob/master/docs)
-For more details of using `spearmint`'s API see the [Spearmint Basics Notebook](https://github.com/dustinstansbury/spearmint/blob/main/docs/spearmint_basics.ipynb)
+For more details of using `spearmint`'s API see the [Spearmint Basics Tutorial](https://github.com/dustinstansbury/spearmint/blob/main/docs/spearmint_basics.ipynb), or try running it in [Google Collab](https://colab.research.google.com/drive/1lbR-0Da196ST-Yq157m4PzUx8cy7WpK_?usp=sharing)
 
 ## [CHANGELOG](./CHANGELOG.md)
 

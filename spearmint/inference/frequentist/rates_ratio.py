@@ -23,14 +23,12 @@ def visualize_rates_ratio_results(
         mu=results.control.mean,
         color=vis.CONTROL_COLOR,
         label=results.control.name,
-        alpha=0.5,
     )
 
     variation_dist = vis.plot_poisson(
         mu=results.variation.mean,
         color=vis.VARIATION_COLOR,
         label=results.variation.name,
-        alpha=0.5,
     )
 
     # Proportion/conversion rate confidence intervals plot
