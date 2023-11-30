@@ -1,6 +1,8 @@
 # <img src="https://raw.githubusercontent.com/dustinstansbury/spearmint/main/images/mint.png" alt="drawing" width="30"/> <span style="color:00A33D"> _spearmint_ </span> <img src="https://raw.githubusercontent.com/dustinstansbury/spearmint/main/images/mint.png" alt="drawing" width="30"/>
 
-<!-- ![spearmint](./images/mint.png) -->
+### _Refreshing hypothesis testing in python_
+
+
 <a href="https://github.com/dustinstansbury/spearmint/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![linting](https://github.com/dustinstansbury/spearmint/actions/workflows/lint.yml/badge.svg?branch=main)
