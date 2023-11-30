@@ -1,0 +1,28 @@
+name: Publish to PyPI.org
+
+on:
+  release:
+    types: [published]
+jobs:
+  publish-to-pypi:
+    name: Publish a release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/spearmint
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for setuptools_scm to determine version number from release action
+
+      - name: Build package
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade build && python3 -m build
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
