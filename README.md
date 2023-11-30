@@ -1,4 +1,4 @@
-# <img src="images/mint.png" alt="drawing" width="30"/> <span style="color:00A33D"> _spearmint_ </span> <img src="images/mint.png" alt="drawing" width="30"/>
+# <img src="https://raw.githubusercontent.com/dustinstansbury/spearmint/main/images/mint.png" alt="drawing" width="30"/> <span style="color:00A33D"> _spearmint_ </span> <img src="https://raw.githubusercontent.com/dustinstansbury/spearmint/main/images/mint.png" alt="drawing" width="30"/>
 
 <!-- ![spearmint](./images/mint.png) -->
 <a href="https://github.com/dustinstansbury/spearmint/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
@@ -7,6 +7,7 @@
 ![mypy](https://github.com/dustinstansbury/spearmint/actions/workflows/mypy.yml/badge.svg?branch=main)
 ![tests](https://github.com/dustinstansbury/spearmint/actions/workflows/test.yml/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/dustinstansbury/spearmint/graph/badge.svg?token=HZC4CGNLTV)](https://codecov.io/gh/dustinstansbury/spearmint)
+[![Try In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1lbR-0Da196ST-Yq157m4PzUx8cy7WpK_?usp=sharing)
 
 
 ## Features
@@ -18,7 +19,7 @@
     + Simple Bayesian prior definition
     + Easily extendable to support new inference methods
 
-## Installation (WIP)
+## Installation
 
 ### Requirements
 - `spearmint` has been tested on `python>=3.10`.
@@ -26,7 +27,7 @@
 ### Install via `pip`
 
 ```bash
-pip install spearmint # not yet on PyPI
+pip install spearmint
 ```
 
 If you plan to run your analyses in `jupyterlab`, you can add the `notebook` option
@@ -188,9 +189,9 @@ In addition to `.display()`ing the test results to the console, we can `.visuali
 ab_test_results.visualize()
 ```
 
-<div style="text-align:center"><img src="./images/proportions_delta_example.png"/></div>
+<div style="text-align:center"><img src="https://raw.githubusercontent.com/dustinstansbury/spearmint/main/images/proportions_delta_example.png"/></div>
 
-The left plot shows each Samples's estiamated parametric distribution, as well as the estimates of group central tendency and 95% Confidence Intervals (CIs) around those estiates (plotted as intervals along the x-axis). Non-overlapping distributions and CIs provides strong visual evidence that the difference between the two groups' central tendencies is statistically significant.
+The left plot shows each Samples's estimated parametric distribution, as well as the estimates of group central tendency and 95% Confidence Intervals (CIs) around those estiates (plotted as intervals along the x-axis). Non-overlapping distributions and CIs provides strong visual evidence that the difference between the two groups' central tendencies is statistically significant.
 
 The right plot shows the `Delta` distribution over the _difference_ in those estimated sample distributions, along with 95% CIs. Delta CIs greater than zero give further visual evidence that the difference in the two samples is statistically significant.
 
