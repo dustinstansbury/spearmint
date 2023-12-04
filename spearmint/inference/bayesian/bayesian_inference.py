@@ -91,6 +91,7 @@ class BayesianInferenceResults(InferenceResults):
         effect_size_hdi: Tuple[float, float],
         hdi_percentiles: Tuple[float, float],
         prob_greater_than_zero: float,
+        prob_less_than_zero: float,
         bayesian_parameter_estimation_method: str,
         model_name: str,
         data_type: type,
@@ -110,6 +111,7 @@ class BayesianInferenceResults(InferenceResults):
         self.delta_relative_hdi = delta_relative_hdi
         self.effect_size_hdi = effect_size_hdi
         self.prob_greater_than_zero = prob_greater_than_zero
+        self.prob_less_than_zero = prob_less_than_zero
         self.bayesian_parameter_estimation_method = bayesian_parameter_estimation_method
         self.data_type = data_type
         self.model_name = model_name
@@ -201,6 +203,10 @@ class BayesianInferenceResultsTable(SpearmintTable):
         self.add_row(
             f"p({results.variation.name} > {results.control.name})",
             format_value(results.prob_greater_than_zero, precision=4),
+        )
+        self.add_row(
+            f"p({results.variation.name} < {results.control.name})",
+            format_value(results.prob_less_than_zero, precision=4),
         )
         self.add_row(
             "Hypothesis",
@@ -426,13 +432,16 @@ class BayesianInferenceProcedure(InferenceProcedure):
         """
         Parameters
         ----------
-        model_name: str
+        bayesian_model_name: str (optional)
             The name of the inference model to use:
                 -   "gaussian"       : Hierarchical Gaussian model (continuous)
                 -   "student-t"      : Hierarchical Student's t model (continuous)
                 -   "binomial"       : Beta-Binomial hierarchical model (binary)
                 -   "bernoulli"      : Beta-Bernoulli hierarchical model (binary)
                 -   "poisson"        : Gamma-Poisson hierarichcal model (counts)
+        bayesian_model_params: dict (optional)
+            Custom Hyperparameter settings for the Bayesian model. Parameters
+            will depend on the model.
         bayesian_parameter_estimation_method: str
             The method used estimate the posterior model parameters. One of:
                 -   'mcmc' : use Markov Chain Monte Carlo via PyMC. All models,
@@ -523,7 +532,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
         Parameters
         ----------
         parameter_name : str
-            The name of the model parameter to sample
+            The name of the model parameter to sample from the posterior
 
         Returns
         -------
@@ -547,8 +556,20 @@ class BayesianInferenceProcedure(InferenceProcedure):
         raise InferenceResultsMissingError("You may need to execute the .run() method")
 
     @property
-    def test_stats(self) -> Dict[str, Any]:
+    def accept_hypothesis(self) -> bool:
         prob_greater_than_zero = self.delta_posterior.prob_greater_than(0.0)
+        prob_less_than_zero = self.delta_posterior.prob_less_than(0.0)
+        if self.hypothesis == "larger":
+            return prob_greater_than_zero >= (1 - self.alpha)  # type: ignore
+
+        elif self.hypothesis == "smaller":
+            return prob_less_than_zero >= (1 - self.alpha)  # type: ignore
+        return (prob_less_than_zero >= (1 - self.alpha)) or (
+            prob_greater_than_zero >= (1 - self.alpha)  # type: ignore
+        )
+
+    @property
+    def test_stats(self) -> Dict[str, Any]:
         return {
             "model_name": self.model_name,
             "delta": self.delta_posterior.mean,
@@ -559,8 +580,9 @@ class BayesianInferenceProcedure(InferenceProcedure):
             "effect_size_hdi": self.effect_size_posterior.hdi(1 - self.alpha),
             "hdi_percentiles": (self.alpha / 2, 1 - self.alpha / 2),
             "hypothesis": self.hypothesis,
-            "prob_greater_than_zero": prob_greater_than_zero,
-            "accept_hypothesis": prob_greater_than_zero >= 1 - self.alpha,
+            "prob_greater_than_zero": self.delta_posterior.prob_greater_than(0.0),
+            "prob_less_than_zero": self.delta_posterior.prob_less_than(0.0),
+            "accept_hypothesis": self.accept_hypothesis,
         }
 
     # @abstractmethod
@@ -597,6 +619,7 @@ class BayesianInferenceProcedure(InferenceProcedure):
             effect_size_hdi=test_stats["effect_size_hdi"],
             hdi_percentiles=test_stats["hdi_percentiles"],
             prob_greater_than_zero=test_stats["prob_greater_than_zero"],
+            prob_less_than_zero=test_stats["prob_less_than_zero"],
             accept_hypothesis=test_stats["accept_hypothesis"],
             visualization_function=visualize_bayesian_delta_results,
         )

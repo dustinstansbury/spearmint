@@ -662,6 +662,15 @@ class Samples(DescrStatsW):
         """
         return 1.0 - self.cdf(np.asarray(values, dtype=float))
 
+    def prob_less_than(
+        self, values: Union[float, np.ndarray]
+    ) -> Union[float, np.ndarray]:
+        """
+        Return the cumulative probability of `values` under the current samples'
+        empirical CDF.
+        """
+        return self.cdf(np.asarray(values, dtype=float))
+
     def confidence_interval(self, confidence: float = 0.95) -> Tuple[float, float]:
         """
         Calculate the `confidence`-% confidence interval around the mean estimate,
