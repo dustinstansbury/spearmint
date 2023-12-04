@@ -109,7 +109,7 @@ class SpearmintConfigParser(ConfigParser, object):
 
 
 # Home directory and configuration locations.
-# We default to ~/.spearmint and ~/spearmint/spearmint.cfg if not provided
+# We default to ~/.spearmint and ~/.spearmint/spearmint.cfg if not provided
 if "SPEARMINT_HOME" not in os.environ:
     SPEARMINT_HOME = expand_env_var("~/.spearmint")
     os.environ["SPEARMINT_HOME"] = SPEARMINT_HOME
@@ -234,6 +234,9 @@ def _get_figure_params():
             return dict(width=FIGURE_WIDTH_PIXELS, height=FIGURE_HEIGHT_PIXELS)
         elif VIS_BACKEND == "matplotlib":
             import matplotlib
+            from holoviews.plotting.mpl import MPLPlot
+
+            MPLPlot.sublabel_format = ""
 
             pix_per_inch = matplotlib.rcParams["figure.dpi"]
             aspect_ratio = FIGURE_WIDTH_PIXELS / FIGURE_HEIGHT_PIXELS
