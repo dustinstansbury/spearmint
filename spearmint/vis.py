@@ -1,10 +1,10 @@
 import holoviews as hv
 import numpy as np
-from holoviews.element.chart import Curve
+from holoviews.element.chart import Curve, Histogram
 
 from spearmint import distributions
 from spearmint.config import COLORS, FIGURE_PARAMS, POINTS_PLOT_PARAMS
-from spearmint.typing import FilePath, Optional
+from spearmint.typing import FilePath, Optional, Union
 from spearmint.utils import format_value
 
 DEFAULT_COLOR = COLORS.blue
@@ -227,8 +227,57 @@ def plot_kde(
     label: str = "KDE",
     **plot_kwargs,
 ) -> Curve:
+    """Plot a Kernel-density estimator of the empriical distribution of `samples`
+
+    Parameters
+    ----------
+    samples : np.ndarray
+        The samples to display
+    color : str, optional
+        The color of the distrubution line, by default DEFAULT_COLOR
+    label : str, optional
+        The legend lable for the distribution, by default "Poisson"
+
+    Returns
+    -------
+    distribution_curve: Curve
+        A holoviews Curve element.
+    """
     return distributions.Kde(samples=samples, label=label, color=color).plot(
         **plot_kwargs
+    )
+
+
+def plot_histogram(
+    samples: np.ndarray,
+    label: str = "Histogram",
+    color: str = DEFAULT_COLOR,
+    bins: Union[int, np.ndarray] = 25,
+    alpha: float = 0.5,
+) -> Histogram:
+    """Plot a Histogram of the empriical distribution of `samples`
+
+    Parameters
+    ----------
+    samples : np.ndarray
+        The samples to display
+    label : str, optional
+        The legend lable for the distribution, by default "Poisson"
+    color : str, optional
+        The color of the distrubution line, by default DEFAULT_COLOR
+    bins : int | np.ndarray
+        Similar args to numpy.histogram.
+    alpha : float
+        The transparency level of the histogram bars.
+
+    Returns
+    -------
+    histogram: Histogram
+        A holoviews Histogram element.
+    """
+    hist = np.histogram(samples.data, density=True, bins=bins)
+    return hv.Histogram(hist, vdims="pdf", label=label).opts(
+        facecolor=color, alpha=alpha
     )
 
 
