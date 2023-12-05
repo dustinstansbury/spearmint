@@ -1,3 +1,8 @@
+## [0.0.2] - 2023-12-04
+- Bug fix in for "smaller" hypotheses using Bayesian inference
+- Some visualization improvements
+- Add link to Streamlit demo app in the README
+
 ## [0.0.1] - 2023-11-30
 - Official release
 - Available on PyPi
