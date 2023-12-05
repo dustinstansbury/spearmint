@@ -10,6 +10,8 @@
 ![tests](https://github.com/dustinstansbury/spearmint/actions/workflows/test.yml/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/dustinstansbury/spearmint/graph/badge.svg?token=HZC4CGNLTV)](https://codecov.io/gh/dustinstansbury/spearmint)
 [![Try In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1lbR-0Da196ST-Yq157m4PzUx8cy7WpK_?usp=sharing)
+[![Tru it in Streamlit](https://static.streamlit.io/badges/streamlit_badge_red.svg)](https://ab-testing.streamlit.app)
+
 
 
 ## Features
